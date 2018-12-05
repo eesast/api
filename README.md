@@ -12,7 +12,7 @@ SAST App 后端 API
 
 查看[文档](./doc)
 
-- [] Markdown API 文档
+- [ ] Markdown API 文档
 
 ## 开发
 
@@ -37,7 +37,7 @@ SAST App 后端 API
 
 #### `npm start`
 
-启动开发服务器，自动监听源文件更改。（数据库需要自行启动）
+启动开发服务器，自动监听源文件更改（数据库需要自行启动）
 
 #### `npm run build`
 
