@@ -18,7 +18,7 @@ const router = express.Router();
  * @query {String} class
  * @returns certain users
  */
-router.get("/", authenticate(["root", "writer", "reader"]), (req, res) => {
+router.get("/", (req, res) => {
   let query = {};
   if (req.query) query = req.query;
 
@@ -34,7 +34,7 @@ router.get("/", authenticate(["root", "writer", "reader"]), (req, res) => {
  * @param {Number} id
  * @returns {Object} user with id
  */
-router.get("/:id", authenticate(["root", "writer", "reader"]), (req, res) => {
+router.get("/:id", (req, res) => {
   User.findOne({ id: req.params.id }, "-_id -__v -password", (err, user) => {
     if (err) return res.status(500).end();
     if (!user)
