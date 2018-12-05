@@ -1,6 +1,6 @@
 {
   "name": "sast-app-api",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "scripts": {
     "start": "set DEBUG=sast-app-api & nodemon --exec babel-node ./src/index.js",
@@ -10,6 +10,7 @@
   "dependencies": {
     "bcrypt": "^3.0.2",
     "cookie-parser": "^1.4.3",
+    "cors": "^2.8.5",
     "debug": "^4.1.0",
     "express": "^4.16.0",
     "helmet": "^3.15.0",
