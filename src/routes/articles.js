@@ -9,6 +9,9 @@ const router = express.Router();
  * @query {String} author
  * @query {String} tag
  * @query {Number} likedBy
+ * @query {Number} begin
+ * @query {Number} end
+ * @query {String} noContent
  * @returns {[Object]} certain articles
  */
 router.get("/", (req, res) => {
@@ -17,12 +20,22 @@ router.get("/", (req, res) => {
   if (req.query.author) query.author = req.query.author;
   if (req.query.tag) query.tags = req.query.tag;
   if (req.query.likedBy) query.likers = req.query.likedBy;
+  const begin = parseInt(req.query.begin) || 0;
+  const end = parseInt(req.query.end) || Number.MAX_SAFE_INTEGER;
+  const select =
+    "-_id -__v" +
+    (req.query.noContent && req.query.noContent === "true" ? " -content" : "");
 
-  Article.find(query, "-_id -__v", (err, articles) => {
-    if (err) return res.status(500).end();
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(articles));
-  });
+  Article.find(
+    query,
+    select,
+    { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
+    (err, articles) => {
+      if (err) return res.status(500).end();
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(200).end(JSON.stringify(articles));
+    }
+  );
 });
 
 /**
