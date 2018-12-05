@@ -1,5 +1,6 @@
 import express from "express";
 import Article from "../models/article";
+import authenticate from "../middlewares/authenticate";
 const router = express.Router();
 
 /**
@@ -44,7 +45,7 @@ router.get("/:id", (req, res) => {
  * POST
  * @returns {String} Location header
  */
-router.post("/", (req, res) => {
+router.post("/", authenticate(["root", "writer"]), (req, res) => {
   const newArticle = new Article(req.body);
 
   newArticle.save((err, article) => {
@@ -60,15 +61,27 @@ router.post("/", (req, res) => {
  * @param {Number} id updating article's id
  * @returns {String} Location header or Not Found
  */
-router.put("/:id", (req, res) => {
-  const update = { updatedAt: new Date(), ...req.body };
-  Article.findOneAndUpdate({ id: req.params.id }, update, (err, article) => {
+router.put("/:id", authenticate(["root", "self"]), (req, res) => {
+  Article.findOne({ id: req.params.id }, (err, article) => {
     if (err) return res.status(500).end();
     if (!article)
       return res.status(404).send("404 Not Found: Article does not exist");
 
-    res.setHeader("Location", "/v1/articles/" + article.id);
-    res.status(204).end();
+    if (req.selfCheckRequired) {
+      if (article.authorId !== req.auth.id) {
+        return res.status(401).send("401 Unauthorized: Permission denied");
+      }
+    }
+
+    const update = { updatedAt: new Date(), ...req.body };
+    article.updateOne(update, (err, newArticle) => {
+      if (err) return res.status(500).end();
+      if (!newArticle)
+        return res.status(404).send("404 Not Found: Article does not exist");
+
+      res.setHeader("Location", "/v1/articles/" + newArticle.id);
+      res.status(204).end();
+    });
   });
 });
 
@@ -77,7 +90,7 @@ router.put("/:id", (req, res) => {
  * @param {Number} id deleting article's id
  * @returns {String} No Content or Not Found
  */
-router.delete("/:id", (req, res) => {
+router.delete("/:id", authenticate(["root"]), (req, res) => {
   Article.findOneAndDelete({ id: req.params.id }, (err, article) => {
     if (err) return res.status(500).end();
     if (!article)

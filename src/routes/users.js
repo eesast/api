@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/user";
 import secret from "../config/secret";
+import authenticate from "../middlewares/authenticate";
 const router = express.Router();
 
 /**
@@ -17,7 +18,7 @@ const router = express.Router();
  * @query {String} class
  * @returns certain users
  */
-router.get("/", (req, res) => {
+router.get("/", authenticate(["root", "writer", "reader"]), (req, res) => {
   let query = {};
   if (req.query) query = req.query;
 
@@ -33,7 +34,7 @@ router.get("/", (req, res) => {
  * @param {Number} id
  * @returns {Object} user with id
  */
-router.get("/:id", (req, res) => {
+router.get("/:id", authenticate(["root", "writer", "reader"]), (req, res) => {
   User.findOne({ id: req.params.id }, "-_id -__v -password", (err, user) => {
     if (err) return res.status(500).end();
     if (!user)
@@ -125,7 +126,13 @@ router.post("/forgot", (req, res) => {
  * @param {Number} id updating user's id
  * @returns {String} Location header or Not Found
  */
-router.put("/:id", (req, res) => {
+router.put("/:id", authenticate(["root", "self"]), (req, res) => {
+  if (req.selfCheckRequired) {
+    if (req.params.id !== req.auth.id) {
+      return res.status(401).send("401 Unauthorized: Permission denied");
+    }
+  }
+
   const password = req.body.password;
   if (password) {
     const saltRounds = 10;
@@ -148,7 +155,7 @@ router.put("/:id", (req, res) => {
  * @param {Number} id deleting user's id
  * @returns {String} No Content or Not Found
  */
-router.delete("/:id", (req, res) => {
+router.delete("/:id", authenticate(["root"]), (req, res) => {
   User.findOneAndDelete({ id: req.params.id }, (err, user) => {
     if (err) return res.status(500).end();
     if (!user)

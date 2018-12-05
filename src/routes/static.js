@@ -4,6 +4,7 @@ import uuid from "uuid/v1";
 import path from "path";
 import fs from "fs";
 import serverConfig from "../config/server";
+import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();
 const storage = multer.diskStorage({
@@ -35,11 +36,16 @@ const upload = multer({ storage: storage });
  * @param {String} category directory
  * @returns {String} Location header
  */
-router.post("/:category", upload.single("file"), (req, res) => {
-  const category = req.params.category;
-  res.setHeader("Location", `/static/${category}/` + req.filename);
-  res.status(201).end();
-});
+router.post(
+  "/:category",
+  authenticate(["root", "writer"]),
+  upload.single("file"),
+  (req, res) => {
+    const category = req.params.category;
+    res.setHeader("Location", `/static/${category}/` + req.filename);
+    res.status(201).end();
+  }
+);
 
 /**
  * DELETE
@@ -47,26 +53,31 @@ router.post("/:category", upload.single("file"), (req, res) => {
  * @param {String} filename
  * @returns {String} No Content (success) or Not Found
  */
-router.delete("/:category/:filename", upload.single("file"), (req, res) => {
-  const category = req.params.category;
-  const filename = req.params.filename;
-  const fullPath = path.join(
-    __dirname,
-    serverConfig.staticFilePath,
-    category,
-    filename
-  );
+router.delete(
+  "/:category/:filename",
+  authenticate(["root", "writer"]),
+  upload.single("file"),
+  (req, res) => {
+    const category = req.params.category;
+    const filename = req.params.filename;
+    const fullPath = path.join(
+      __dirname,
+      serverConfig.staticFilePath,
+      category,
+      filename
+    );
 
-  if (!fs.existsSync(fullPath)) {
-    return res.status(404).send("404 Not Found: File does not exist");
-  }
-  fs.unlink(fullPath, err => {
-    if (err) {
-      res.status(500).end();
-    } else {
-      res.status(204).end();
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).send("404 Not Found: File does not exist");
     }
-  });
-});
+    fs.unlink(fullPath, err => {
+      if (err) {
+        res.status(500).end();
+      } else {
+        res.status(204).end();
+      }
+    });
+  }
+);
 
 export default router;
