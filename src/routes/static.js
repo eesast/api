@@ -43,7 +43,7 @@ router.post(
   (req, res) => {
     const category = req.params.category;
     res.setHeader("Location", `/static/${category}/` + req.filename);
-    res.status(201).end();
+    res.status(201).send(`/static/${category}/` + req.filename);
   }
 );
 
