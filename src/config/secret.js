@@ -1,3 +1,3 @@
-import crypto from "crypto";
-
-export default crypto.randomBytes(256);
+export default (process.env.NODE_ENV === "production"
+  ? process.env.SECRET
+  : "sast-app-api");
