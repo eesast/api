@@ -23,6 +23,12 @@ const authenticate = requiredRoles => {
           if (err) return res.status(500).end();
 
           if (!requiredRoles.includes(user.role)) {
+            // leave it to next to see if it accesses `self`
+            if (requiredRoles.includes("self")) {
+              req.selfCheckRequired = true;
+              return next();
+            }
+
             return res.status(401).send("401 Unauthorized: Permission denied");
           }
 
