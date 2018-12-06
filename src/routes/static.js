@@ -3,16 +3,19 @@ import multer from "multer";
 import uuid from "uuid/v1";
 import path from "path";
 import fs from "fs";
+import mkdirp from "mkdirp";
 import serverConfig from "../config/server";
 import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(
-      null,
-      path.join(__dirname, serverConfig.staticFilePath, req.params.category)
+    const dir = path.resolve(
+      __dirname,
+      serverConfig.staticFilePath,
+      req.params.category
     );
+    mkdirp(dir, err => cb(err, dir));
   },
   filename: (req, file, cb) => {
     const dotIndex = file.originalname.lastIndexOf(".");
