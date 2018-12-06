@@ -7,7 +7,8 @@ ENV PYTHON=/usr/bin/python2.7
 WORKDIR /home/node/app
 
 # Install python for node-gyp
-RUN sudo apt-get install -y python2.7
+RUN apt-get update && \
+    apt-get install -y python2.7
 
 # Install app devDependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
@@ -29,7 +30,8 @@ ENV PYTHON=/usr/bin/python2.7
 WORKDIR /home/node/app
 
 # Install python for node-gyp
-RUN sudo apt-get install -y python2.7
+RUN apt-get update && \
+    apt-get install -y python2.7
 
 # Install app dependencies
 COPY package*.json ./
