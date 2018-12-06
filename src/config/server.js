@@ -2,5 +2,6 @@ export default {
   port: "28888",
   keyPath: "",
   certPath: "",
-  staticFilePath: "../../public"
+  staticFilePath:
+    process.env.NODE_ENV === "production" ? "/home/node/public" : "../../public"
 };

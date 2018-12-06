@@ -1,0 +1,19 @@
+language: node_js
+
+node_js: "node"
+
+services:
+  - docker
+
+cache: npm
+
+install:
+  - npm ci
+
+script:
+  - npm run build
+
+after_success:
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker build -t eesast/sast-app-api:$TRAVIS_COMMIT .
+  - docker push eesast/sast-app-api:$TRAVIS_COMMIT

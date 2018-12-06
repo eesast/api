@@ -16,7 +16,7 @@ const debug = Debug("sast-app-api");
  * Connect database.
  */
 mongoose.connect(
-  "mongodb://localhost:27017/sast-app",
+  "mongodb://localhost:27017/sast-app-api",
   {
     useNewUrlParser: true,
     useCreateIndex: true,
