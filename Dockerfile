@@ -20,14 +20,12 @@ RUN npm run build
 
 # Runner stage
 
-FROM node:11
+FROM node:11-alpine
 ENV NODE_ENV=production
-ENV PYTHON=/usr/bin/python2.7
 WORKDIR /home/node/app
 
-# Install app dependencies
-COPY package*.json ./
-RUN npm install --only=production && npm cache clean --force
+# Copy dependencies
+COPY --from=builder /home/node/app/node_modules ./node_modules
 
 # Copy build files
 COPY --from=builder /home/node/app/build ./build
