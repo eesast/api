@@ -5,9 +5,7 @@
  */
 import app from "./app";
 import Debug from "debug";
-import http2 from "spdy";
 import http from "http";
-import fs from "fs";
 import mongoose from "mongoose";
 import serverConfig from "./config/server";
 const debug = Debug("sast-app-api");
@@ -36,18 +34,9 @@ const port = normalizePort(process.env.PORT || serverConfig.port);
 app.set("port", port);
 
 /**
- * Create HTTP (debug) and HTTPS (production) servers.
+ * Create HTTP server.
  */
-let server;
-if (process.env.NODE_ENV === "production") {
-  const httpsOptions = {
-    key: fs.readFileSync(serverConfig.keyPath),
-    cert: fs.readFileSync(serverConfig.certPath)
-  };
-  server = http2.createServer(httpsOptions, app);
-} else {
-  server = http.createServer(app);
-}
+const server = http.createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.
