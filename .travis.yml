@@ -7,6 +7,6 @@ install:
   - npm ci
 script:
   - npm run build
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - docker build -t eesast/sast-app-api:$TRAVIS_COMMIT .
-  - docker push eesast/sast-app-api:$TRAVIS_COMMIT
+  - echo '$DOCKER_PASSWORD' | docker login -u '$DOCKER_USERNAME' --password-stdin
+  - docker build -t yingrui205/sast-app-api:$TRAVIS_COMMIT .
+  - docker push yingrui205/sast-app-api:$TRAVIS_COMMIT
