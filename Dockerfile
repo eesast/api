@@ -25,6 +25,7 @@ ENV NODE_ENV=production
 WORKDIR /home/node/app
 
 # Copy dependencies
+COPY package*.json ./
 COPY --from=builder /home/node/app/node_modules ./node_modules
 
 # Copy build files
