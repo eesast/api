@@ -1,9 +1,13 @@
 # Builder stage
 
 FROM node:11 AS builder
+ENV PYTHON=/usr/bin/python2.7
 
 # Create app directory
 WORKDIR /home/node/app
+
+# Install python for node-gyp
+RUN sudo apt-get install -y python2.7
 
 # Install app devDependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
@@ -21,7 +25,11 @@ RUN npm run build
 
 FROM node:11-alpine
 ENV NODE_ENV=production
+ENV PYTHON=/usr/bin/python2.7
 WORKDIR /home/node/app
+
+# Install python for node-gyp
+RUN sudo apt-get install -y python2.7
 
 # Install app dependencies
 COPY package*.json ./
