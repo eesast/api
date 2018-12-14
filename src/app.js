@@ -8,6 +8,7 @@ import staticRouter from "./routes/static";
 import articleRouter from "./routes/articles";
 import commentRouter from "./routes/comments";
 import userRouter from "./routes/users";
+import serverConfig from "./config/server";
 
 const app = express();
 
@@ -18,7 +19,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.use("/static", express.static(path.join(__dirname, "../public")));
+app.use(
+  "/static",
+  express.static(path.resolve(__dirname, serverConfig.staticFilePath))
+);
 app.use("/static", staticRouter);
 app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);
