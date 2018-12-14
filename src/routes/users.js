@@ -59,6 +59,8 @@ router.post("/", (req, res) => {
     if (err) return res.status(500).end();
 
     req.body.password = hash;
+    req.body.group = "student";
+    req.body.role = "reader";
     const newUser = new User(req.body);
 
     newUser.save((err, user) => {
