@@ -3,5 +3,5 @@ export default {
   keyPath: "",
   certPath: "",
   staticFilePath:
-    process.env.NODE_ENV === "production" ? "/home/node/public" : "../../public"
+    process.env.NODE_ENV === "production" ? "/home/node/public" : "../public"
 };

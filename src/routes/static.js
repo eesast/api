@@ -12,6 +12,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.resolve(
       __dirname,
+      "../",
       serverConfig.staticFilePath,
       req.params.category
     );
