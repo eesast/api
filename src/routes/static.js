@@ -20,8 +20,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const dotIndex = file.originalname.lastIndexOf(".");
     const extention = file.originalname.substring(dotIndex);
-    const filename = file.originalname.substring(0, dotIndex);
-    const newFilename = filename + "_" + uuid() + extention;
+    const newFilename = uuid() + extention;
     req.filename = newFilename;
     cb(null, newFilename);
   }
