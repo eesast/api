@@ -86,7 +86,7 @@ router.post("/login", (req, res) => {
       .status(422)
       .send("422 Unprocessable Entity: Missing credentials");
 
-  const query = id ? { id } : username ? { username } : { email };
+  const query = { username };
   User.findOne(query, (err, user) => {
     if (err) return res.status(500).end();
     if (!user)
