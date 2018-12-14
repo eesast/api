@@ -1,6 +1,6 @@
 {
   "name": "sast-app-api",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "start": "set DEBUG=sast-app-api & nodemon --exec babel-node ./src/index.js",
@@ -16,7 +16,7 @@
     "helmet": "^3.15.0",
     "jsonwebtoken": "^8.4.0",
     "mkdirp": "^0.5.1",
-    "mongoose": "^5.3.16",
+    "mongoose": "^5.4.0",
     "morgan": "^1.9.0",
     "multer": "^1.4.1",
     "uuid": "^3.3.2"
@@ -29,7 +29,7 @@
     "eslint": "^5.10.0",
     "eslint-config-prettier": "^3.3.0",
     "eslint-plugin-prettier": "^3.0.0",
-    "nodemon": "^1.18.8",
+    "nodemon": "^1.18.9",
     "prettier": "^1.15.3"
   }
 }
