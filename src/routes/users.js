@@ -130,7 +130,7 @@ router.post("/forgot", (req, res) => {
  */
 router.put("/:id", authenticate(["root", "self"]), (req, res) => {
   if (req.selfCheckRequired) {
-    if (req.params.id !== req.auth.id) {
+    if (parseFloat(req.params.id) !== req.auth.id) {
       return res.status(401).send("401 Unauthorized: Permission denied");
     }
   }
