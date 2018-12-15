@@ -7,6 +7,7 @@ const router = express.Router();
  * GET
  * @query {String} title -> partial match
  * @query {String} author
+ * @query {String} alias
  * @query {String} tag
  * @query {Number} likedBy
  * @query {Number} begin
@@ -18,6 +19,7 @@ router.get("/", (req, res) => {
   let query = {};
   if (req.query.title) query.title = { $regex: req.query.title, $options: "i" };
   if (req.query.author) query.author = req.query.author;
+  if (req.query.alias) query.alias = req.query.alias;
   if (req.query.tag) query.tags = req.query.tag;
   if (req.query.likedBy) query.likers = req.query.likedBy;
   const begin = parseInt(req.query.begin) || 0;
