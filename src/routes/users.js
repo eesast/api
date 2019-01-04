@@ -16,17 +16,25 @@ const router = express.Router();
  * @query {Number} phone
  * @query {String} department
  * @query {String} class
+ * @query {Number} begin
+ * @query {Number} end
  * @returns certain users
  */
 router.get("/", (req, res) => {
   let query = {};
-  if (req.query) query = req.query;
+  const begin = parseInt(req.query.begin) || 0;
+  const end = parseInt(req.query.end) || Number.MAX_SAFE_INTEGER;
 
-  User.find(query, "-_id -__v -password", (err, users) => {
-    if (err) return res.status(500).end();
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(users));
-  });
+  User.find(
+    query,
+    "-_id -__v -password",
+    { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
+    (err, users) => {
+      if (err) return res.status(500).end();
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(200).end(JSON.stringify(users));
+    }
+  );
 });
 
 /**
