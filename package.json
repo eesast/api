@@ -1,6 +1,6 @@
 {
   "name": "sast-app-api",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "start": "set DEBUG=sast-app-api & nodemon --exec babel-node ./src/index.js",
@@ -8,27 +8,27 @@
     "serve": "NODE_ENV=production node ./build/index.js"
   },
   "dependencies": {
-    "bcrypt": "^3.0.2",
+    "bcrypt": "^3.0.3",
     "cookie-parser": "^1.4.3",
     "cors": "^2.8.5",
-    "debug": "^4.1.0",
+    "debug": "^4.1.1",
     "express": "^4.16.0",
     "helmet": "^3.15.0",
     "jsonwebtoken": "^8.4.0",
     "mkdirp": "^0.5.1",
-    "mongoose": "^5.4.0",
+    "mongoose": "^5.4.2",
     "morgan": "^1.9.0",
     "multer": "^1.4.1",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
-    "@babel/cli": "^7.2.0",
-    "@babel/core": "^7.2.0",
-    "@babel/node": "^7.2.0",
-    "@babel/preset-env": "^7.2.0",
-    "eslint": "^5.10.0",
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.2.2",
+    "@babel/node": "^7.2.2",
+    "@babel/preset-env": "^7.2.3",
+    "eslint": "^5.11.1",
     "eslint-config-prettier": "^3.3.0",
-    "eslint-plugin-prettier": "^3.0.0",
+    "eslint-plugin-prettier": "^3.0.1",
     "nodemon": "^1.18.9",
     "prettier": "^1.15.3"
   }
