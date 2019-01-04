@@ -15,7 +15,9 @@ const debug = Debug("sast-app-api");
  */
 const localhost =
   process.env.LOCALHOST ||
-  (process.env.NODE_ENV === production ? "host.docker.internal" : "localhost");
+  (process.env.NODE_ENV === "production"
+    ? "host.docker.internal"
+    : "localhost");
 mongoose.connect(
   `mongodb://${localhost}:27017/sast-app-api`,
   {
