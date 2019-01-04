@@ -18,6 +18,8 @@ const authenticate = requiredRoles => {
         delete decoded.reset;
         delete decoded.iat;
         delete decoded.exp;
+        delete decoded.group;
+        delete decoded.role;
 
         User.findOne(decoded, (err, user) => {
           if (err) return res.status(500).end();
