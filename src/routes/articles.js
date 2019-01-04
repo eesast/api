@@ -13,6 +13,7 @@ const router = express.Router();
  * @query {Number} begin
  * @query {Number} end
  * @query {String} noContent
+ * @query {Boolean} imvisible
  * @returns {[Object]} certain articles
  */
 router.get("/", (req, res) => {
@@ -22,6 +23,7 @@ router.get("/", (req, res) => {
   if (req.query.alias) query.alias = req.query.alias;
   if (req.query.tag) query.tags = req.query.tag;
   if (req.query.likedBy) query.likers = req.query.likedBy;
+  if (!req.query.imvisible) query.visible = true;
   const begin = parseInt(req.query.begin) || 0;
   const end = parseInt(req.query.end) || Number.MAX_SAFE_INTEGER;
   const select =
@@ -89,6 +91,7 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
     }
 
     const update = { updatedAt: new Date(), ...req.body };
+    console.log(update);
     article.updateOne(update, (err, newArticle) => {
       if (err) return res.status(500).end();
       if (!newArticle)
