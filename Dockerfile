@@ -1,7 +1,6 @@
 # Builder stage
 
 FROM node:11 AS builder
-ENV PYTHON=/usr/bin/python2.7
 
 # Create app directory
 WORKDIR /home/node/app
@@ -20,7 +19,7 @@ RUN npm run build
 
 # Runner stage
 
-FROM node:11-alpine
+FROM node:11
 ENV NODE_ENV=production
 WORKDIR /home/node/app
 
