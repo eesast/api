@@ -1,6 +1,6 @@
 {
   "name": "sast-app-api",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "private": true,
   "scripts": {
     "start": "set DEBUG=sast-app-api & nodemon --exec babel-node ./src/index.js",
