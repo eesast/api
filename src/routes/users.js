@@ -20,7 +20,7 @@ const router = express.Router();
  * @query {Number} end
  * @returns certain users
  */
-router.get("/", (req, res) => {
+router.get("/", authenticate(), (req, res) => {
   let query = {};
   const begin = parseInt(req.query.begin) || 0;
   const end = parseInt(req.query.end) || Number.MAX_SAFE_INTEGER;
@@ -42,7 +42,7 @@ router.get("/", (req, res) => {
  * @param {Number} id
  * @returns {Object} user with id
  */
-router.get("/:id", (req, res) => {
+router.get("/:id", authenticate(), (req, res) => {
   User.findOne({ id: req.params.id }, "-_id -__v -password", (err, user) => {
     if (err) return res.status(500).end();
     if (!user)
