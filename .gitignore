@@ -66,3 +66,6 @@ build
 # test data and file
 database
 public
+
+# VSCode
+.vscode/
