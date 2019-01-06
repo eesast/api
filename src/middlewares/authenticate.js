@@ -13,7 +13,9 @@ const authenticate = requiredRoles => {
       const token = authHeader.substring(7);
       jwt.verify(token, secret, (err, decoded) => {
         if (err)
-          res.status(401).send("401 Unauthorized: Token expired or invalid");
+          return res
+            .status(401)
+            .send("401 Unauthorized: Token expired or invalid");
         if (!requiredRoles || requiredRoles.length === 0) return next();
 
         req.auth = decoded;
