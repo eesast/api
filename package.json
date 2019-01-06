@@ -1,9 +1,10 @@
 {
   "name": "sast-app-api",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "scripts": {
-    "start": "set DEBUG=sast-app-api & nodemon --exec babel-node ./src/index.js",
+    "start": "nodemon --exec babel-node ./src/index.js",
+    "debug": "nodemon --inspect ./bin/www",
     "build": "babel src -d build",
     "serve": "NODE_ENV=production node ./build/index.js"
   },
@@ -29,7 +30,25 @@
     "eslint": "^5.11.1",
     "eslint-config-prettier": "^3.3.0",
     "eslint-plugin-prettier": "^3.0.1",
+    "husky": "^1.3.1",
+    "lint-staged": "^8.1.0",
     "nodemon": "^1.18.9",
     "prettier": "^1.15.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "nodemonConfig": {
+    "env": {
+      "DEBUG": "sast-app-api"
+    }
   }
 }
