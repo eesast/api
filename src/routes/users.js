@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import User from "../models/user";
 import secret from "../config/secret";
 import authenticate from "../middlewares/authenticate";
+import checkToken from "../middlewares/checkToken";
 const router = express.Router();
 
 /**
@@ -18,16 +19,22 @@ const router = express.Router();
  * @query {String} class
  * @query {Number} begin
  * @query {Number} end
+ * @query {Boolean} detailInfo
  * @returns certain users
  */
 router.get("/", authenticate(), (req, res) => {
   let query = {};
+  let select = "-_id -__v -password";
   const begin = parseInt(req.query.begin) || 0;
   const end = parseInt(req.query.end) || Number.MAX_SAFE_INTEGER;
+  if (!req.query.detailInfo || req.query.detailInfo.toString() === "false") {
+    select =
+      select + " -group -role -username -email -phone -department -class";
+  }
 
   User.find(
     query,
-    "-_id -__v -password",
+    select,
     { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
     (err, users) => {
       if (err) return res.status(500).end();
@@ -40,10 +47,21 @@ router.get("/", authenticate(), (req, res) => {
 /**
  * GET
  * @param {Number} id
+ * @query {Boolean} detailInfo
  * @returns {Object} user with id
  */
-router.get("/:id", authenticate(), (req, res) => {
-  User.findOne({ id: req.params.id }, "-_id -__v -password", (err, user) => {
+router.get("/:id", checkToken, (req, res) => {
+  let select = "-_id -__v -password";
+  if (
+    !req.tokenValid ||
+    !req.query.detailInfo ||
+    req.query.detailInfo.toString() === "false"
+  ) {
+    select =
+      select + " -group -role -username -email -phone -department -class";
+  }
+
+  User.findOne({ id: req.params.id }, select, (err, user) => {
     if (err) return res.status(500).end();
     if (!user)
       return res.status(404).send("404 Not Found: User does not exist");
