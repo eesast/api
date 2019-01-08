@@ -91,7 +91,6 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
     }
 
     const update = { updatedAt: new Date(), ...req.body };
-    console.log(update);
     article.updateOne(update, (err, newArticle) => {
       if (err) return res.status(500).end();
       if (!newArticle)
