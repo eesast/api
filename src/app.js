@@ -8,6 +8,8 @@ import staticRouter from "./routes/static";
 import articleRouter from "./routes/articles";
 import commentRouter from "./routes/comments";
 import userRouter from "./routes/users";
+import itemRouter from "./routes/items";
+import reservationRouter from "./routes/reservations";
 import serverConfig from "./config/server";
 
 const app = express();
@@ -31,5 +33,7 @@ app.use("/static", staticRouter);
 app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);
 app.use("/v1/users", userRouter);
+app.use("/v1/items", itemRouter);
+app.use("/v1/reservations", reservationRouter);
 
 export default app;
