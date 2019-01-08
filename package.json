@@ -1,10 +1,9 @@
 {
   "name": "sast-app-api",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "private": true,
   "scripts": {
     "start": "nodemon --exec babel-node ./src/index.js",
-    "debug": "nodemon --inspect ./bin/www",
     "build": "babel src -d build",
     "serve": "NODE_ENV=production node ./build/index.js"
   },
