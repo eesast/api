@@ -1,7 +1,7 @@
 const groups = ["admin", "student"];
 
 const roles = {
-  admin: ["root"],
+  admin: ["root", "keeper"],
   student: ["reader", "writer"]
 };
 
@@ -10,6 +10,11 @@ const authorizations = {
     read: ["weekly", "resource", "user"],
     write: ["weekly", "resource", "user"],
     execute: ["weekly", "resource", "user"]
+  },
+  keeper: {
+    read: ["weekly", "resource", "user"],
+    write: ["resource"],
+    execute: ["resource"]
   },
   reader: {
     read: ["weekly", "resource", "user"],
