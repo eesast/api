@@ -36,6 +36,15 @@ router.get("/", (req, res) => {
     { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
     (err, articles) => {
       if (err) return res.status(500).end();
+
+      if (query.alias) {
+        Article.findOneAndUpdate(
+          { id: articles[0].id },
+          { $inc: { views: 1 } },
+          () => {}
+        );
+      }
+
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.status(200).end(JSON.stringify(articles));
     }
@@ -56,6 +65,46 @@ router.get("/:id", (req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.status(200).end(JSON.stringify(article));
   });
+});
+
+/**
+ * GET
+ * @param {Number} id
+ * @returns {Object} article with id
+ */
+router.get("/:id/like", authenticate(), (req, res) => {
+  Article.findOneAndUpdate(
+    { id: req.params.id },
+    { $addToSet: { likers: req.auth.id } },
+    (err, article) => {
+      if (err) return res.status(500).end();
+      if (!article)
+        return res.status(404).send("404 Not Found: Article does not exist");
+
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(204).end();
+    }
+  );
+});
+
+/**
+ * GET
+ * @param {Number} id
+ * @returns {Object} article with id
+ */
+router.get("/:id/unlike", authenticate(), (req, res) => {
+  Article.findOneAndUpdate(
+    { id: req.params.id },
+    { $pullAll: { likers: [req.auth.id] } },
+    (err, article) => {
+      if (err) return res.status(500).end();
+      if (!article)
+        return res.status(404).send("404 Not Found: Article does not exist");
+
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(204).end();
+    }
+  );
 });
 
 /**

@@ -42,6 +42,47 @@ router.get("/:id", (req, res) => {
 });
 
 /**
+ * GET
+ * @param {Number} id
+ * @returns {Object} comment with id
+ */
+router.get("/:id/like", authenticate(), (req, res) => {
+  Comment.findOneAndUpdate(
+    { id: req.params.id },
+    { $addToSet: { likers: req.auth.id } },
+    (err, comment) => {
+      if (err) return res.status(500).end();
+      if (!comment)
+        return res.status(404).send("404 Not Found: Comment does not exist");
+      console.log(comment);
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(204).end();
+    }
+  );
+});
+
+/**
+ * GET
+ * @param {Number} id
+ * @returns {Object} comment with id
+ */
+router.get("/:id/unlike", authenticate(), (req, res) => {
+  Comment.findOneAndUpdate(
+    { id: req.params.id },
+    { $pullAll: { likers: [req.auth.id] } },
+    (err, comment) => {
+      console.log(err);
+      if (err) return res.status(500).end();
+      if (!comment)
+        return res.status(404).send("404 Not Found: Comment does not exist");
+
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(204).end();
+    }
+  );
+});
+
+/**
  * POST
  * @returns {String} Location header
  */
