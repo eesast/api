@@ -16,9 +16,10 @@ const authenticate = requiredRoles => {
           return res
             .status(401)
             .send("401 Unauthorized: Token expired or invalid");
-        if (!requiredRoles || requiredRoles.length === 0) return next();
 
         req.auth = decoded;
+        if (!requiredRoles || requiredRoles.length === 0) return next();
+
         delete decoded.reset;
         delete decoded.iat;
         delete decoded.exp;
