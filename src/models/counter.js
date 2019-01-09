@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 
 /**
- * Used for auto increment id
+ * Counter schema
+ * Used for auto-increment id
  */
 const counterSchema = new mongoose.Schema(
   {

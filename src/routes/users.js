@@ -5,21 +5,22 @@ import User from "../models/user";
 import secret from "../config/secret";
 import authenticate from "../middlewares/authenticate";
 import checkToken from "../middlewares/checkToken";
+
 const router = express.Router();
 
 /**
- * GET
- * @query {String} username
- * @query {String} group
- * @query {String} role
- * @query {String} email
- * @query {String} name
- * @query {Number} phone
- * @query {String} department
- * @query {String} class
- * @query {Number} begin
- * @query {Number} end
- * @query {Boolean} detailInfo
+ * GET users with queries
+ * @param {string} username
+ * @param {string} group
+ * @param {string} role
+ * @param {string} email
+ * @param {string} name
+ * @param {number} phone
+ * @param {string} department
+ * @param {string} class
+ * @param {number} begin
+ * @param {number} end
+ * @param {boolean} detailInfo
  * @returns certain users
  */
 router.get("/", authenticate(), (req, res) => {
@@ -45,9 +46,9 @@ router.get("/", authenticate(), (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
- * @query {Boolean} detailInfo
+ * GET user of Id
+ * @param {number} id
+ * @param {boolean} detailInfo
  * @returns {Object} user with id
  */
 router.get("/:id", checkToken, (req, res) => {
@@ -72,8 +73,8 @@ router.get("/:id", checkToken, (req, res) => {
 });
 
 /**
- * POST
- * @returns {String} Location header
+ * POST new user
+ * @returns Location header
  */
 router.post("/", (req, res) => {
   const password = req.body.password;
@@ -99,8 +100,8 @@ router.post("/", (req, res) => {
 });
 
 /**
- * POST
- * @returns {String} token
+ * POST login form
+ * @returns {string} token
  */
 router.post("/login", (req, res) => {
   const id = req.body.id;
@@ -145,7 +146,7 @@ router.post("/login", (req, res) => {
 });
 
 /**
- * POST
+ * POST i-forgot password retrieval
  * @returns No Content or Not Found
  */
 router.post("/forgot", (req, res) => {
@@ -153,9 +154,9 @@ router.post("/forgot", (req, res) => {
 });
 
 /**
- * PUT
- * @param {Number} id updating user's id
- * @returns {String} Location header or Not Found
+ * PUT existing user
+ * @param {number} id - updating user's id
+ * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "self"]), (req, res) => {
   if (req.selfCheckRequired) {
@@ -182,9 +183,9 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
 });
 
 /**
- * DELETE
- * @param {Number} id deleting user's id
- * @returns {String} No Content or Not Found
+ * DELETE a user of Id
+ * @param {number} id - deleting user's id
+ * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root"]), (req, res) => {
   User.findOneAndDelete({ id: req.params.id }, (err, user) => {

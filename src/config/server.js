@@ -1,3 +1,7 @@
+/**
+ * Server related config
+ */
+
 export default {
   port: "28888",
   keyPath: "",

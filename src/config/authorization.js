@@ -1,3 +1,7 @@
+/**
+ * Define authorization spec
+ */
+
 const groups = ["admin", "student"];
 
 const roles = {

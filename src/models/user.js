@@ -1,9 +1,12 @@
 import mongoose from "mongoose";
 
+/**
+ * User schema
+ */
 const userSchema = new mongoose.Schema(
   {
-    id: { type: Number, required: true, unique: true }, // student ID
-    username: { type: String, unique: true },
+    id: { type: Number, required: true, unique: true }, // user ID
+    username: { type: String, unique: true }, // alphanumeric string
     group: { type: String, required: true },
     role: { type: String, required: true },
     password: { type: String, required: true },

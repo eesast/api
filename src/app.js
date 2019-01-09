@@ -15,11 +15,14 @@ import serverConfig from "./config/server";
 const app = express();
 
 app.use(helmet());
+
+// Enable header access in client
 app.use(
   cors({
     exposedHeaders: "Location"
   })
 );
+
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

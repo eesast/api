@@ -1,18 +1,19 @@
 import express from "express";
 import Reservation from "../models/reservation";
 import authenticate from "../middlewares/authenticate";
+
 const router = express.Router();
 
 /**
- * GET
- * @query {Number} itemId
- * @query {Number} userId
- * @query {Date} from -- ISO date
- * @query {Date} to
- * @query {Number} begin
- * @query {Number} end
- * @query {String} roomOnly
- * @returns {[Object]} certain reservations
+ * GET reservations with queries
+ * @param {number} itemId
+ * @param {number} userId
+ * @param {Date} from - ISO date
+ * @param {Date} to
+ * @param {number} begin
+ * @param {number} end
+ * @param {string} roomOnly
+ * @returns {Object[]} certain reservations
  */
 router.get("/", (req, res) => {
   let query = {};
@@ -47,8 +48,8 @@ router.get("/", (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
+ * GET reservation of Id
+ * @param {number} id
  * @returns {Object} reservation with id
  */
 router.get("/:id", (req, res) => {
@@ -69,8 +70,8 @@ router.get("/:id", (req, res) => {
 });
 
 /**
- * POST
- * @returns {String} Location header
+ * POST new reservation
+ * @returns Location header
  */
 router.post("/", authenticate(), (req, res) => {
   if (req.body.from) req.body.from = new Date(req.body.from);
@@ -86,9 +87,9 @@ router.post("/", authenticate(), (req, res) => {
 });
 
 /**
- * PUT
- * @param {Number} id updating reservation's id
- * @returns {String} Location header or Not Found
+ * PUT existing reservation
+ * @param {number} id - updating reservation's id
+ * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
   Reservation.findOne({ id: req.params.id }, (err, reservation) => {
@@ -111,9 +112,9 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
 });
 
 /**
- * DELETE
- * @param {Number} id deleting reservation's id
- * @returns {String} No Content or Not Found
+ * DELETE a reservation of Id
+ * @param {number} id - deleting reservation's id
+ * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
   Reservation.findOneAndDelete({ id: req.params.id }, (err, reservation) => {

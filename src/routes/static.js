@@ -30,14 +30,14 @@ const upload = multer({ storage: storage });
 
 /**
  * GET
- * get static files
- * use express.static in `app.js`
+ * Get static files
+ * Use `express.static()` in `app.js`
  */
 
 /**
- * POST
- * @param {String} category directory
- * @returns {String} Location header
+ * POST new files
+ * @param {string} category directory
+ * @returns Location header
  */
 router.post(
   "/:category",
@@ -51,10 +51,10 @@ router.post(
 );
 
 /**
- * DELETE
- * @param {String} category directory
- * @param {String} filename
- * @returns {String} No Content (success) or Not Found
+ * DELETE file
+ * @param {string} category - local directory
+ * @param {string} filename
+ * @returns No Content or Not Found
  */
 router.delete(
   "/:category/:filename",

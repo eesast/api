@@ -1,15 +1,16 @@
 import express from "express";
 import Item from "../models/item";
 import authenticate from "../middlewares/authenticate";
+
 const router = express.Router();
 
 /**
- * GET
- * @query {String} name
- * @query {Boolean} available
- * @query {Number} begin
- * @query {Number} end
- * @returns {[Object]} certain items
+ * GET items with queries
+ * @param {string} name
+ * @param {boolean} available
+ * @param {number} begin
+ * @param {number} end
+ * @returns {Object[]} certain items
  */
 router.get("/", authenticate(), (req, res) => {
   let query = {};
@@ -31,8 +32,8 @@ router.get("/", authenticate(), (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
+ * GET a item of Id
+ * @param {number} id
  * @returns {Object} item with id
  */
 router.get("/:id", (req, res) => {
@@ -47,8 +48,8 @@ router.get("/:id", (req, res) => {
 });
 
 /**
- * POST
- * @returns {String} Location header
+ * POST new item
+ * @returns Location header
  */
 router.post("/", authenticate(["root", "keeper"]), (req, res) => {
   const newItem = new Item(req.body);
@@ -62,9 +63,9 @@ router.post("/", authenticate(["root", "keeper"]), (req, res) => {
 });
 
 /**
- * PUT
- * @param {Number} id updating item's id
- * @returns {String} Location header or Not Found
+ * PUT existing item
+ * @param {number} id - updating item's id
+ * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
   Item.findOne({ id: req.params.id }, (err, item) => {
@@ -85,9 +86,9 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
 });
 
 /**
- * DELETE
- * @param {Number} id deleting item's id
- * @returns {String} No Content or Not Found
+ * DELETE an item of Id
+ * @param {number} id - deleting item's id
+ * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
   Item.findOneAndDelete({ id: req.params.id }, (err, item) => {

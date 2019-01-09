@@ -1,20 +1,21 @@
 import express from "express";
 import Article from "../models/article";
 import authenticate from "../middlewares/authenticate";
+
 const router = express.Router();
 
 /**
- * GET
- * @query {String} title -> partial match
- * @query {String} author
- * @query {String} alias
- * @query {String} tag
- * @query {Number} likedBy
- * @query {Number} begin
- * @query {Number} end
- * @query {String} noContent
- * @query {Boolean} imvisible
- * @returns {[Object]} certain articles
+ * GET articles with queries
+ * @param {string} title - Title will be partial matched
+ * @param {string} author
+ * @param {string} alias
+ * @param {string} tag
+ * @param {number} likedBy - liker's Id
+ * @param {number} begin
+ * @param {number} end
+ * @param {boolean} noContent
+ * @param {boolean} imvisible
+ * @returns {Object[]} certain articles
  */
 router.get("/", (req, res) => {
   let query = {};
@@ -52,8 +53,8 @@ router.get("/", (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
+ * GET article of Id
+ * @param {number} id - article Id
  * @returns {Object} article with id
  */
 router.get("/:id", (req, res) => {
@@ -68,9 +69,9 @@ router.get("/:id", (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
- * @returns {Object} article with id
+ * Set likers of the article of Id
+ * @param {number} id
+ * @returns No Content or Not Found
  */
 router.get("/:id/like", authenticate(), (req, res) => {
   Article.findOneAndUpdate(
@@ -88,9 +89,9 @@ router.get("/:id/like", authenticate(), (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
- * @returns {Object} article with id
+ * Remove likers from the article of Id
+ * @param {number} id
+ * @returns No Content or Not Found
  */
 router.get("/:id/unlike", authenticate(), (req, res) => {
   Article.findOneAndUpdate(
@@ -108,8 +109,8 @@ router.get("/:id/unlike", authenticate(), (req, res) => {
 });
 
 /**
- * POST
- * @returns {String} Location header
+ * POST new article
+ * @returns Location header
  */
 router.post("/", authenticate(["root", "writer"]), (req, res) => {
   const newArticle = new Article(req.body);
@@ -123,9 +124,9 @@ router.post("/", authenticate(["root", "writer"]), (req, res) => {
 });
 
 /**
- * PUT
- * @param {Number} id updating article's id
- * @returns {String} Location header or Not Found
+ * PUT existing article
+ * @param {number} id - updating article's id
+ * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "self"]), (req, res) => {
   Article.findOne({ id: req.params.id }, (err, article) => {
@@ -152,9 +153,9 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
 });
 
 /**
- * DELETE
- * @param {Number} id deleting article's id
- * @returns {String} No Content or Not Found
+ * DELETE an article of Id
+ * @param {Number} id - deleting article's id
+ * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root"]), (req, res) => {
   Article.findOneAndDelete({ id: req.params.id }, (err, article) => {

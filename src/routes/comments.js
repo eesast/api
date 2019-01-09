@@ -1,15 +1,16 @@
 import express from "express";
 import Comment from "../models/comment";
 import authenticate from "../middlewares/authenticate";
+
 const router = express.Router();
 
 /**
- * GET
- * @query {Number} replyTo
- * @query {Number} likedBy
- * @query {Number} articleId
- * @query {Number} authorId
- * @returns certain articles
+ * GET comments with queries
+ * @param {number} replyTo
+ * @param {number} likedBy
+ * @param {number} articleId
+ * @param {number} authorId
+ * @returns {Object[]} certain articles
  */
 router.get("/", (req, res) => {
   let query = {};
@@ -26,8 +27,8 @@ router.get("/", (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
+ * GET a comment of Id
+ * @param {number} id
  * @returns {Object} comment with id
  */
 router.get("/:id", (req, res) => {
@@ -42,9 +43,9 @@ router.get("/:id", (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
- * @returns {Object} comment with id
+ * Set likers of the comment of Id
+ * @param {number} id
+ * @returns No Content or Not Found
  */
 router.get("/:id/like", authenticate(), (req, res) => {
   Comment.findOneAndUpdate(
@@ -62,9 +63,9 @@ router.get("/:id/like", authenticate(), (req, res) => {
 });
 
 /**
- * GET
- * @param {Number} id
- * @returns {Object} comment with id
+ * Remove likers from the comment of Id
+ * @param {number} id
+ * @returns No Content or Not Found
  */
 router.get("/:id/unlike", authenticate(), (req, res) => {
   Comment.findOneAndUpdate(
@@ -83,8 +84,8 @@ router.get("/:id/unlike", authenticate(), (req, res) => {
 });
 
 /**
- * POST
- * @returns {String} Location header
+ * POST new comment
+ * @returns Location header
  */
 router.post("/", authenticate(["root", "writer", "reader"]), (req, res) => {
   const newComment = new Comment(req.body);
@@ -98,9 +99,9 @@ router.post("/", authenticate(["root", "writer", "reader"]), (req, res) => {
 });
 
 /**
- * PUT
- * @param {Number} id updating comment's id
- * @returns {String} Location header or Not Found
+ * PUT existing comment
+ * @param {number} id - updating comment's id
+ * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "self"]), (req, res) => {
   Comment.findOne({ id: req.params.id }, (err, comment) => {
@@ -127,9 +128,9 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
 });
 
 /**
- * DELETE
- * @param {Number} id deleting comment's id
- * @returns {String} No Content or Not Found
+ * DELETE a comment of Id
+ * @param {number} id - deleting comment's id
+ * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root", "self"]), (req, res) => {
   Comment.findOne({ id: req.params.id }, (err, comment) => {
