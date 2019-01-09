@@ -11,6 +11,7 @@ const router = express.Router();
  * @query {Date} to
  * @query {Number} begin
  * @query {Number} end
+ * @query {String} roomOnly
  * @returns {[Object]} certain reservations
  */
 router.get("/", (req, res) => {
@@ -27,6 +28,9 @@ router.get("/", (req, res) => {
       $gte: new Date(req.query.to),
       $lt: new Date().setDate(new Date(req.query.to).getDate() + 1)
     };
+  if (req.query.roomOnly && req.query.roomOnly === "true") query.itemId = -1;
+  if (!req.query.roomOnly || req.query.roomOnly === "false")
+    query.itemId = { $ne: -1 };
   const begin = parseInt(req.query.begin) || 0;
   const end = parseInt(req.query.end) || Number.MAX_SAFE_INTEGER;
 
@@ -69,6 +73,8 @@ router.get("/:id", (req, res) => {
  * @returns {String} Location header
  */
 router.post("/", authenticate(), (req, res) => {
+  if (req.body.from) req.body.from = new Date(req.body.from);
+  if (req.body.to) req.body.to = new Date(req.body.to);
   const newReservation = new Reservation(req.body);
 
   newReservation.save((err, reservation) => {
