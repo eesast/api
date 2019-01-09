@@ -12,22 +12,20 @@ SAST App 后端 API
 
 ## API 接口
 
-查看[文档](./doc)
-
-- [ ] Markdown API 文档
+查看 [API 实现](./src/routes)
 
 ## 开发
 
 ### 环境
 
-- Node ^11.3.0
+- Node ^11.6.0
 - MongoDB ^4.0.4
 
 ### 工具
 
 - VSCode
 
-  - Prettier
+  - Prettier / ESLint
 
 - MongoDB Compass Community
 
