@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import counter from "./counter";
+import Counter from "./counter";
 
 const articleSchema = new mongoose.Schema(
   {
@@ -11,7 +11,6 @@ const articleSchema = new mongoose.Schema(
     image: String, // title image
     content: { type: String, required: true }, // markdown
     views: { type: Number, default: 0 },
-    likes: { type: Number, default: 0 },
     likers: [Number], // likers' ids
     tags: [String],
     visible: { type: Boolean, default: false },
@@ -31,7 +30,7 @@ const articleSchema = new mongoose.Schema(
  */
 articleSchema.pre("save", function(next) {
   const doc = this;
-  counter.findByIdAndUpdate(
+  Counter.findByIdAndUpdate(
     "article",
     { $inc: { count: 1 } },
     { new: true, upsert: true },

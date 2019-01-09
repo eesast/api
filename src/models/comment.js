@@ -7,8 +7,7 @@ const commentSchema = new mongoose.Schema(
     authorId: { type: Number, required: true },
     articleId: { type: Number, required: true }, // article's id
     content: { type: String, required: true }, // markdown
-    replyTo: { type: Number, required: true }, // null means it's the parent，otherwise refers to its parent
-    likes: { type: Number, default: 0 },
+    replyTo: { type: Number, required: true }, // -1 means it's the parent，otherwise refers to its parent
     likers: [Number],
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
