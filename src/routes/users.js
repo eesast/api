@@ -126,6 +126,7 @@ router.post("/login", (req, res) => {
           {
             id: user.id,
             username: user.username,
+            name: user.name,
             email: user.email,
             group: user.group,
             role: user.role
