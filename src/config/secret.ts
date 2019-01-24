@@ -4,4 +4,4 @@
 
 export default (process.env.NODE_ENV === "production"
   ? process.env.SECRET
-  : "sast-app-api");
+  : "sast-app-api") as string;

@@ -1,9 +1,9 @@
-import express from "express";
-import multer from "multer";
-import uuid from "uuid/v1";
-import path from "path";
-import fs from "fs";
-import mkdirp from "mkdirp";
+import * as express from "express";
+import * as fs from "fs";
+import * as mkdirp from "mkdirp";
+import * as multer from "multer";
+import * as path from "path";
+import { v1 as uuid } from "uuid";
 import serverConfig from "../config/server";
 import authenticate from "../middlewares/authenticate";
 
@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
       __dirname,
       "../",
       serverConfig.staticFilePath,
-      req.params.category
+      req.params.category!
     );
     mkdirp(dir, err => cb(err, dir));
   },
@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
     cb(null, newFilename);
   }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
 /**
  * GET
@@ -73,7 +73,7 @@ router.delete(
     if (!fs.existsSync(fullPath)) {
       return res.status(404).send("404 Not Found: File does not exist");
     }
-    fs.unlink(fullPath, err => {
+    return fs.unlink(fullPath, err => {
       if (err) {
         res.status(500).end();
       } else {

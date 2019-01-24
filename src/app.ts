@@ -1,16 +1,15 @@
-import express from "express";
-import path from "path";
-import cookieParser from "cookie-parser";
-import logger from "morgan";
-import helmet from "helmet";
-import cors from "cors";
-import staticRouter from "./routes/static";
+import * as cors from "cors";
+import * as express from "express";
+import * as helmet from "helmet";
+import * as logger from "morgan";
+import * as path from "path";
+import serverConfig from "./config/server";
 import articleRouter from "./routes/articles";
 import commentRouter from "./routes/comments";
-import userRouter from "./routes/users";
 import itemRouter from "./routes/items";
 import reservationRouter from "./routes/reservations";
-import serverConfig from "./config/server";
+import staticRouter from "./routes/static";
+import userRouter from "./routes/users";
 
 const app = express();
 
@@ -26,7 +25,6 @@ app.use(
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
 
 app.use(
   "/static",

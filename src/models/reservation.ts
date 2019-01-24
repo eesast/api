@@ -1,5 +1,19 @@
-import mongoose from "mongoose";
-import counter from "./counter";
+import * as mongoose from "mongoose";
+import Counter from "./counter";
+
+export interface IReservationModel extends mongoose.Document {
+  id: number;
+  itemId: number;
+  userId: number;
+  from: Date;
+  to: Date;
+  reason?: string;
+  approved: boolean;
+  createdAt: Date;
+  createdBy: number;
+  updatedAt: Date;
+  updatedBy: number;
+}
 
 /**
  * Reservation schema
@@ -29,17 +43,21 @@ const reservationSchema = new mongoose.Schema(
  * Problem of `this` scope
  */
 reservationSchema.pre("save", function(next) {
-  const doc = this;
-  counter.findByIdAndUpdate(
+  Counter.findByIdAndUpdate(
     "reservation",
     { $inc: { count: 1 } },
     { new: true, upsert: true },
     (err, counter) => {
-      if (err) return next(err);
-      doc.id = counter.count;
+      if (err) {
+        return next(err);
+      }
+      this.id = counter.count;
       next();
     }
   );
 });
 
-export default mongoose.model("Reservation", reservationSchema);
+export default mongoose.model<IReservationModel>(
+  "Reservation",
+  reservationSchema
+);

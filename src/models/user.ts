@@ -1,4 +1,21 @@
-import mongoose from "mongoose";
+import * as mongoose from "mongoose";
+
+export interface IUserModel extends mongoose.Document {
+  id: number;
+  username: string;
+  group: string;
+  role: string;
+  password: string;
+  email?: string;
+  name?: string;
+  phone?: number;
+  department?: string;
+  class?: string;
+  createdAt: Date;
+  createdBy: number;
+  updatedAt: Date;
+  updatedBy: number;
+}
 
 /**
  * User schema
@@ -25,4 +42,4 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model<IUserModel>("User", userSchema);

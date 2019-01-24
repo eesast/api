@@ -1,5 +1,23 @@
-import mongoose from "mongoose";
+import * as mongoose from "mongoose";
 import Counter from "./counter";
+
+export interface IArticleModel extends mongoose.Document {
+  id: number;
+  title: string;
+  alias: string;
+  authorId: number;
+  abstract?: string;
+  image?: string;
+  content: string;
+  views: number;
+  likers: number[];
+  tags: string[];
+  visible: boolean;
+  createdAt: Date;
+  createdBy: number;
+  updatedAt: Date;
+  updatedBy: number;
+}
 
 /**
  * Article schema
@@ -33,17 +51,18 @@ const articleSchema = new mongoose.Schema(
  * Problem of `this` scope
  */
 articleSchema.pre("save", function(next) {
-  const doc = this;
   Counter.findByIdAndUpdate(
     "article",
     { $inc: { count: 1 } },
     { new: true, upsert: true },
     (err, counter) => {
-      if (err) return next(err);
-      doc.id = counter.count;
+      if (err) {
+        return next(err);
+      }
+      this.id = counter.count;
       next();
     }
   );
 });
 
-export default mongoose.model("Article", articleSchema);
+export default mongoose.model<IArticleModel>("Article", articleSchema);

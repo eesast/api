@@ -1,6 +1,6 @@
-import express from "express";
-import Reservation from "../models/reservation";
+import * as express from "express";
 import authenticate from "../middlewares/authenticate";
+import Reservation from "../models/reservation";
 
 const router = express.Router();
 
@@ -16,31 +16,42 @@ const router = express.Router();
  * @returns {Object[]} certain reservations
  */
 router.get("/", (req, res) => {
-  let query = {};
-  if (req.query.itemId) query.itemId = req.query.itemId;
-  if (req.query.userId) query.userId = req.query.userId;
-  if (req.query.from)
+  const query: any = {};
+  if (req.query.itemId) {
+    query.itemId = req.query.itemId;
+  }
+  if (req.query.userId) {
+    query.userId = req.query.userId;
+  }
+  if (req.query.from) {
     query.from = {
       $gte: new Date(req.query.from),
       $lt: new Date().setDate(new Date(req.query.from).getDate() + 1)
     };
-  if (req.query.to)
+  }
+  if (req.query.to) {
     query.to = {
       $gte: new Date(req.query.to),
       $lt: new Date().setDate(new Date(req.query.to).getDate() + 1)
     };
-  if (req.query.roomOnly && req.query.roomOnly === "true") query.itemId = -1;
-  if (!req.query.roomOnly || req.query.roomOnly === "false")
+  }
+  if (req.query.roomOnly && req.query.roomOnly === "true") {
+    query.itemId = -1;
+  }
+  if (!req.query.roomOnly || req.query.roomOnly === "false") {
     query.itemId = { $ne: -1 };
-  const begin = parseInt(req.query.begin) || 0;
-  const end = parseInt(req.query.end) || Number.MAX_SAFE_INTEGER;
+  }
+  const begin = parseInt(req.query.begin, 10) || 0;
+  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
 
   Reservation.find(
     query,
     "-_id -__v",
     { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
     (err, reservations) => {
-      if (err) return res.status(500).end();
+      if (err) {
+        return res.status(500).end();
+      }
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.status(200).end(JSON.stringify(reservations));
     }
@@ -57,11 +68,14 @@ router.get("/:id", (req, res) => {
     { id: req.params.id },
     "-_id -__v",
     (err, reservation) => {
-      if (err) return res.status(500).end();
-      if (!reservation)
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!reservation) {
         return res
           .status(404)
           .send("404 Not Found: Reservation does not exist");
+      }
 
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.status(200).end(JSON.stringify(reservation));
@@ -73,13 +87,19 @@ router.get("/:id", (req, res) => {
  * POST new reservation
  * @returns Location header
  */
-router.post("/", authenticate(), (req, res) => {
-  if (req.body.from) req.body.from = new Date(req.body.from);
-  if (req.body.to) req.body.to = new Date(req.body.to);
+router.post("/", authenticate([]), (req, res) => {
+  if (req.body.from) {
+    req.body.from = new Date(req.body.from);
+  }
+  if (req.body.to) {
+    req.body.to = new Date(req.body.to);
+  }
   const newReservation = new Reservation(req.body);
 
   newReservation.save((err, reservation) => {
-    if (err) return res.status(500).end();
+    if (err) {
+      return res.status(500).end();
+    }
 
     res.setHeader("Location", "/v1/reservations/" + reservation.id);
     res.status(201).end();
@@ -92,23 +112,25 @@ router.post("/", authenticate(), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  Reservation.findOne({ id: req.params.id }, (err, reservation) => {
-    if (err) return res.status(500).end();
-    if (!reservation)
-      return res.status(404).send("404 Not Found: Reservation does not exist");
+  const update = { updatedAt: new Date(), ...req.body };
 
-    const update = { updatedAt: new Date(), ...req.body };
-    reservation.updateOne(update, (err, newReservation) => {
-      if (err) return res.status(500).end();
-      if (!newReservation)
+  Reservation.findOneAndUpdate(
+    { id: req.params.id },
+    update,
+    (err, reservation) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!reservation) {
         return res
           .status(404)
           .send("404 Not Found: Reservation does not exist");
+      }
 
-      res.setHeader("Location", "/v1/reservations/" + newReservation.id);
+      res.setHeader("Location", "/v1/reservations/" + reservation.id);
       res.status(204).end();
-    });
-  });
+    }
+  );
 });
 
 /**
@@ -118,9 +140,12 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
  */
 router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
   Reservation.findOneAndDelete({ id: req.params.id }, (err, reservation) => {
-    if (err) return res.status(500).end();
-    if (!reservation)
+    if (err) {
+      return res.status(500).end();
+    }
+    if (!reservation) {
       return res.status(404).send("404 Not Found: Reservation does not exist");
+    }
 
     res.status(204).end();
   });

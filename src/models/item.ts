@@ -1,5 +1,17 @@
-import mongoose from "mongoose";
-import counter from "./counter";
+import * as mongoose from "mongoose";
+import Counter from "./counter";
+
+export interface IItemModel extends mongoose.Document {
+  id: number;
+  name: string;
+  description?: string;
+  total: number;
+  left: number;
+  createdAt: Date;
+  createdBy: number;
+  updatedAt: Date;
+  updatedBy: number;
+}
 
 /**
  * Item schema
@@ -27,17 +39,18 @@ const itemSchema = new mongoose.Schema(
  * Problem of `this` scope
  */
 itemSchema.pre("save", function(next) {
-  const doc = this;
-  counter.findByIdAndUpdate(
+  Counter.findByIdAndUpdate(
     "item",
     { $inc: { count: 1 } },
     { new: true, upsert: true },
     (err, counter) => {
-      if (err) return next(err);
-      doc.id = counter.count;
+      if (err) {
+        return next(err);
+      }
+      this.id = counter.count;
       next();
     }
   );
 });
 
-export default mongoose.model("Item", itemSchema);
+export default mongoose.model<IItemModel>("Item", itemSchema);

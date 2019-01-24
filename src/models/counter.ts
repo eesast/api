@@ -1,4 +1,9 @@
-import mongoose from "mongoose";
+import * as mongoose from "mongoose";
+
+export interface ICounterModel extends mongoose.Document {
+  _id: string;
+  count: number;
+}
 
 /**
  * Counter schema
@@ -14,4 +19,4 @@ const counterSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model("Counter", counterSchema);
+export default mongoose.model<ICounterModel>("Counter", counterSchema);
