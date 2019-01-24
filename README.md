@@ -18,14 +18,15 @@ SAST App 后端 API
 
 ### 环境
 
-- Node ^11.6.0
+- Node ^11.7.0
+- Typescript ^3.2.2
 - MongoDB ^4.0.4
 
 ### 工具
 
 - VSCode
 
-  - Prettier / ESLint
+  - Prettier / TSLint
 
 - MongoDB Compass Community
 
@@ -41,7 +42,7 @@ SAST App 后端 API
 
 #### `npm run build`
 
-使用 `babel` 将源文件编译为 `es5` 语法
+使用 `tsc` 编译源文件
 
 #### `npm run serve`
 
