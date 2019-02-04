@@ -5,7 +5,8 @@
   "scripts": {
     "start": "nodemon",
     "build": "tsc --outDir build",
-    "serve": "NODE_ENV=production node build/index.js"
+    "serve": "NODE_ENV=production node build/index.js",
+    "debug": "nodemon --exitcrash --inspect=5858 --exec node -r ts-node/register ./src/index.ts"
   },
   "dependencies": {
     "bcrypt": "^3.0.3",
