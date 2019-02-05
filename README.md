@@ -12,7 +12,7 @@ SAST App 后端 API
 
 ## API 接口
 
-查看 [API 实现](./src/routes)
+查看 [API 文档](https://api.eesast.com/docs/)
 
 ## 开发
 
