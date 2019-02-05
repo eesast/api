@@ -30,6 +30,7 @@ app.use(
   "/static",
   express.static(path.resolve(__dirname, serverConfig.staticFilePath))
 );
+app.use("/docs", express.static(path.resolve(__dirname, "../docs")));
 app.use("/static", staticRouter);
 app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);

@@ -30,6 +30,9 @@ COPY --from=builder /home/node/app/node_modules ./node_modules
 # Copy build files
 COPY --from=builder /home/node/app/build ./build
 
+# Copy doc files
+COPY docs ./docs
+
 EXPOSE 28888
 
 CMD npm run serve
