@@ -14,7 +14,7 @@ const router = express.Router();
  * @param {number} begin
  * @param {number} end
  * @param {boolean} noContent
- * @param {boolean} imvisible
+ * @param {boolean} invisible
  * @returns {Object[]} certain articles
  */
 router.get("/", (req, res) => {
@@ -34,14 +34,13 @@ router.get("/", (req, res) => {
   if (req.query.likedBy) {
     query.likers = req.query.likedBy;
   }
-  if (!req.query.imvisible) {
+  if (!req.query.invisible) {
     query.visible = true;
   }
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select =
-    "-_id -__v" +
-    (req.query.noContent && req.query.noContent === "true" ? " -content" : "");
+    "-_id -__v" + (req.query.noContent === "true" ? " -content" : "");
 
   Article.find(
     query,
