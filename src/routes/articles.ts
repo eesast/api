@@ -51,6 +51,10 @@ router.get("/", (req, res) => {
         return res.status(500).end();
       }
 
+      if (articles.length === 0) {
+        return res.status(200).end(JSON.stringify([]));
+      }
+
       if (query.alias) {
         Article.findOneAndUpdate(
           { id: articles[0].id },
