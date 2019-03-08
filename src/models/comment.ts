@@ -45,7 +45,7 @@ commentSchema.pre("save", function(next) {
     "comment",
     { $inc: { count: 1 } },
     { new: true, upsert: true },
-    (err, counter) => {
+    (err, counter: any) => {
       if (err) {
         return next(err);
       }

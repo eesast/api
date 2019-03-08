@@ -43,7 +43,7 @@ itemSchema.pre("save", function(next) {
     "item",
     { $inc: { count: 1 } },
     { new: true, upsert: true },
-    (err, counter) => {
+    (err, counter: any) => {
       if (err) {
         return next(err);
       }
