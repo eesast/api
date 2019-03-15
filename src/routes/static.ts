@@ -10,12 +10,7 @@ import authenticate from "../middlewares/authenticate";
 const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.resolve(
-      __dirname,
-      "../",
-      serverConfig.staticFilePath,
-      req.params.category!
-    );
+    const dir = path.resolve(serverConfig.staticFilePath, req.params.category!);
     mkdirp(dir, err => cb(err, dir));
   },
   filename: (req, file, cb) => {
@@ -63,12 +58,7 @@ router.delete(
   (req, res) => {
     const category = req.params.category;
     const filename = req.params.filename;
-    const fullPath = path.join(
-      __dirname,
-      serverConfig.staticFilePath,
-      category,
-      filename
-    );
+    const fullPath = path.join(serverConfig.staticFilePath, category, filename);
 
     if (!fs.existsSync(fullPath)) {
       return res.status(404).send("404 Not Found: File does not exist");

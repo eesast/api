@@ -26,10 +26,7 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.use(
-  "/static",
-  express.static(path.resolve(__dirname, serverConfig.staticFilePath))
-);
+app.use("/static", express.static(serverConfig.staticFilePath));
 app.use("/docs", express.static(path.resolve(__dirname, "../docs")));
 app.use("/static", staticRouter);
 app.use("/v1/articles", articleRouter);
