@@ -28,7 +28,12 @@ router.get("/", authenticate([]), (req, res) => {
   let select = "-_id -__v -password";
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
-  if (!req.query.detailInfo || req.query.detailInfo.toString() === "false") {
+  const role = req.auth.role || "";
+  if (
+    role !== "root" ||
+    !req.query.detailInfo ||
+    req.query.detailInfo.toString() === "false"
+  ) {
     select =
       select + " -group -role -username -email -phone -department -class";
   }
@@ -55,11 +60,20 @@ router.get("/", authenticate([]), (req, res) => {
  */
 router.get("/:id", checkToken, (req, res) => {
   let select = "-_id -__v -password";
+  let hasDetailInfo = false;
   if (
-    !req.auth.tokenValid ||
-    !req.query.detailInfo ||
-    req.query.detailInfo.toString() === "false"
+    req.auth.tokenValid &&
+    req.query.detailInfo &&
+    req.query.detailInfo.toString() === "true"
   ) {
+    if (
+      (req.auth.id && req.auth.id.toString() === req.params.id) ||
+      req.auth.role === "root"
+    ) {
+      hasDetailInfo = true;
+    }
+  }
+  if (!hasDetailInfo) {
     select =
       select + " -group -role -username -email -phone -department -class";
   }
