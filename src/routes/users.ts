@@ -181,6 +181,11 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
     }
   }
 
+  if (req.auth.role !== "root") {
+    delete req.body.group;
+    delete req.body.role;
+  }
+
   const password = req.body.password;
   if (password) {
     const saltRounds = 10;
