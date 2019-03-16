@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
+import { IJWTPayload } from "../config/jwt";
 import secret from "../config/secret";
 
 /**
@@ -23,8 +24,12 @@ const checkToken = (req: Request, res: Response, next: NextFunction) => {
       return next();
     }
 
+    const userInfo = decoded as IJWTPayload;
     req.auth = {
-      tokenValid: true
+      tokenValid: true,
+      id: userInfo.id,
+      group: userInfo.group,
+      role: userInfo.role
     };
     next();
   });
