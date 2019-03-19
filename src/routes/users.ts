@@ -11,11 +11,6 @@ const router = express.Router();
 /**
  * GET users with queries
  * @param {string} username
- * @param {string} group
- * @param {string} role
- * @param {string} email
- * @param {string} name
- * @param {number} phone
  * @param {string} department
  * @param {string} class
  * @param {number} begin
@@ -25,6 +20,10 @@ const router = express.Router();
  */
 router.get("/", authenticate([]), (req, res) => {
   const query = {};
+  if (req.query.username) query.username = req.query.username;
+  if (req.query.department) query.department = req.query.department;
+  if (req.query.class) query.class = req.query.class;
+
   let select = "-_id -__v -password";
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
