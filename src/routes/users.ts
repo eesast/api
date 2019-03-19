@@ -19,10 +19,16 @@ const router = express.Router();
  * @returns certain users
  */
 router.get("/", authenticate([]), (req, res) => {
-  const query = {};
-  if (req.query.username) query.username = req.query.username;
-  if (req.query.department) query.department = req.query.department;
-  if (req.query.class) query.class = req.query.class;
+  const query = {} as any;
+  if (req.query.username) {
+    query.username = req.query.username;
+  }
+  if (req.query.department) {
+    query.department = req.query.department;
+  }
+  if (req.query.class) {
+    query.class = req.query.class;
+  }
 
   let select = "-_id -__v -password";
   const begin = parseInt(req.query.begin, 10) || 0;
