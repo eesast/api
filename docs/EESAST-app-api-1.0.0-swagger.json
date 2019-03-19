@@ -7,7 +7,7 @@
     }
   ],
   "info": {
-    "description": "这是清华大学电子工程系科协微信小程序的后端 API. 了解更多 EESAST 内容，请访问：\n[GitHub 主页](https://github.com/eesast/) 或 \n[EESAST 官方网站](https://eesast.com/).\n",
+    "description": "这是清华大学电子工程系科协通用后端 API. 了解更多 EESAST 内容，请访问：\n[GitHub 主页](https://github.com/eesast/) 或 \n[EESAST 官方网站](https://eesast.com/).\n",
     "version": "1.0.0",
     "title": "API backend for EESAST App",
     "contact": {
@@ -1134,43 +1134,6 @@
             "in": "query",
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "group",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": ["admin", "student"]
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": ["root", "editor", "keeper", "reader", "writer"]
-            }
-          },
-          {
-            "name": "email",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "phone",
-            "in": "query",
-            "schema": {
-              "type": "number"
             }
           },
           {
