@@ -1,6 +1,5 @@
 {
   "name": "sast-app-api",
-  "version": "2.1.4",
   "private": true,
   "scripts": {
     "start": "nodemon",
@@ -9,12 +8,12 @@
     "debug": "nodemon --exitcrash --inspect=5858 --exec node -r ts-node/register ./src/index.ts"
   },
   "dependencies": {
-    "bcrypt": "^3.0.4",
+    "bcrypt": "^3.0.5",
     "cors": "^2.8.5",
     "debug": "^4.1.1",
     "express": "^4.16.0",
     "helmet": "^3.16.0",
-    "jsonwebtoken": "^8.5.0",
+    "jsonwebtoken": "^8.5.1",
     "mkdirp": "^0.5.1",
     "mongoose": "^5.4.19",
     "morgan": "^1.9.0",
@@ -29,7 +28,7 @@
     "@types/helmet": "^0.0.43",
     "@types/jsonwebtoken": "^8.3.2",
     "@types/mkdirp": "^0.5.2",
-    "@types/mongoose": "^5.3.22",
+    "@types/mongoose": "^5.3.23",
     "@types/morgan": "^1.7.35",
     "@types/multer": "^1.3.7",
     "@types/uuid": "^3.4.4",
@@ -41,7 +40,7 @@
     "tslint": "^5.14.0",
     "tslint-config-prettier": "^1.18.0",
     "tslint-eslint-rules": "^5.4.0",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.3.4000"
   },
   "husky": {
     "hooks": {
