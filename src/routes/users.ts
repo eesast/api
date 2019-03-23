@@ -80,7 +80,7 @@ router.get("/:id", checkToken, (req, res) => {
   }
   if (!hasDetailInfo) {
     select =
-      select + " -group -role -username -email -phone -department -class";
+      select + " -group -role -email -phone -department -class";
   }
 
   User.findOne({ id: req.params.id }, select, (err, user) => {
