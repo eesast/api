@@ -11,11 +11,6 @@ const router = express.Router();
 /**
  * GET users with queries
  * @param {string} username
- * @param {string} group
- * @param {string} role
- * @param {string} email
- * @param {string} name
- * @param {number} phone
  * @param {string} department
  * @param {string} class
  * @param {number} begin
@@ -24,11 +19,26 @@ const router = express.Router();
  * @returns certain users
  */
 router.get("/", authenticate([]), (req, res) => {
-  const query = {};
+  const query = {} as any;
+  if (req.query.username) {
+    query.username = req.query.username;
+  }
+  if (req.query.department) {
+    query.department = req.query.department;
+  }
+  if (req.query.class) {
+    query.class = req.query.class;
+  }
+
   let select = "-_id -__v -password";
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
-  if (!req.query.detailInfo || req.query.detailInfo.toString() === "false") {
+  const role = req.auth.role || "";
+  if (
+    role !== "root" ||
+    !req.query.detailInfo ||
+    req.query.detailInfo.toString() === "false"
+  ) {
     select =
       select + " -group -role -username -email -phone -department -class";
   }
@@ -55,11 +65,20 @@ router.get("/", authenticate([]), (req, res) => {
  */
 router.get("/:id", checkToken, (req, res) => {
   let select = "-_id -__v -password";
+  let hasDetailInfo = false;
   if (
-    !req.auth.tokenValid ||
-    !req.query.detailInfo ||
-    req.query.detailInfo.toString() === "false"
+    req.auth.tokenValid &&
+    req.query.detailInfo &&
+    req.query.detailInfo.toString() === "true"
   ) {
+    if (
+      (req.auth.id && req.auth.id.toString() === req.params.id) ||
+      req.auth.role === "root"
+    ) {
+      hasDetailInfo = true;
+    }
+  }
+  if (!hasDetailInfo) {
     select =
       select + " -group -role -username -email -phone -department -class";
   }
@@ -179,6 +198,11 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
     if (parseFloat(req.params.id) !== req.auth.id) {
       return res.status(401).send("401 Unauthorized: Permission denied");
     }
+  }
+
+  if (req.auth.role !== "root") {
+    delete req.body.group;
+    delete req.body.role;
   }
 
   const password = req.body.password;

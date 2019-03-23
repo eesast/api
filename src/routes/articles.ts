@@ -51,6 +51,10 @@ router.get("/", (req, res) => {
         return res.status(500).end();
       }
 
+      if (articles.length === 0) {
+        return res.status(200).end(JSON.stringify([]));
+      }
+
       if (query.alias) {
         Article.findOneAndUpdate(
           { id: articles[0].id },
@@ -153,7 +157,7 @@ router.post("/", authenticate(["root", "writer"]), (req, res) => {
  * @param {number} id - updating article's id
  * @returns Location header or Not Found
  */
-router.put("/:id", authenticate(["root", "self"]), (req, res) => {
+router.put("/:id", authenticate(["root", "self", "editor"]), (req, res) => {
   Article.findOne({ id: req.params.id }, (err, article) => {
     if (err) {
       return res.status(500).end();
