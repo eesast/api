@@ -19,7 +19,7 @@ RUN npm run build
 
 # Runner stage
 
-FROM node:11
+FROM node:11-alpine
 ENV NODE_ENV=production
 WORKDIR /home/node/app
 
