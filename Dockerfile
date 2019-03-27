@@ -8,7 +8,7 @@ WORKDIR /home/node/app
 # Install app devDependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 COPY package*.json ./
-RUN npm install
+RUN npm install --build-from-source=bcrypt
 
 # Bundle app source
 COPY . .
