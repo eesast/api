@@ -79,8 +79,7 @@ router.get("/:id", checkToken, (req, res) => {
     }
   }
   if (!hasDetailInfo) {
-    select =
-      select + " -group -role -email -phone -department -class";
+    select = select + " -group -role -email -phone -department -class";
   }
 
   User.findOne({ id: req.params.id }, select, (err, user) => {
@@ -114,7 +113,7 @@ router.post("/", (req, res) => {
 
     req.body.password = hash;
     req.body.group = "student";
-    req.body.role = "reader";
+    req.body.role = "writer";
     const newUser = new User(req.body);
 
     newUser.save((error, user) => {
