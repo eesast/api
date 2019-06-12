@@ -7,7 +7,7 @@ WORKDIR /home/node/app
 
 # Install app devDependencies
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --no-cache --production
+RUN yarn install --frozen-lockfile --no-cache
 
 # Bundle app source
 COPY . .
