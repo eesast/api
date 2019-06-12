@@ -6,7 +6,7 @@ import app from "./app";
 import serverConfig from "./config/server";
 
 dotenv.config();
-const debug = Debug("sast-app-api");
+const debug = Debug("sast-api");
 const databaseUrl =
   process.env.NODE_ENV === "production" ? process.env.DATABASE : "localhost";
 
@@ -18,11 +18,11 @@ const normalizePort: (val: string) => number | boolean = val => {
   return false;
 };
 
-mongoose.connect(`mongodb://${databaseUrl}:27017/sast-app-api`, {
+mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api`, {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
-  auth: { authSource: "admin" },
+  auth: { authSource: "admin" } as any,
   user: process.env.DB_USER,
   pass: process.env.DB_PASS
 });
@@ -63,6 +63,6 @@ server.on("error", (error: NodeJS.ErrnoException) => {
 
 server.on("listening", () => {
   const addr = server.address();
-  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr!.port;
   debug("Listening on " + bind);
 });

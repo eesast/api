@@ -1,16 +1,13 @@
 {
   "compilerOptions": {
     "forceConsistentCasingInFileNames": true,
-    "importHelpers": true /* use tslib */,
-    "lib": ["es2018"],
+    "lib": ["esnext"],
     "module": "commonjs",
     "moduleResolution": "node",
-    "noEmitHelpers": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "resolveJsonModule": true,
     "strict": true,
-    "target": "es2018"
+    "skipLibCheck": true,
+    "target": "esnext"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*"]
 }

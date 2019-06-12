@@ -1,8 +1,8 @@
-# sast-app-api
+# EESAST API
 
 [![Build Status](https://travis-ci.com/eesast/sast-api.svg?branch=master)](https://travis-ci.com/eesast/sast-api)
 
-SAST App 后端 API
+EESAST 后端 API
 
 ## 支持
 
@@ -18,9 +18,10 @@ SAST App 后端 API
 
 ### 环境
 
-- Node ^11.7.0
-- Typescript ^3.2.2
-- MongoDB ^4.0.4
+- Node / npm
+- Yarn
+- Typescript
+- MongoDB
 
 ### 工具
 
@@ -32,18 +33,18 @@ SAST App 后端 API
 
 ### 脚本
 
-#### `npm install`
+#### `yarn install`
 
 安装所有 `dependencies` 和 `devDependencies`
 
-#### `npm start`
+#### `yarn start`
 
 启动开发服务器，自动监听源文件更改（数据库需要自行启动）
 
-#### `npm run build`
+#### `yarn build`
 
 使用 `tsc` 编译源文件
 
-#### `npm run serve`
+#### `yarn serve`
 
 启动生产环境服务器

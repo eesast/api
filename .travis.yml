@@ -1,12 +1,10 @@
 language: node_js
 node_js: "node"
-cache: npm
+cache: yarn
 install:
-  - npm ci
+  - yarn
 script:
-  - npm run build
+  - yarn build
 deploy:
   provider: script
   script: bash scripts/deploy.sh
-  on:
-    tags: true
