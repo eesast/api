@@ -1,6 +1,6 @@
 # sast-app-api
 
-[![Build Status](https://travis-ci.org/eesast/sast-app-api.svg?branch=master)](https://travis-ci.org/eesast/sast-app-api)
+[![Build Status](https://travis-ci.com/eesast/sast-api.svg?branch=master)](https://travis-ci.com/eesast/sast-api)
 
 SAST App 后端 API
 
