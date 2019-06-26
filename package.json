@@ -40,7 +40,7 @@
     "nodemon": "1.19.1",
     "prettier": "1.18.2",
     "ts-node": "8.3.0",
-    "tslint": "5.17.0",
+    "tslint": "5.18.0",
     "tslint-config-prettier": "1.18.0",
     "tslint-eslint-rules": "5.4.0"
   },
