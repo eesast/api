@@ -4,9 +4,13 @@
 
 EESAST 后端 API
 
-## 支持
+## 功能
 
-- 统一登录接口
+- 登录接口
+- 科协公共信息
+- 组队系统
+- 文件上传与下载
+- 队式需求对接
 - Weekly
 - 资源预约与借还
 
@@ -18,9 +22,9 @@ EESAST 后端 API
 
 ### 环境
 
-- Node / npm
-- Yarn
-- Typescript
+- node 12 / npm
+- yarn
+- TypeScript
 - MongoDB
 
 ### 工具
@@ -30,6 +34,8 @@ EESAST 后端 API
   - Prettier / TSLint
 
 - MongoDB Compass Community
+
+- Postman
 
 ### 脚本
 
@@ -47,4 +53,4 @@ EESAST 后端 API
 
 #### `yarn serve`
 
-启动生产环境服务器
+在 `yarn build` 生成的 `build` 文件夹中运行，启动生产环境服务器
