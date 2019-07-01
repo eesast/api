@@ -54,3 +54,7 @@ EESAST 后端 API
 #### `yarn serve`
 
 在 `yarn build` 生成的 `build` 文件夹中运行，启动生产环境服务器
+
+#### `yarn lint`
+
+检查类型错误，并使用 Prettier 进行代码格式修正
