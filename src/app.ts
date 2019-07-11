@@ -11,6 +11,8 @@ import reservationRouter from "./routes/reservations";
 import staticRouter from "./routes/static";
 import userRouter from "./routes/users";
 
+import testUsersRouter from "./routes/testUsers";
+
 const app = express();
 
 app.use(helmet());
@@ -34,5 +36,7 @@ app.use("/v1/comments", commentRouter);
 app.use("/v1/users", userRouter);
 app.use("/v1/items", itemRouter);
 app.use("/v1/reservations", reservationRouter);
+
+app.use("/v1/testUsers", testUsersRouter);
 
 export default app;
