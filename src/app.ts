@@ -1,6 +1,5 @@
 import * as cors from "cors";
 import * as express from "express";
-import * as helmet from "helmet";
 import * as logger from "morgan";
 import * as path from "path";
 import serverConfig from "./config/server";
@@ -12,8 +11,6 @@ import staticRouter from "./routes/static";
 import userRouter from "./routes/users";
 
 const app = express();
-
-app.use(helmet());
 
 // Enable header access in client
 app.use(
