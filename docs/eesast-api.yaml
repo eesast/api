@@ -11,7 +11,7 @@ servers:
 info:
   description: |
     这是清华大学电子工程系科协通用后端 API. 了解更多 EESAST 内容，请访问：
-    [GitHub 主页](https://github.com/eesast/) 或 
+    [GitHub 主页](https://github.com/eesast/) 或
     [EESAST 官方网站](https://eesast.com/).
   version: 1.0.0
   title: API Backend of EESAST Website

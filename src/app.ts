@@ -24,8 +24,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use("/static", express.static(serverConfig.staticFilePath));
-app.use("/docs", express.static(path.resolve(__dirname, "../docs")));
 app.use("/static", staticRouter);
+app.use("/v1", express.static(path.resolve(__dirname, "../docs")));
 app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);
 app.use("/v1/users", userRouter);
