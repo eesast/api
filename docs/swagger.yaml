@@ -9,10 +9,10 @@ servers:
         description: 端口号
         default: "28888"
 info:
+  title: API Backend for EESAST
   description: |
     清华大学电子工程系学生科协后端 API。了解更多 EESAST 内容，请访问：[GitHub 主页](https://github.com/eesast/)或 [EESAST 官方网站](https://eesast.com/)。
   version: 1.0.0
-  title: API Backend of EESAST websites
   contact:
     name: API Support
     email: i@raineggplant.com
