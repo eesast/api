@@ -29,6 +29,8 @@ tags:
     description: 用户
   - name: static
     description: 静态文件
+  - name: teams
+    description: 队伍
 paths:
   /v1/articles:
     post:
@@ -995,6 +997,254 @@ paths:
           description: Unexpected error
       security:
         - bearerAuth: []
+  /v1/teams:
+    post:
+      tags:
+        - teams
+      summary: 新建队伍
+      description: 需要已登录用户
+      operationId: addTeam
+      responses:
+        "201":
+          description: Successful operation
+          headers:
+            Location:
+              description: 新建队伍的 URL
+              schema:
+                type: string
+        "409":
+          description: Team name already exists / User is already in a team
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTeam"
+      parameters: []
+    get:
+      tags:
+        - teams
+      summary: 返回匹配查询的队伍
+      description: 可以通过 query 进行筛选，已登录用户可以查询本队邀请码， `root` 角色可查询所有邀请码
+      operationId: findTeams
+      parameters:
+        - name: contestId
+          in: query
+          description: 比赛ID
+          schema:
+            type: string
+        - name: available
+          in: query
+          description: 队伍是否仍具有参赛资格
+          schema:
+            type: boolean
+        - name: begin
+          in: query
+          description: 按时间降序排列，起始队伍的位置
+          schema:
+            type: number
+        - name: end
+          in: query
+          description: 按时间降序排列，结束队伍的位置
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+  "/v1/teams/{teamId}":
+    get:
+      tags:
+        - teams
+      summary: 根据 ID 获取队伍
+      description: 本队用户或 `root` 角色可见邀请码
+      operationId: getTeamById
+      parameters:
+        - name: teamId
+          in: path
+          description: 队伍 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "404":
+          description: "Not Found: Team does not exist"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+    put:
+      tags:
+        - teams
+      summary: 更新已存在的队伍
+      description: 需要 `root` 角色，或待更新队伍的队长为请求者
+      operationId: updateTeam
+      parameters:
+        - name: teamId
+          in: path
+          description: 待更新队伍的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新文章的 URL
+              schema:
+                type: string
+        "400":
+          description: Invalid members / Captain is not a member of the team
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Team does not exist"
+        "409":
+          description: Team name already exists
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/updateTeam"
+    delete:
+      tags:
+        - teams
+      summary: 删除一支队伍
+      description: 需要 `root` 角色，或待删除队伍的队长为请求者
+      operationId: deleteTeam
+      parameters:
+        - name: teamId
+          in: path
+          description: 要删除队伍的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Team does not exist"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+  "/v1/teams/{teamId}/members":
+    post:
+      tags:
+        - teams
+      summary: 根据队伍 ID 向队伍增加队员
+      description: 需要 `root` 角色，或增加队员为请求者自身且邀请码正确
+      operationId: addMemberToTeamId
+      parameters:
+        - name: teamId
+          in: path
+          description: 队伍 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "201":
+          description: Successful operation
+          headers:
+            Location:
+              description: 新增队员的 URL
+              schema:
+                type: string
+        "400":
+          description: Member does not exist
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Team is not available / Incorrect invite code
+        "404":
+          description: "Not Found: Team does not exist"
+        "409":
+          description: The number of members exceeds / User is already in a team
+        "422":
+          description: Missing credentials
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTeamMember"
+    get:
+      tags:
+        - teams
+      summary: 根据队伍 ID 获取队员
+      operationId: getMembersByTeamId
+      parameters:
+        - name: teamId
+          in: path
+          description: 队伍 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: number
+        "404":
+          description: "Not Found: Team does not exist"
+        5XX:
+          description: Unexpected error
+  "/v1/teams/{teamId}/members/{memberId}":
+    delete:
+      tags:
+        - teams
+      summary: 根据ID删除指定队伍中的队员
+      description: 需要 `root` 角色，或队伍队长为请求者自身
+      operationId: deleteMemberFromTeamId
+      parameters:
+        - name: teamId
+          in: path
+          description: 队伍 ID
+          required: true
+          schema:
+            type: number
+        - name: memberId
+          in: path
+          description: 队员 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+        "400":
+          description: Leader cannot be deleted
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Team does not exist / Member does not exist"
+        5XX:
+          description: Unexpected error
+      security: 
+        - bearerAuth: []
 components:
   schemas:
     Article:
@@ -1218,6 +1468,58 @@ components:
       description: >-
         日期对象。使用时采用 ISO
         格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
+    Team:
+      type: object
+      required:
+        - id
+        - contestId
+        - name
+        - description
+        - leader
+        - members
+        - inviteCode
+      properties:
+        id:
+          type: number
+          description: 自增值
+        contestId:
+          type: number
+          description: 比赛ID
+        name:
+          type: string
+        description:
+          type: string
+          description: 队伍简介
+        leader:
+          type: number
+          description: 队长ID
+        members:
+          type: array
+          items:
+            type: number
+            description: 队员ID
+        inviteCode:
+          type: number
+        available:
+          type: boolean
+          default: true
+          description: 队伍是否仍具有参赛资格
+        createdAt:
+          type: string
+          format: date-time
+          description: >-
+            日期对象。使用时采用 ISO
+            格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
+        createdBy:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+          description: >-
+            日期对象。使用时采用 ISO
+            格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
+        updatedBy:
+          type: number
   requestBodies:
     addArticle:
       content:
@@ -1466,6 +1768,64 @@ components:
               class:
                 type: string
       description: 更新用户的提交格式
+      required: true
+    addTeam:
+      content:
+        application/json:
+          schema:
+            required:
+              - contestId
+              - name
+              - description
+            properties:
+              contestId:
+                type: number
+              name:
+                type: string
+              description:
+                type: string
+              leader:
+                type: number
+              members:
+                type: array
+                items:
+                  type: number
+              available:
+                type: boolean
+      description: 新建队伍的提交格式
+      required: true
+    updateTeam:
+      content:
+        application/json:
+          schema:
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              leader:
+                type: number
+              members:
+                type: array
+                items:
+                  type: number
+              available:
+                type: boolean
+      description: 更新队伍的提交格式
+      required: true
+    addTeamMember:
+      content:
+        application/json:
+          schema:
+            required:
+              - id
+              - inviteCode
+            properties:
+              id:
+                type: number
+              inviteCode:
+                type: string
+      description: 增加队员的提交格式
       required: true
   responses:
     UnauthorizedError:

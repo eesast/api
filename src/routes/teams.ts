@@ -109,23 +109,19 @@ router.get(
  * @param {number} id
  * @returns {number[]}
  */
-router.get(
-  "/:id/members/",
-  checkToken,
-  (req: { params: { id: string } }, res) => {
-    Team.findOne({ id: req.params.id }, "members", (err, team) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!team) {
-        return res.status(404).send("404 Not Found: Team does not exist");
-      }
+router.get("/:id/members/", (req: { params: { id: string } }, res) => {
+  Team.findOne({ id: req.params.id }, "members", (err, team) => {
+    if (err) {
+      return res.status(500).end();
+    }
+    if (!team) {
+      return res.status(404).send("404 Not Found: Team does not exist");
+    }
 
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(200).end(JSON.stringify(team.members));
-    });
-  }
-);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(200).end(JSON.stringify(team.members));
+  });
+});
 
 /**
  * POST new team
@@ -180,7 +176,7 @@ router.post(
  */
 router.post(
   "/:id/members/",
-  authenticate([]),
+  authenticate(["root", "self"]),
   (
     req: {
       params: { id: string };
@@ -196,19 +192,21 @@ router.post(
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
-      if (!req.body.inviteCode) {
-        return res
-          .status(422)
-          .send("422 Unprocessable Entity: Missing credentials");
-      }
-      if (team.inviteCode !== req.body.inviteCode) {
-        return res.status(403).send("403 Forbidden: Incorrect invite code");
+      if (req.auth.selfCheckRequired) {
+        if (!req.body.inviteCode) {
+          return res
+            .status(422)
+            .send("422 Unprocessable Entity: Missing credentials");
+        }
+        if (team.inviteCode !== req.body.inviteCode) {
+          return res.status(403).send("403 Forbidden: Incorrect invite code");
+        }
+        if (req.auth.id !== req.body.id) {
+          return res.status(401).send("401 Unauthorized: Permission denied");
+        }
       }
       if (!team.available) {
         return res.status(403).send("403 Forbidden: Team is not available");
-      }
-      if (req.auth.id !== req.body.id) {
-        return res.status(401).send("401 Unauthorized: Permission denied");
       }
       if (team.members.length > 3) {
         return res
@@ -404,7 +402,7 @@ router.delete(
       const memberId = parseInt(req.params.memberId, 10);
       const index = team.members.indexOf(memberId);
       if (index === -1) {
-        return res.status(404).send("404 Not Found: Member does not exist.");
+        return res.status(404).send("404 Not Found: Member does not exist");
       }
       if (req.auth.selfCheckRequired) {
         if (team.leader !== req.auth.id && memberId !== req.auth.id) {
@@ -414,7 +412,7 @@ router.delete(
       if (team.leader === memberId) {
         return res
           .status(400)
-          .send("400 Bad Request: Leader cannot be deleted.");
+          .send("400 Bad Request: Leader cannot be deleted");
       }
 
       team.members.splice(index, 1);
