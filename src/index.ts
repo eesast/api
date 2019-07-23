@@ -18,11 +18,10 @@ const normalizePort: (val: string) => number | boolean = val => {
   return false;
 };
 
-mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api`, {
+mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api?authSource=admin`, {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
-  auth: { authSource: "admin" } as any,
   user: process.env.DB_USER,
   pass: process.env.DB_PASS
 });

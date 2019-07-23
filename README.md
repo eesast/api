@@ -1,6 +1,6 @@
 # EESAST API
 
-[![Build Status](https://travis-ci.com/eesast/sast-api.svg?branch=master)](https://travis-ci.com/eesast/sast-api)
+[![Build Status](https://travis-ci.com/eesast/api.svg?branch=master)](https://travis-ci.com/eesast/api)
 
 EESAST 后端 API
 
