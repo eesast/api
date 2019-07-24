@@ -50,11 +50,6 @@ router.get(
         { ...query, members: { $nin: req.auth.id } },
         select
       );
-    } catch (err) {
-      return res.status(500).end();
-    }
-
-    try {
       teamSelf = await Team.find(
         { ...query, members: { $in: req.auth.id } },
         "-_id -__v"
