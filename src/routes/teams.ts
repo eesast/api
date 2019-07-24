@@ -18,7 +18,7 @@ const router = express.Router();
 router.get(
   "/",
   checkToken,
-  (
+  async (
     req: {
       query: { [key: string]: string };
       auth: IAuthRequest;
@@ -43,34 +43,34 @@ router.get(
     const select =
       "-_id -__v" + (req.auth.role === "root" ? "" : " -inviteCode");
 
-    Team.find(
-      { ...query, members: { $nin: req.auth.id } },
-      select,
-      (err, teams) => {
-        if (err) {
-          return res.status(500).end();
-        }
+    let teams: ITeamModel[] = [];
+    let teamSelf: ITeamModel[] = [];
+    try {
+      teams = await Team.find(
+        { ...query, members: { $nin: req.auth.id } },
+        select
+      );
+    } catch (err) {
+      return res.status(500).end();
+    }
 
-        Team.find(
-          { ...query, members: { $in: req.auth.id } },
-          "-_id -__v",
-          (error, teamSelf) => {
-            if (error) {
-              return res.status(500).end();
-            }
+    try {
+      teamSelf = await Team.find(
+        { ...query, members: { $in: req.auth.id } },
+        "-_id -__v"
+      );
+    } catch (err) {
+      return res.status(500).end();
+    }
 
-            res.setHeader("Content-Type", "application/json; charset=utf-8");
-            res.status(200).end(
-              JSON.stringify(
-                teams
-                  .concat(teamSelf)
-                  .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-                  .slice(begin, end)
-              )
-            );
-          }
-        );
-      }
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(200).end(
+      JSON.stringify(
+        teams
+          .concat(teamSelf)
+          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+          .slice(begin, end)
+      )
     );
   }
 );
@@ -177,7 +177,7 @@ router.post(
 router.post(
   "/:id/members/",
   authenticate(["root", "self"]),
-  (
+  async (
     req: {
       params: { id: string };
       body: { id: number; inviteCode: string };
@@ -185,10 +185,10 @@ router.post(
     },
     res
   ) => {
-    Team.findOne({ id: req.params.id }, async (err, team) => {
-      if (err) {
-        return res.status(500).end();
-      }
+    let members: number[];
+    let update: { updatedAt: Date; members: number[] };
+    try {
+      const team = await Team.findOne({ id: req.params.id });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -229,23 +229,29 @@ router.post(
         return res.status(400).send("400 Bad Request: Member does not exist");
       }
 
-      const members = team.members.concat([req.body.id]);
-      const update = { updatedAt: new Date(), members };
-      Team.findOneAndUpdate({ id: req.params.id }, update, (error, newTeam) => {
-        if (error) {
-          return res.status(500).end();
-        }
-        if (!newTeam) {
-          return res.status(404).send("404 Not Found: Team does not exist");
-        }
+      members = team.members.concat([req.body.id]);
+      update = { updatedAt: new Date(), members };
+    } catch (err) {
+      return res.status(500).end();
+    }
 
-        res.setHeader(
-          "Location",
-          "/v1/teams/" + team.id + "/members/" + req.body.id
-        );
-        res.status(201).end();
-      });
-    });
+    try {
+      const newTeam = await Team.findOneAndUpdate(
+        { id: req.params.id },
+        update
+      );
+      if (!newTeam) {
+        return res.status(404).send("404 Not Found: Team does not exist");
+      }
+
+      res.setHeader(
+        "Location",
+        "/v1/teams/" + req.params.id + "/members/" + req.body.id
+      );
+      res.status(201).end();
+    } catch (err) {
+      return res.status(500).end();
+    }
   }
 );
 
@@ -257,7 +263,7 @@ router.post(
 router.put(
   "/:id",
   authenticate(["root", "self"]),
-  (
+  async (
     req: {
       params: { id: string };
       body: Partial<ITeamModel>;
@@ -265,10 +271,10 @@ router.put(
     },
     res
   ) => {
-    Team.findOne({ id: req.params.id }, async (err, team) => {
-      if (err) {
-        return res.status(500).end();
-      }
+    let members: number[];
+    let update: Partial<ITeamModel>;
+    try {
+      const team = await Team.findOne({ id: req.params.id });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -319,26 +325,32 @@ router.put(
         return res.status(409).send("409 Conflict: Team name already exists");
       }
 
-      const members = req.body.members || team.members;
+      members = req.body.members || team.members;
       if (members.indexOf(req.body.leader || team.leader) === -1) {
         return res
           .status(400)
           .send("400 Bad Request: Captain is not a member of the team");
       }
 
-      const update = { updatedAt: new Date(), ...req.body };
-      Team.findOneAndUpdate({ id: req.params.id }, update, (error, newTeam) => {
-        if (error) {
-          return res.status(500).end();
-        }
-        if (!newTeam) {
-          return res.status(404).send("404 Not Found: Team does not exist");
-        }
+      update = { updatedAt: new Date(), ...req.body };
+    } catch (err) {
+      return res.status(500).end();
+    }
 
-        res.setHeader("Location", "/v1/teams/" + newTeam.id);
-        res.status(204).end();
-      });
-    });
+    try {
+      const newTeam = await Team.findOneAndUpdate(
+        { id: req.params.id },
+        update
+      );
+      if (!newTeam) {
+        return res.status(404).send("404 Not Found: Team does not exist");
+      }
+
+      res.setHeader("Location", "/v1/teams/" + newTeam.id);
+      res.status(204).end();
+    } catch (err) {
+      return res.status(500).end();
+    }
   }
 );
 
@@ -350,11 +362,9 @@ router.put(
 router.delete(
   "/:id",
   authenticate(["root", "self"]),
-  (req: { params: { id: string }; auth: IAuthRequest }, res) => {
-    Team.findOne({ id: req.params.id }, (err, team) => {
-      if (err) {
-        return res.status(500).end();
-      }
+  async (req: { params: { id: string }; auth: IAuthRequest }, res) => {
+    try {
+      const team = await Team.findOne({ id: req.params.id });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -363,18 +373,20 @@ router.delete(
           return res.status(401).send("401 Unauthorized: Permission denied");
         }
       }
+    } catch (err) {
+      return res.status(500).end();
+    }
 
-      Team.findOneAndDelete({ id: req.params.id }, (error, deleteTeam) => {
-        if (error) {
-          return res.status(500).end();
-        }
-        if (!deleteTeam) {
-          return res.status(404).send("404 Not Found: Team does not exist");
-        }
+    try {
+      const deleteTeam = await Team.findOneAndDelete({ id: req.params.id });
+      if (!deleteTeam) {
+        return res.status(404).send("404 Not Found: Team does not exist");
+      }
 
-        res.status(204).end();
-      });
-    });
+      res.status(204).end();
+    } catch (err) {
+      return res.status(500).end();
+    }
   }
 );
 
@@ -387,14 +399,13 @@ router.delete(
 router.delete(
   "/:id/members/:memberId",
   authenticate(["root", "self"]),
-  (
+  async (
     req: { params: { id: string; memberId: string }; auth: IAuthRequest },
     res
   ) => {
-    Team.findOne({ id: req.params.id }, (err, team) => {
-      if (err) {
-        return res.status(500).end();
-      }
+    let update: { updatedAt: Date; members: number[] };
+    try {
+      const team = await Team.findOne({ id: req.params.id });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -416,18 +427,24 @@ router.delete(
       }
 
       team.members.splice(index, 1);
-      const update = { updatedAt: new Date(), members: team.members };
-      Team.findOneAndUpdate({ id: req.params.id }, update, (error, newTeam) => {
-        if (error) {
-          return res.status(500).end();
-        }
-        if (!newTeam) {
-          return res.status(404).send("404 Not Found: Team does not exist");
-        }
+      update = { updatedAt: new Date(), members: team.members };
+    } catch (err) {
+      return res.status(500).end();
+    }
 
-        res.status(204).end();
-      });
-    });
+    try {
+      const newTeam = await Team.findOneAndUpdate(
+        { id: req.params.id },
+        update
+      );
+      if (!newTeam) {
+        return res.status(404).send("404 Not Found: Team does not exist");
+      }
+
+      res.status(204).end();
+    } catch (err) {
+      return res.status(500).end();
+    }
   }
 );
 
