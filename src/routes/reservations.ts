@@ -47,7 +47,7 @@ router.get("/", (req, res) => {
 
   Reservation.find(
     query,
-    "-_id -__v",
+    "-_id -__v -available",
     { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
     (err, reservations) => {
       if (err) {
@@ -67,7 +67,7 @@ router.get("/", (req, res) => {
 router.get("/:id", (req, res) => {
   Reservation.findOne(
     { id: req.params.id, available: true },
-    "-_id -__v",
+    "-_id -__v -available",
     (err, reservation) => {
       if (err) {
         return res.status(500).end();

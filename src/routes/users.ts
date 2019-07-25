@@ -30,7 +30,7 @@ router.get("/", authenticate([]), (req, res) => {
     query.class = req.query.class;
   }
 
-  let select = "-_id -__v -password";
+  let select = "-_id -__v -available -password";
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const role = req.auth.role || "";
@@ -64,7 +64,7 @@ router.get("/", authenticate([]), (req, res) => {
  * @returns {Object} user with id
  */
 router.get("/:id", checkToken, (req, res) => {
-  let select = "-_id -__v -password";
+  let select = "-_id -__v -available -password";
   let hasDetailInfo = false;
   if (
     req.auth.tokenValid &&

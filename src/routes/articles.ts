@@ -41,7 +41,8 @@ router.get("/", (req, res) => {
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select =
-    "-_id -__v" + (req.query.noContent === "true" ? " -content" : "");
+    "-_id -__v -available" +
+    (req.query.noContent === "true" ? " -content" : "");
 
   Article.find(
     query,
@@ -79,7 +80,7 @@ router.get("/", (req, res) => {
 router.get("/:id", (req, res) => {
   Article.findOne(
     { id: req.params.id, available: true },
-    "-_id -__v",
+    "-_id -__v -available",
     (err, article) => {
       if (err) {
         return res.status(500).end();

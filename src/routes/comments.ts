@@ -28,7 +28,7 @@ router.get("/", (req, res) => {
   }
   req.query.available = true;
 
-  Comment.find(query, "-_id -__v", (err, comments) => {
+  Comment.find(query, "-_id -__v -available", (err, comments) => {
     if (err) {
       return res.status(500).end();
     }
@@ -45,7 +45,7 @@ router.get("/", (req, res) => {
 router.get("/:id", (req, res) => {
   Comment.findOne(
     { id: req.params.id, available: true },
-    "-_id -__v",
+    "-_id -__v -available",
     (err, comment) => {
       if (err) {
         return res.status(500).end();

@@ -26,7 +26,7 @@ router.get("/", authenticate([]), (req, res) => {
 
   Item.find(
     query,
-    "-_id -__v",
+    "-_id -__v -available",
     { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
     (err, items) => {
       if (err) {
@@ -46,7 +46,7 @@ router.get("/", authenticate([]), (req, res) => {
 router.get("/:id", (req, res) => {
   Item.findOne(
     { id: req.params.id, available: true },
-    "-_id -__v",
+    "-_id -__v -available",
     (err, item) => {
       if (err) {
         return res.status(500).end();
