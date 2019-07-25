@@ -28,7 +28,7 @@ router.get("/", (req, res) => {
 });
 
 /**
- * POST new item
+ * POST new timeline
  * @returns Location header
  */
 router.post("/", authenticate(["root"]), (req, res) => {
@@ -44,15 +44,14 @@ router.post("/", authenticate(["root"]), (req, res) => {
     if (err) {
       return res.status(500).end();
     }
-
-    res.setHeader("Location", "/v1/items/" + item.id);
-    res.status(201).end();
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(201).end({ id: newItem.id });
   });
 });
 
 /**
- * DELETE an item of Id
- * @param {number} id - deleting item's id
+ * DELETE a timeline of Id
+ * @param {number} id - deleting timeline's id
  * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root"]), (req, res) => {
@@ -70,7 +69,7 @@ router.delete("/:id", authenticate(["root"]), (req, res) => {
         return res.status(500).end();
       }
       if (!item) {
-        return res.status(404).send("404 Not Found: Item does not exist");
+        return res.status(404).send("404 Not Found: Timespot  does not exist");
       }
 
       res.status(204).end();
