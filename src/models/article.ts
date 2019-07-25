@@ -17,6 +17,7 @@ export interface IArticleModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
+  available: boolean;
 }
 
 /**
@@ -38,7 +39,8 @@ const articleSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
+    available: { type: Boolean, default: true }
   },
   {
     collection: "articles"
@@ -64,5 +66,10 @@ articleSchema.pre("save", function(next) {
     }
   );
 });
+const Article = mongoose.model<IArticleModel>("Article", articleSchema);
+Article.update(
+  { available: { $exists: false } },
+  { $set: { available: true } }
+);
 
-export default mongoose.model<IArticleModel>("Article", articleSchema);
+export default Article;

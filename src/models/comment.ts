@@ -12,6 +12,7 @@ export interface ICommentModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
+  available: boolean;
 }
 
 /**
@@ -28,7 +29,8 @@ const commentSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
+    available: { type: Boolean, default: true }
   },
   {
     collection: "comments"
@@ -55,4 +57,10 @@ commentSchema.pre("save", function(next) {
   );
 });
 
-export default mongoose.model<ICommentModel>("Comment", commentSchema);
+const Comment = mongoose.model<ICommentModel>("Comment", commentSchema);
+Comment.update(
+  { available: { $exists: false } },
+  { $set: { available: true } }
+);
+
+export default Comment;

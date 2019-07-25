@@ -15,6 +15,7 @@ export interface IUserModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
+  available: boolean;
 }
 
 /**
@@ -35,11 +36,13 @@ const userSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
+    available: { type: Boolean, default: true }
   },
   {
     collection: "users"
   }
 );
-
-export default mongoose.model<IUserModel>("User", userSchema);
+const User = mongoose.model<IUserModel>("User", userSchema);
+User.update({ available: { $exists: false } }, { $set: { available: true } });
+export default User;

@@ -114,7 +114,13 @@ router.post("/", (req, res) => {
     req.body.password = hash;
     req.body.group = "student";
     req.body.role = "writer";
-    const newUser = new User(req.body);
+    const newUser = new User({
+      createdAt: new Date(),
+      createdBy: req.body.id,
+      updatedAt: new Date(),
+      updatedBy: req.body.id,
+      ...req.body
+    });
 
     newUser.save((error, user) => {
       if (error) {
@@ -142,7 +148,7 @@ router.post("/login", (req, res) => {
       .send("422 Unprocessable Entity: Missing credentials");
   }
 
-  const query = { username };
+  const query = { username, available: true };
   return User.findOne(query, (err, user) => {
     if (err) {
       return res.status(500).end();
@@ -210,18 +216,22 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
     req.body.password = bcrypt.hashSync(password, saltRounds);
   }
 
-  const update = { updatedAt: new Date(), ...req.body };
-  return User.findOneAndUpdate({ id: req.params.id }, update, (err, user) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!user) {
-      return res.status(404).send("404 Not Found: User does not exist");
-    }
+  const update = { updatedAt: new Date(), updatedBy: req.auth.id, ...req.body };
+  return User.findOneAndUpdate(
+    { id: req.params.id, available: true },
+    { $set: { update } },
+    (err, user) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!user) {
+        return res.status(404).send("404 Not Found: User does not exist");
+      }
 
-    res.setHeader("Location", "/v1/users/" + user.id);
-    res.status(204).end();
-  });
+      res.setHeader("Location", "/v1/users/" + user.id);
+      res.status(204).end();
+    }
+  );
 });
 
 /**
@@ -230,16 +240,22 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
  * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root"]), (req, res) => {
-  User.findOneAndDelete({ id: req.params.id }, (err, user) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!user) {
-      return res.status(404).send("404 Not Found: User does not exist");
-    }
+  User.findOneAndUpdate(
+    { id: req.params.id },
+    {
+      $set: { updatedAt: new Date(), updatedBy: req.auth.id, available: false }
+    },
+    (err, user) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!user) {
+        return res.status(404).send("404 Not Found: User does not exist");
+      }
 
-    res.status(204).end();
-  });
+      res.status(204).end();
+    }
+  );
 });
 
 export default router;

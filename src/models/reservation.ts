@@ -13,6 +13,7 @@ export interface IReservationModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
+  available: boolean;
 }
 
 /**
@@ -30,7 +31,8 @@ const reservationSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
+    available: { type: Boolean, default: true }
   },
   {
     collection: "reservations"
@@ -56,8 +58,14 @@ reservationSchema.pre("save", function(next) {
     }
   );
 });
-
-export default mongoose.model<IReservationModel>(
+const Reservation = mongoose.model<IReservationModel>(
   "Reservation",
   reservationSchema
 );
+
+Reservation.update(
+  { available: { $exists: false } },
+  { $set: { available: true } }
+);
+
+export default Reservation;

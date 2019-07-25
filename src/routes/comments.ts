@@ -26,6 +26,7 @@ router.get("/", (req, res) => {
   if (req.query.likedBy) {
     query.likers = req.query.likedBy;
   }
+  req.query.available = true;
 
   Comment.find(query, "-_id -__v", (err, comments) => {
     if (err) {
@@ -42,17 +43,21 @@ router.get("/", (req, res) => {
  * @returns {Object} comment with id
  */
 router.get("/:id", (req, res) => {
-  Comment.findOne({ id: req.params.id }, "-_id -__v", (err, comment) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!comment) {
-      return res.status(404).send("404 Not Found: Comment does not exist");
-    }
+  Comment.findOne(
+    { id: req.params.id, available: true },
+    "-_id -__v",
+    (err, comment) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!comment) {
+        return res.status(404).send("404 Not Found: Comment does not exist");
+      }
 
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(comment));
-  });
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(200).end(JSON.stringify(comment));
+    }
+  );
 });
 
 /**
@@ -62,7 +67,7 @@ router.get("/:id", (req, res) => {
  */
 router.get("/:id/like", authenticate([]), (req, res) => {
   Comment.findOneAndUpdate(
-    { id: req.params.id },
+    { id: req.params.id, available: true },
     { $addToSet: { likers: req.auth.id } },
     (err, comment) => {
       if (err) {
@@ -85,7 +90,7 @@ router.get("/:id/like", authenticate([]), (req, res) => {
  */
 router.get("/:id/unlike", authenticate([]), (req, res) => {
   Comment.findOneAndUpdate(
-    { id: req.params.id },
+    { id: req.params.id, available: true },
     { $pullAll: { likers: [req.auth.id] } },
     (err, comment) => {
       if (err) {
@@ -106,7 +111,13 @@ router.get("/:id/unlike", authenticate([]), (req, res) => {
  * @returns Location header
  */
 router.post("/", authenticate(["root", "writer", "reader"]), (req, res) => {
-  const newComment = new Comment(req.body);
+  const newComment = new Comment({
+    createdAt: new Date(),
+    createdBy: req.auth.id,
+    updatedAt: new Date(),
+    updatedBy: req.auth.id,
+    ...req.body
+  });
 
   newComment.save((err, comment) => {
     if (err) {
@@ -124,7 +135,7 @@ router.post("/", authenticate(["root", "writer", "reader"]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "self"]), (req, res) => {
-  Comment.findOne({ id: req.params.id }, (err, comment) => {
+  Comment.findOne({ id: req.params.id, available: true }, (err, comment) => {
     if (err) {
       return res.status(500).end();
     }
@@ -138,10 +149,14 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
       }
     }
 
-    const update = { updatedAt: new Date(), ...req.body };
+    const update = {
+      updatedAt: new Date(),
+      updatedBy: req.auth.id,
+      ...req.body
+    };
     Comment.findOneAndUpdate(
-      { id: req.params.id },
-      update,
+      { id: req.params.id, available: true },
+      { $set: { update } },
       (error, newComment) => {
         if (error) {
           return res.status(500).end();
@@ -163,7 +178,7 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
  * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root", "self"]), (req, res) => {
-  Comment.findOne({ id: req.params.id }, (err, comment) => {
+  Comment.findOne({ id: req.params.id, available: true }, (err, comment) => {
     if (err) {
       return res.status(500).end();
     }
@@ -177,16 +192,26 @@ router.delete("/:id", authenticate(["root", "self"]), (req, res) => {
       }
     }
 
-    Comment.findOneAndDelete({ id: req.params.id }, (error, oldComment) => {
-      if (error) {
-        return res.status(500).end();
-      }
-      if (!oldComment) {
-        return res.status(404).send("404 Not Found: Comment does not exist");
-      }
+    Comment.findOneAndUpdate(
+      { id: req.params.id, available: true },
+      {
+        $set: {
+          updatedAt: new Date(),
+          updatedBy: req.auth.id,
+          available: false
+        }
+      },
+      (error, oldComment) => {
+        if (error) {
+          return res.status(500).end();
+        }
+        if (!oldComment) {
+          return res.status(404).send("404 Not Found: Comment does not exist");
+        }
 
-      res.status(204).end();
-    });
+        res.status(204).end();
+      }
+    );
   });
 });
 

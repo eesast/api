@@ -41,6 +41,7 @@ router.get("/", (req, res) => {
   if (!req.query.roomOnly || req.query.roomOnly === "false") {
     query.itemId = { $ne: -1 };
   }
+  req.query.available = true;
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
 
@@ -65,7 +66,7 @@ router.get("/", (req, res) => {
  */
 router.get("/:id", (req, res) => {
   Reservation.findOne(
-    { id: req.params.id },
+    { id: req.params.id, available: true },
     "-_id -__v",
     (err, reservation) => {
       if (err) {
@@ -94,7 +95,13 @@ router.post("/", authenticate([]), (req, res) => {
   if (req.body.to) {
     req.body.to = new Date(req.body.to);
   }
-  const newReservation = new Reservation(req.body);
+  const newReservation = new Reservation({
+    createdAt: new Date(),
+    createdBy: req.auth.id,
+    updatedAt: new Date(),
+    updatedBy: req.auth.id,
+    ...req.body
+  });
 
   newReservation.save((err, reservation) => {
     if (err) {
@@ -112,11 +119,15 @@ router.post("/", authenticate([]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  const update = { updatedAt: new Date(), ...req.body };
+  const update = {
+    updatedAt: new Date(),
+    updatedBy: req.auth.id,
+    ...req.body
+  };
 
   Reservation.findOneAndUpdate(
-    { id: req.params.id },
-    update,
+    { id: req.params.id, available: true },
+    { $set: update },
     (err, reservation) => {
       if (err) {
         return res.status(500).end();
@@ -139,16 +150,28 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
  * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  Reservation.findOneAndDelete({ id: req.params.id }, (err, reservation) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!reservation) {
-      return res.status(404).send("404 Not Found: Reservation does not exist");
-    }
+  Reservation.findOneAndUpdate(
+    { id: req.params.id, available: true },
+    {
+      $set: {
+        available: false,
+        updatedAt: new Date(),
+        updatedBy: req.auth.id
+      }
+    },
+    (err, reservation) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!reservation) {
+        return res
+          .status(404)
+          .send("404 Not Found: Reservation does not exist");
+      }
 
-    res.status(204).end();
-  });
+      res.status(204).end();
+    }
+  );
 });
 
 export default router;

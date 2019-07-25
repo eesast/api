@@ -11,6 +11,7 @@ export interface IItemModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
+  available: boolean;
 }
 
 /**
@@ -26,7 +27,8 @@ const itemSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
+    available: { type: Boolean, default: true }
   },
   {
     collection: "items"
@@ -53,4 +55,6 @@ itemSchema.pre("save", function(next) {
   );
 });
 
-export default mongoose.model<IItemModel>("Item", itemSchema);
+const Item = mongoose.model<IItemModel>("Item", itemSchema);
+Item.update({ available: { $exists: false } }, { $set: { available: true } });
+export default Item;

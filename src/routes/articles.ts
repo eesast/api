@@ -37,6 +37,7 @@ router.get("/", (req, res) => {
   if (!req.query.invisible) {
     query.visible = true;
   }
+  query.available = true;
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select =
@@ -76,17 +77,21 @@ router.get("/", (req, res) => {
  * @returns {Object} article with id
  */
 router.get("/:id", (req, res) => {
-  Article.findOne({ id: req.params.id }, "-_id -__v", (err, article) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!article) {
-      return res.status(404).send("404 Not Found: Article does not exist");
-    }
+  Article.findOne(
+    { id: req.params.id, available: true },
+    "-_id -__v",
+    (err, article) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!article) {
+        return res.status(404).send("404 Not Found: Article does not exist");
+      }
 
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(article));
-  });
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(200).end(JSON.stringify(article));
+    }
+  );
 });
 
 /**
@@ -96,7 +101,7 @@ router.get("/:id", (req, res) => {
  */
 router.get("/:id/like", authenticate([]), (req, res) => {
   Article.findOneAndUpdate(
-    { id: req.params.id },
+    { id: req.params.id, available: true },
     { $addToSet: { likers: req.auth.id } },
     (err, article) => {
       if (err) {
@@ -119,7 +124,7 @@ router.get("/:id/like", authenticate([]), (req, res) => {
  */
 router.get("/:id/unlike", authenticate([]), (req, res) => {
   Article.findOneAndUpdate(
-    { id: req.params.id },
+    { id: req.params.id, available: true },
     { $pullAll: { likers: [req.auth.id] } },
     (err, article) => {
       if (err) {
@@ -140,10 +145,17 @@ router.get("/:id/unlike", authenticate([]), (req, res) => {
  * @returns Location header
  */
 router.post("/", authenticate(["root", "writer"]), (req, res) => {
-  const newArticle = new Article(req.body);
+  const newArticle = new Article({
+    createdAt: new Date(),
+    createdBy: req.auth.id,
+    updatedAt: new Date(),
+    updatedBy: req.auth.id,
+    ...req.body
+  });
 
   newArticle.save((err, article) => {
     if (err) {
+      console.log(err);
       return res.status(500).end();
     }
 
@@ -158,24 +170,26 @@ router.post("/", authenticate(["root", "writer"]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "self", "editor"]), (req, res) => {
-  Article.findOne({ id: req.params.id }, (err, article) => {
+  Article.findOne({ id: req.params.id, available: true }, (err, article) => {
     if (err) {
       return res.status(500).end();
     }
     if (!article) {
       return res.status(404).send("404 Not Found: Article does not exist");
     }
-
     if (req.auth.selfCheckRequired) {
       if (article.authorId !== req.auth.id) {
         return res.status(401).send("401 Unauthorized: Permission denied");
       }
     }
-
-    const update = { updatedAt: new Date(), ...req.body };
+    const update = {
+      updatedAt: new Date(),
+      updatedBy: req.auth.id,
+      ...req.body
+    };
     Article.findOneAndUpdate(
       { id: req.params.id },
-      update,
+      { $set: { update } },
       (error, newArticle) => {
         if (error) {
           return res.status(500).end();
@@ -197,16 +211,26 @@ router.put("/:id", authenticate(["root", "self", "editor"]), (req, res) => {
  * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root"]), (req, res) => {
-  Article.findOneAndDelete({ id: req.params.id }, (err, article) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!article) {
-      return res.status(404).send("404 Not Found: Article does not exist");
-    }
+  Article.findOneAndUpdate(
+    { id: req.params.id, available: true },
+    {
+      $set: {
+        available: false,
+        updatedAt: new Date(),
+        updatedBy: req.auth.id
+      }
+    },
+    (err, article) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!article) {
+        return res.status(404).send("404 Not Found: Article does not exist");
+      }
 
-    res.status(204).end();
-  });
+      res.status(204).end();
+    }
+  );
 });
 
 export default router;

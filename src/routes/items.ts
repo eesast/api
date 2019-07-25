@@ -20,6 +20,7 @@ router.get("/", authenticate([]), (req, res) => {
   if (req.query.available) {
     query.left = { $gt: 0 };
   }
+  query.available = true;
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
 
@@ -43,17 +44,21 @@ router.get("/", authenticate([]), (req, res) => {
  * @returns {Object} item with id
  */
 router.get("/:id", (req, res) => {
-  Item.findOne({ id: req.params.id }, "-_id -__v", (err, item) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!item) {
-      return res.status(404).send("404 Not Found: Item does not exist");
-    }
+  Item.findOne(
+    { id: req.params.id, available: true },
+    "-_id -__v",
+    (err, item) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!item) {
+        return res.status(404).send("404 Not Found: Item does not exist");
+      }
 
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(item));
-  });
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.status(200).end(JSON.stringify(item));
+    }
+  );
 });
 
 /**
@@ -61,7 +66,13 @@ router.get("/:id", (req, res) => {
  * @returns Location header
  */
 router.post("/", authenticate(["root", "keeper"]), (req, res) => {
-  const newItem = new Item(req.body);
+  const newItem = new Item({
+    createdAt: new Date(),
+    createdBy: req.auth.id,
+    updatedAt: new Date(),
+    updatedBy: req.auth.id,
+    ...req.body
+  });
 
   newItem.save((err, item) => {
     if (err) {
@@ -79,19 +90,27 @@ router.post("/", authenticate(["root", "keeper"]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  const update = { updatedAt: new Date(), ...req.body };
+  const update = {
+    updatedAt: new Date(),
+    updatedBy: req.auth.id,
+    ...req.body
+  };
 
-  Item.findOneAndUpdate({ id: req.params.id }, update, (err, item) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!item) {
-      return res.status(404).send("404 Not Found: Item does not exist");
-    }
+  Item.findOneAndUpdate(
+    { id: req.params.id, available: true },
+    { $set: update },
+    (err, item) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!item) {
+        return res.status(404).send("404 Not Found: Item does not exist");
+      }
 
-    res.setHeader("Location", "/v1/items/" + item.id);
-    res.status(204).end();
-  });
+      res.setHeader("Location", "/v1/items/" + item.id);
+      res.status(204).end();
+    }
+  );
 });
 
 /**
@@ -100,16 +119,26 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
  * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  Item.findOneAndDelete({ id: req.params.id }, (err, item) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!item) {
-      return res.status(404).send("404 Not Found: Item does not exist");
-    }
+  Item.findOneAndUpdate(
+    { id: req.params.id },
+    {
+      $set: {
+        updatedAt: new Date(),
+        updatedBy: req.auth.id,
+        available: false
+      }
+    },
+    (err, item) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!item) {
+        return res.status(404).send("404 Not Found: Item does not exist");
+      }
 
-    res.status(204).end();
-  });
+      res.status(204).end();
+    }
+  );
 });
 
 export default router;
