@@ -56,5 +56,12 @@ itemSchema.pre("save", function(next) {
 });
 
 const Item = mongoose.model<IItemModel>("Item", itemSchema);
-Item.update({ available: { $exists: false } }, { $set: { available: true } });
+Item.updateMany(
+  { available: { $exists: false } },
+  { $set: { available: true } },
+  (err, data) => {
+    if (err) console.log(err);
+    if (data.nModified) console.log("item", data);
+  }
+);
 export default Item;

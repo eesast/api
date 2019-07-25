@@ -67,9 +67,13 @@ articleSchema.pre("save", function(next) {
   );
 });
 const Article = mongoose.model<IArticleModel>("Article", articleSchema);
-Article.update(
+Article.updateMany(
   { available: { $exists: false } },
-  { $set: { available: true } }
+  { $set: { available: true } },
+  (err, data) => {
+    if (err) console.log(err);
+    if (data.nModified) console.log("article", data);
+  }
 );
 
 export default Article;

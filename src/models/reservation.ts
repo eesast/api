@@ -63,9 +63,13 @@ const Reservation = mongoose.model<IReservationModel>(
   reservationSchema
 );
 
-Reservation.update(
+Reservation.updateMany(
   { available: { $exists: false } },
-  { $set: { available: true } }
+  { $set: { available: true } },
+  (err, data) => {
+    if (err) console.log(err);
+    if (data.nModified) console.log("reservation", data);
+  }
 );
 
 export default Reservation;

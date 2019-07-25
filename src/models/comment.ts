@@ -58,9 +58,13 @@ commentSchema.pre("save", function(next) {
 });
 
 const Comment = mongoose.model<ICommentModel>("Comment", commentSchema);
-Comment.update(
+Comment.updateMany(
   { available: { $exists: false } },
-  { $set: { available: true } }
+  { $set: { available: true } },
+  (err, data) => {
+    if (err) console.log(err);
+    if (data.nModified) console.log("comment", data);
+  }
 );
 
 export default Comment;
