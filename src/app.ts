@@ -8,6 +8,7 @@ import commentRouter from "./routes/comments";
 import itemRouter from "./routes/items";
 import reservationRouter from "./routes/reservations";
 import staticRouter from "./routes/static";
+import teamRouter from "./routes/teams";
 import userRouter from "./routes/users";
 
 const app = express();
@@ -31,5 +32,6 @@ app.use("/v1/comments", commentRouter);
 app.use("/v1/users", userRouter);
 app.use("/v1/items", itemRouter);
 app.use("/v1/reservations", reservationRouter);
+app.use("/v1/teams", teamRouter);
 
 export default app;
