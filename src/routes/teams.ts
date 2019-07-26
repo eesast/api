@@ -40,7 +40,7 @@ router.get(
     const begin = parseInt(req.query.begin, 10) || 0;
     const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
     const select =
-      "-_id -__v" + (req.auth.role === "root" ? "" : " -inviteCode");
+      "-_id -__v -isAlive" + (req.auth.role === "root" ? "" : " -inviteCode");
 
     let teams: ITeamModel[] = [];
     let teamSelf: ITeamModel[] = [];
@@ -51,7 +51,7 @@ router.get(
       );
       teamSelf = await Team.find(
         { ...query, members: { $in: req.auth.id }, isAlive: true },
-        "-_id -__v"
+        "-_id -__v -isAlive"
       );
     } catch (err) {
       return res.status(500).end();
@@ -80,7 +80,7 @@ router.get(
   (req: { params: { id: string }; auth: IAuthRequest }, res) => {
     Team.findOne(
       { id: req.params.id, isAlive: true },
-      "-_id -__v",
+      "-_id -__v -isAlive",
       (err, team) => {
         if (err) {
           return res.status(500).end();

@@ -7,7 +7,7 @@ const router = express.Router();
 /**
  * GET items with queries
  * @param {string} name
- * @param {boolean} isAlive
+ * @param {boolean} available
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} certain items
@@ -17,7 +17,7 @@ router.get("/", authenticate([]), (req, res) => {
   if (req.query.name) {
     query.name = { $regex: req.query.name, $options: "i" };
   }
-  if (req.query.isAlive) {
+  if (req.query.available) {
     query.left = { $gt: 0 };
   }
   query.isAlive = true;
