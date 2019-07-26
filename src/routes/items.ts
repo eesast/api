@@ -7,7 +7,7 @@ const router = express.Router();
 /**
  * GET items with queries
  * @param {string} name
- * @param {boolean} available
+ * @param {boolean} isAlive
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} certain items
@@ -17,16 +17,16 @@ router.get("/", authenticate([]), (req, res) => {
   if (req.query.name) {
     query.name = { $regex: req.query.name, $options: "i" };
   }
-  if (req.query.available) {
+  if (req.query.isAlive) {
     query.left = { $gt: 0 };
   }
-  query.available = true;
+  query.isAlive = true;
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
 
   Item.find(
     query,
-    "-_id -__v -available",
+    "-_id -__v -isAlive",
     { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
     (err, items) => {
       if (err) {
@@ -45,8 +45,8 @@ router.get("/", authenticate([]), (req, res) => {
  */
 router.get("/:id", (req, res) => {
   Item.findOne(
-    { id: req.params.id, available: true },
-    "-_id -__v -available",
+    { id: req.params.id, isAlive: true },
+    "-_id -__v -isAlive",
     (err, item) => {
       if (err) {
         return res.status(500).end();
@@ -97,7 +97,7 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
   };
 
   Item.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     { $set: update },
     (err, item) => {
       if (err) {
@@ -125,7 +125,7 @@ router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
       $set: {
         updatedAt: new Date(),
         updatedBy: req.auth.id,
-        available: false
+        isAlive: false
       }
     },
     (err, item) => {

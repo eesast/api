@@ -14,6 +14,7 @@ export interface ITeamModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
+  isAlive: boolean;
 }
 
 /**
@@ -32,7 +33,8 @@ const teamSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
+    isAlive: { type: Boolean, default: true }
   },
   {
     collection: "teams"

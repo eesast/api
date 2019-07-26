@@ -13,7 +13,7 @@ export interface IReservationModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
-  available: boolean;
+  isAlive: boolean;
 }
 
 /**
@@ -32,7 +32,7 @@ const reservationSchema = new mongoose.Schema(
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
     updatedBy: Number,
-    available: { type: Boolean, default: true }
+    isAlive: { type: Boolean, default: true }
   },
   {
     collection: "reservations"
@@ -64,8 +64,8 @@ const Reservation = mongoose.model<IReservationModel>(
 );
 
 Reservation.updateMany(
-  { available: { $exists: false } },
-  { $set: { available: true } },
+  { isAlive: { $exists: false } },
+  { $set: { isAlive: true } },
   (err, data) => {
     if (err) console.log(err);
     if (data.nModified) console.log("reservation", data);

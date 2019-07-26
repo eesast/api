@@ -17,7 +17,7 @@ export interface IArticleModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
-  available: boolean;
+  isAlive: boolean;
 }
 
 /**
@@ -40,7 +40,7 @@ const articleSchema = new mongoose.Schema(
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
     updatedBy: Number,
-    available: { type: Boolean, default: true }
+    isAlive: { type: Boolean, default: true }
   },
   {
     collection: "articles"
@@ -68,8 +68,8 @@ articleSchema.pre("save", function(next) {
 });
 const Article = mongoose.model<IArticleModel>("Article", articleSchema);
 Article.updateMany(
-  { available: { $exists: false } },
-  { $set: { available: true } },
+  { isAlive: { $exists: false } },
+  { $set: { isAlive: true } },
   (err, data) => {
     if (err) console.log(err);
     if (data.nModified) console.log("article", data);

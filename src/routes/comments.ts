@@ -26,9 +26,9 @@ router.get("/", (req, res) => {
   if (req.query.likedBy) {
     query.likers = req.query.likedBy;
   }
-  req.query.available = true;
+  req.query.isAlive = true;
 
-  Comment.find(query, "-_id -__v -available", (err, comments) => {
+  Comment.find(query, "-_id -__v -isAlive", (err, comments) => {
     if (err) {
       return res.status(500).end();
     }
@@ -44,8 +44,8 @@ router.get("/", (req, res) => {
  */
 router.get("/:id", (req, res) => {
   Comment.findOne(
-    { id: req.params.id, available: true },
-    "-_id -__v -available",
+    { id: req.params.id, isAlive: true },
+    "-_id -__v -isAlive",
     (err, comment) => {
       if (err) {
         return res.status(500).end();
@@ -67,7 +67,7 @@ router.get("/:id", (req, res) => {
  */
 router.get("/:id/like", authenticate([]), (req, res) => {
   Comment.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     { $addToSet: { likers: req.auth.id } },
     (err, comment) => {
       if (err) {
@@ -90,7 +90,7 @@ router.get("/:id/like", authenticate([]), (req, res) => {
  */
 router.get("/:id/unlike", authenticate([]), (req, res) => {
   Comment.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     { $pullAll: { likers: [req.auth.id] } },
     (err, comment) => {
       if (err) {
@@ -135,7 +135,7 @@ router.post("/", authenticate(["root", "writer", "reader"]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "self"]), (req, res) => {
-  Comment.findOne({ id: req.params.id, available: true }, (err, comment) => {
+  Comment.findOne({ id: req.params.id, isAlive: true }, (err, comment) => {
     if (err) {
       return res.status(500).end();
     }
@@ -155,7 +155,7 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
       ...req.body
     };
     Comment.findOneAndUpdate(
-      { id: req.params.id, available: true },
+      { id: req.params.id, isAlive: true },
       { $set: { update } },
       (error, newComment) => {
         if (error) {
@@ -178,7 +178,7 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
  * @returns No Content or Not Found
  */
 router.delete("/:id", authenticate(["root", "self"]), (req, res) => {
-  Comment.findOne({ id: req.params.id, available: true }, (err, comment) => {
+  Comment.findOne({ id: req.params.id, isAlive: true }, (err, comment) => {
     if (err) {
       return res.status(500).end();
     }
@@ -193,12 +193,12 @@ router.delete("/:id", authenticate(["root", "self"]), (req, res) => {
     }
 
     Comment.findOneAndUpdate(
-      { id: req.params.id, available: true },
+      { id: req.params.id, isAlive: true },
       {
         $set: {
           updatedAt: new Date(),
           updatedBy: req.auth.id,
-          available: false
+          isAlive: false
         }
       },
       (error, oldComment) => {

@@ -41,13 +41,13 @@ router.get("/", (req, res) => {
   if (!req.query.roomOnly || req.query.roomOnly === "false") {
     query.itemId = { $ne: -1 };
   }
-  req.query.available = true;
+  req.query.isAlive = true;
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
 
   Reservation.find(
     query,
-    "-_id -__v -available",
+    "-_id -__v -isAlive",
     { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
     (err, reservations) => {
       if (err) {
@@ -66,8 +66,8 @@ router.get("/", (req, res) => {
  */
 router.get("/:id", (req, res) => {
   Reservation.findOne(
-    { id: req.params.id, available: true },
-    "-_id -__v -available",
+    { id: req.params.id, isAlive: true },
+    "-_id -__v -isAlive",
     (err, reservation) => {
       if (err) {
         return res.status(500).end();
@@ -126,7 +126,7 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
   };
 
   Reservation.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     { $set: update },
     (err, reservation) => {
       if (err) {
@@ -151,10 +151,10 @@ router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
  */
 router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
   Reservation.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     {
       $set: {
-        available: false,
+        isAlive: false,
         updatedAt: new Date(),
         updatedBy: req.auth.id
       }

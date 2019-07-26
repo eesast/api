@@ -37,7 +37,6 @@ router.get(
     if (req.query.available === "true") {
       query.available = true;
     }
-
     const begin = parseInt(req.query.begin, 10) || 0;
     const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
     const select =
@@ -47,11 +46,11 @@ router.get(
     let teamSelf: ITeamModel[] = [];
     try {
       teams = await Team.find(
-        { ...query, members: { $nin: req.auth.id } },
+        { ...query, members: { $nin: req.auth.id }, isAlive: true },
         select
       );
       teamSelf = await Team.find(
-        { ...query, members: { $in: req.auth.id } },
+        { ...query, members: { $in: req.auth.id }, isAlive: true },
         "-_id -__v"
       );
     } catch (err) {
@@ -79,23 +78,27 @@ router.get(
   "/:id",
   checkToken,
   (req: { params: { id: string }; auth: IAuthRequest }, res) => {
-    Team.findOne({ id: req.params.id }, "-_id -__v", (err, team) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!team) {
-        return res.status(404).send("404 Not Found: Team does not exist");
-      }
-
-      if (req.auth.role !== "root") {
-        if (!req.auth.id || team.members.indexOf(req.auth.id) === -1) {
-          team.set("inviteCode", undefined);
+    Team.findOne(
+      { id: req.params.id, isAlive: true },
+      "-_id -__v",
+      (err, team) => {
+        if (err) {
+          return res.status(500).end();
         }
-      }
+        if (!team) {
+          return res.status(404).send("404 Not Found: Team does not exist");
+        }
 
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(200).end(JSON.stringify(team));
-    });
+        if (req.auth.role !== "root") {
+          if (!req.auth.id || team.members.indexOf(req.auth.id) === -1) {
+            team.set("inviteCode", undefined);
+          }
+        }
+
+        res.setHeader("Content-Type", "application/json; charset=utf-8");
+        res.status(200).end(JSON.stringify(team));
+      }
+    );
   }
 );
 
@@ -105,7 +108,7 @@ router.get(
  * @returns {number[]}
  */
 router.get("/:id/members/", (req: { params: { id: string } }, res) => {
-  Team.findOne({ id: req.params.id }, "members", (err, team) => {
+  Team.findOne({ id: req.params.id, isAlive: true }, "members", (err, team) => {
     if (err) {
       return res.status(500).end();
     }
@@ -127,7 +130,11 @@ router.post(
   authenticate([]),
   async (req: { body: Partial<ITeamModel>; auth: IAuthRequest }, res) => {
     if (
-      await Team.findOne({ contestId: req.body.contestId, name: req.body.name })
+      await Team.findOne({
+        contestId: req.body.contestId,
+        name: req.body.name,
+        isAlive: true
+      })
     ) {
       res.setHeader("Location", "/teams");
       return res.status(409).send("409 Conflict: Team name already exists");
@@ -135,7 +142,8 @@ router.post(
     if (
       await Team.findOne({
         contestId: req.body.contestId,
-        members: { $in: req.auth.id }
+        members: { $in: req.auth.id },
+        isAlive: true
       })
     ) {
       res.setHeader("Location", "/teams");
@@ -183,7 +191,7 @@ router.post(
     let members: number[];
     let update: { updatedAt: Date; members: number[] };
     try {
-      const team = await Team.findOne({ id: req.params.id });
+      const team = await Team.findOne({ id: req.params.id, isAlive: true });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -211,14 +219,16 @@ router.post(
       if (
         await Team.findOne({
           contestId: team.contestId,
-          members: { $in: req.body.id }
+          members: { $in: req.body.id },
+          isAlive: true
         })
       ) {
         return res.status(409).send("409 Conflict: User is already in a team");
       }
       if (
         !(await User.findOne({
-          id: req.body.id
+          id: req.body.id,
+          isAlive: true
         }))
       ) {
         return res.status(400).send("400 Bad Request: Member does not exist");
@@ -232,7 +242,7 @@ router.post(
 
     try {
       const newTeam = await Team.findOneAndUpdate(
-        { id: req.params.id },
+        { id: req.params.id, isAlive: true },
         update
       );
       if (!newTeam) {
@@ -269,7 +279,7 @@ router.put(
     let members: number[];
     let update: Partial<ITeamModel>;
     try {
-      const team = await Team.findOne({ id: req.params.id });
+      const team = await Team.findOne({ id: req.params.id, isAlive: true });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -297,11 +307,12 @@ router.put(
               prev.then(
                 async Valid =>
                   Valid &&
-                  (await User.findOne({ id: cur })) &&
+                  (await User.findOne({ id: cur, isAlive: true })) &&
                   !(await Team.findOne({
                     id: { $ne: req.params.id },
                     contestId: req.body.contestId,
-                    members: { $in: cur }
+                    members: { $in: cur },
+                    isAlive: true
                   }))
               ),
             Promise.resolve<boolean | null>(true)
@@ -334,7 +345,7 @@ router.put(
 
     try {
       const newTeam = await Team.findOneAndUpdate(
-        { id: req.params.id },
+        { id: req.params.id, isAlive: true },
         update
       );
       if (!newTeam) {
@@ -359,7 +370,7 @@ router.delete(
   authenticate(["root", "self"]),
   async (req: { params: { id: string }; auth: IAuthRequest }, res) => {
     try {
-      const team = await Team.findOne({ id: req.params.id });
+      const team = await Team.findOne({ id: req.params.id, isAlive: true });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -373,7 +384,13 @@ router.delete(
     }
 
     try {
-      const deleteTeam = await Team.findOneAndDelete({ id: req.params.id });
+      const deleteTeam = await Team.findOneAndUpdate(
+        {
+          id: req.params.id,
+          isAlive: true
+        },
+        { $set: { isAlive: false } }
+      );
       if (!deleteTeam) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -400,7 +417,7 @@ router.delete(
   ) => {
     let update: { updatedAt: Date; members: number[] };
     try {
-      const team = await Team.findOne({ id: req.params.id });
+      const team = await Team.findOne({ id: req.params.id, isAlive: true });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
@@ -429,7 +446,7 @@ router.delete(
 
     try {
       const newTeam = await Team.findOneAndUpdate(
-        { id: req.params.id },
+        { id: req.params.id, isAlive: true },
         update
       );
       if (!newTeam) {

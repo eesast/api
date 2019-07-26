@@ -15,7 +15,7 @@ export interface IUserModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
-  available: boolean;
+  isAlive: boolean;
 }
 
 /**
@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema(
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
     updatedBy: Number,
-    available: { type: Boolean, default: true }
+    isAlive: { type: Boolean, default: true }
   },
   {
     collection: "users"
@@ -45,8 +45,8 @@ const userSchema = new mongoose.Schema(
 );
 const User = mongoose.model<IUserModel>("User", userSchema);
 User.updateMany(
-  { available: { $exists: false } },
-  { $set: { available: true } },
+  { isAlive: { $exists: false } },
+  { $set: { isAlive: true } },
   (err, data) => {
     if (err) console.log(err);
     if (data.nModified) console.log("user", data);

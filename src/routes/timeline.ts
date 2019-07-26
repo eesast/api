@@ -10,21 +10,17 @@ const router = express.Router();
  * @returns {Object} timeline with id
  */
 router.get("/", (req, res) => {
-  Timeline.find(
-    { available: true },
-    "-_id -__v -available",
-    (err, timeline) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!timeline) {
-        return res.status(404).send("404 Not Found: Item does not exist");
-      }
-
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(200).end(JSON.stringify(timeline));
+  Timeline.find({ isAlive: true }, "-_id -__v -isAlive", (err, timeline) => {
+    if (err) {
+      return res.status(500).end();
     }
-  );
+    if (!timeline) {
+      return res.status(404).send("404 Not Found: Item does not exist");
+    }
+
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(200).end(JSON.stringify(timeline));
+  });
 });
 
 /**
@@ -59,7 +55,7 @@ router.delete("/:id", authenticate(["root"]), (req, res) => {
     { id: req.params.id },
     {
       $set: {
-        available: false,
+        isAlive: false,
         updatedAt: new Date(),
         updatedBy: req.auth.id
       }

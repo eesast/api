@@ -11,7 +11,7 @@ export interface ITimelineModel extends mongoose.Document {
   updatedAt: Date;
   updatedBy: number;
   link?: string;
-  available: boolean;
+  isAlive: boolean;
 }
 
 const timelineSchema = new mongoose.Schema(
@@ -26,7 +26,7 @@ const timelineSchema = new mongoose.Schema(
     updatedAt: { type: Date, default: Date.now },
     updatedBy: Number,
     link: String,
-    available: { type: Boolean, default: true }
+    isAlive: { type: Boolean, default: true }
   },
   {
     collection: "timelines"

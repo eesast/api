@@ -30,7 +30,7 @@ router.get("/", authenticate([]), (req, res) => {
     query.class = req.query.class;
   }
 
-  let select = "-_id -__v -available -password";
+  let select = "-_id -__v -isAlive -password";
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const role = req.auth.role || "";
@@ -64,7 +64,7 @@ router.get("/", authenticate([]), (req, res) => {
  * @returns {Object} user with id
  */
 router.get("/:id", checkToken, (req, res) => {
-  let select = "-_id -__v -available -password";
+  let select = "-_id -__v -isAlive -password";
   let hasDetailInfo = false;
   if (
     req.auth.tokenValid &&
@@ -148,7 +148,7 @@ router.post("/login", (req, res) => {
       .send("422 Unprocessable Entity: Missing credentials");
   }
 
-  const query = { username, available: true };
+  const query = { username, isAlive: true };
   return User.findOne(query, (err, user) => {
     if (err) {
       return res.status(500).end();
@@ -218,7 +218,7 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
 
   const update = { updatedAt: new Date(), updatedBy: req.auth.id, ...req.body };
   return User.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     { $set: { update } },
     (err, user) => {
       if (err) {
@@ -243,7 +243,7 @@ router.delete("/:id", authenticate(["root"]), (req, res) => {
   User.findOneAndUpdate(
     { id: req.params.id },
     {
-      $set: { updatedAt: new Date(), updatedBy: req.auth.id, available: false }
+      $set: { updatedAt: new Date(), updatedBy: req.auth.id, isAlive: false }
     },
     (err, user) => {
       if (err) {

@@ -37,12 +37,11 @@ router.get("/", (req, res) => {
   if (!req.query.invisible) {
     query.visible = true;
   }
-  query.available = true;
+  query.isAlive = true;
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select =
-    "-_id -__v -available" +
-    (req.query.noContent === "true" ? " -content" : "");
+    "-_id -__v -isAlive" + (req.query.noContent === "true" ? " -content" : "");
 
   Article.find(
     query,
@@ -79,8 +78,8 @@ router.get("/", (req, res) => {
  */
 router.get("/:id", (req, res) => {
   Article.findOne(
-    { id: req.params.id, available: true },
-    "-_id -__v -available",
+    { id: req.params.id, isAlive: true },
+    "-_id -__v -isAlive",
     (err, article) => {
       if (err) {
         return res.status(500).end();
@@ -102,7 +101,7 @@ router.get("/:id", (req, res) => {
  */
 router.get("/:id/like", authenticate([]), (req, res) => {
   Article.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     { $addToSet: { likers: req.auth.id } },
     (err, article) => {
       if (err) {
@@ -125,7 +124,7 @@ router.get("/:id/like", authenticate([]), (req, res) => {
  */
 router.get("/:id/unlike", authenticate([]), (req, res) => {
   Article.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     { $pullAll: { likers: [req.auth.id] } },
     (err, article) => {
       if (err) {
@@ -171,7 +170,7 @@ router.post("/", authenticate(["root", "writer"]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "self", "editor"]), (req, res) => {
-  Article.findOne({ id: req.params.id, available: true }, (err, article) => {
+  Article.findOne({ id: req.params.id, isAlive: true }, (err, article) => {
     if (err) {
       return res.status(500).end();
     }
@@ -213,10 +212,10 @@ router.put("/:id", authenticate(["root", "self", "editor"]), (req, res) => {
  */
 router.delete("/:id", authenticate(["root"]), (req, res) => {
   Article.findOneAndUpdate(
-    { id: req.params.id, available: true },
+    { id: req.params.id, isAlive: true },
     {
       $set: {
-        available: false,
+        isAlive: false,
         updatedAt: new Date(),
         updatedBy: req.auth.id
       }
