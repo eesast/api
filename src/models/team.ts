@@ -60,5 +60,13 @@ teamSchema.pre("save", function(next) {
     }
   );
 });
-
-export default mongoose.model<ITeamModel>("Team", teamSchema);
+const Team = mongoose.model<ITeamModel>("Team", teamSchema);
+Team.updateMany(
+  { isAlive: { $exists: false } },
+  { $set: { isAlive: true } },
+  (err, data) => {
+    if (err) console.log(err);
+    if (data.nModified) console.log("team", data);
+  }
+);
+export default Team;
