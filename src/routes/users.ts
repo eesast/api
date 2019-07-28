@@ -110,18 +110,16 @@ router.post("/", (req, res) => {
     if (err) {
       return res.status(500).end();
     }
-
-    req.body.password = hash;
-    req.body.group = "student";
-    req.body.role = "writer";
-    const newUser = new User({
+    Object.assign(req.body, {
+      password: hash,
+      group: "student",
+      role: "writer",
       createdAt: new Date(),
       createdBy: req.body.id,
       updatedAt: new Date(),
-      updatedBy: req.body.id,
-      ...req.body
+      updatedBy: req.body.id
     });
-
+    const newUser = new User(req.body);
     newUser.save((error, user) => {
       if (error) {
         return res.status(500).end();
@@ -215,11 +213,13 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
     const saltRounds = 10;
     req.body.password = bcrypt.hashSync(password, saltRounds);
   }
-
-  const update = { updatedAt: new Date(), updatedBy: req.auth.id, ...req.body };
+  Object.assign(req.body, {
+    updatedAt: new Date(),
+    updatedBy: req.auth.id
+  });
   return User.findOneAndUpdate(
     { id: req.params.id, isAlive: true },
-    { $set: { update } },
+    { $set: req.body },
     (err, user) => {
       if (err) {
         return res.status(500).end();

@@ -338,7 +338,7 @@ router.put(
           .send("400 Bad Request: Captain is not a member of the team");
       }
 
-      update = { updatedAt: new Date(), ...req.body };
+      update = Object.assign(req.body, { updatedAt: new Date() });
     } catch (err) {
       return res.status(500).end();
     }

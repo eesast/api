@@ -55,13 +55,4 @@ itemSchema.pre("save", function(next) {
   );
 });
 
-const Item = mongoose.model<IItemModel>("Item", itemSchema);
-Item.updateMany(
-  { isAlive: { $exists: false } },
-  { $set: { isAlive: true } },
-  (err, data) => {
-    if (err) console.log(err);
-    if (data.nModified) console.log("item", data);
-  }
-);
-export default Item;
+export default mongoose.model<IItemModel>("Item", itemSchema);

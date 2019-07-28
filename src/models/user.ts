@@ -43,13 +43,4 @@ const userSchema = new mongoose.Schema(
     collection: "users"
   }
 );
-const User = mongoose.model<IUserModel>("User", userSchema);
-User.updateMany(
-  { isAlive: { $exists: false } },
-  { $set: { isAlive: true } },
-  (err, data) => {
-    if (err) console.log(err);
-    if (data.nModified) console.log("user", data);
-  }
-);
-export default User;
+export default mongoose.model<IUserModel>("User", userSchema);

@@ -5,7 +5,7 @@ export interface ITimelineModel extends mongoose.Document {
   id: number;
   alias: string;
   description: string;
-  originalURI: string;
+  originalUri: string;
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
@@ -20,7 +20,7 @@ const timelineSchema = new mongoose.Schema(
     title: { type: String, required: true }, // “太阳花”
     alias: { type: String, required: true, unique: true }, // for SEO and URL, “sunflower”,unique
     description: { type: String, required: true }, // description
-    originalURI: { type: String, required: true }, // url to static data
+    originalUri: { type: String, required: true }, // url to static data
     createdAt: { type: Date, default: Date.now, required: true },
     createdBy: { type: Number, required: true },
     updatedAt: { type: Date, default: Date.now },

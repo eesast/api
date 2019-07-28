@@ -66,13 +66,13 @@ router.get("/:id", (req, res) => {
  * @returns Location header
  */
 router.post("/", authenticate(["root", "keeper"]), (req, res) => {
-  const newItem = new Item({
+  Object.assign(req.body, {
     createdAt: new Date(),
     createdBy: req.auth.id,
     updatedAt: new Date(),
-    updatedBy: req.auth.id,
-    ...req.body
+    updatedBy: req.auth.id
   });
+  const newItem = new Item(req.body);
 
   newItem.save((err, item) => {
     if (err) {
@@ -90,15 +90,14 @@ router.post("/", authenticate(["root", "keeper"]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  const update = {
+  Object.assign(req.body, {
     updatedAt: new Date(),
-    updatedBy: req.auth.id,
-    ...req.body
-  };
+    updatedBy: req.auth.id
+  });
 
   Item.findOneAndUpdate(
     { id: req.params.id, isAlive: true },
-    { $set: update },
+    { $set: req.body },
     (err, item) => {
       if (err) {
         return res.status(500).end();

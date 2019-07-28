@@ -28,13 +28,13 @@ router.get("/", (req, res) => {
  * @returns Location header
  */
 router.post("/", authenticate(["root"]), (req, res) => {
-  const newItem = new Timeline({
+  Object.assign(req.body, {
     createdAt: new Date(),
     createdBy: req.auth.id,
     updatedAt: new Date(),
-    updatedBy: req.auth.id,
-    ...req.body
+    updatedBy: req.auth.id
   });
+  const newItem = new Timeline(req.body);
 
   newItem.save((err, item) => {
     if (err) {
@@ -45,6 +45,32 @@ router.post("/", authenticate(["root"]), (req, res) => {
   });
 });
 
+/**
+ * PUT a timeline of Id
+ * @param {number} id - deleting timeline's id
+ * @returns No Content or Not Found
+ */
+router.put("/:id", authenticate(["root"]), (req, res) => {
+  Object.assign(req.body, {
+    updatedAt: new Date(),
+    updatedBy: req.auth.id
+  });
+  Timeline.findOneAndUpdate(
+    { id: req.params.id, isAlive: true },
+    {
+      $set: req.body
+    },
+    (err, item) => {
+      if (err) {
+        return res.status(500).end();
+      }
+      if (!item) {
+        return res.status(404).send("404 Not Found: Timespot  does not exist");
+      }
+      res.status(204).end();
+    }
+  );
+});
 /**
  * DELETE a timeline of Id
  * @param {number} id - deleting timeline's id

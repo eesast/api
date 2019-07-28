@@ -33,6 +33,6 @@ app.use("/v1/users", userRouter);
 app.use("/v1/items", itemRouter);
 app.use("/v1/reservations", reservationRouter);
 app.use("/v1/teams", teamRouter);
-app.use("/v1/timeline", timelineRouter);
+app.use("/v1/timelines", timelineRouter);
 
 export default app;

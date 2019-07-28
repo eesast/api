@@ -66,14 +66,5 @@ articleSchema.pre("save", function(next) {
     }
   );
 });
-const Article = mongoose.model<IArticleModel>("Article", articleSchema);
-Article.updateMany(
-  { isAlive: { $exists: false } },
-  { $set: { isAlive: true } },
-  (err, data) => {
-    if (err) console.log(err);
-    if (data.nModified) console.log("article", data);
-  }
-);
 
-export default Article;
+export default mongoose.model<IArticleModel>("Article", articleSchema);

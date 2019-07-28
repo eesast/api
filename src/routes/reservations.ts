@@ -95,13 +95,13 @@ router.post("/", authenticate([]), (req, res) => {
   if (req.body.to) {
     req.body.to = new Date(req.body.to);
   }
-  const newReservation = new Reservation({
+  Object.assign(req.body, {
     createdAt: new Date(),
     createdBy: req.auth.id,
     updatedAt: new Date(),
-    updatedBy: req.auth.id,
-    ...req.body
+    updatedBy: req.auth.id
   });
+  const newReservation = new Reservation(req.body);
 
   newReservation.save((err, reservation) => {
     if (err) {
@@ -119,15 +119,13 @@ router.post("/", authenticate([]), (req, res) => {
  * @returns Location header or Not Found
  */
 router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  const update = {
+  Object.assign(req.body, {
     updatedAt: new Date(),
-    updatedBy: req.auth.id,
-    ...req.body
-  };
-
+    updatedBy: req.auth.id
+  });
   Reservation.findOneAndUpdate(
     { id: req.params.id, isAlive: true },
-    { $set: update },
+    { $set: req.body },
     (err, reservation) => {
       if (err) {
         return res.status(500).end();

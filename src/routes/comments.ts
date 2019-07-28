@@ -111,13 +111,13 @@ router.get("/:id/unlike", authenticate([]), (req, res) => {
  * @returns Location header
  */
 router.post("/", authenticate(["root", "writer", "reader"]), (req, res) => {
-  const newComment = new Comment({
+  Object.assign(req.body, {
     createdAt: new Date(),
     createdBy: req.auth.id,
     updatedAt: new Date(),
-    updatedBy: req.auth.id,
-    ...req.body
+    updatedBy: req.auth.id
   });
+  const newComment = new Comment(req.body);
 
   newComment.save((err, comment) => {
     if (err) {
@@ -148,15 +148,13 @@ router.put("/:id", authenticate(["root", "self"]), (req, res) => {
         return res.status(401).send("401 Unauthorized: Permission denied");
       }
     }
-
-    const update = {
+    Object.assign(req.body, {
       updatedAt: new Date(),
-      updatedBy: req.auth.id,
-      ...req.body
-    };
+      updatedBy: req.auth.id
+    });
     Comment.findOneAndUpdate(
       { id: req.params.id, isAlive: true },
-      { $set: { update } },
+      { $set: req.body },
       (error, newComment) => {
         if (error) {
           return res.status(500).end();

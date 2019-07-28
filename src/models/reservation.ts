@@ -58,18 +58,8 @@ reservationSchema.pre("save", function(next) {
     }
   );
 });
-const Reservation = mongoose.model<IReservationModel>(
+
+export default mongoose.model<IReservationModel>(
   "Reservation",
   reservationSchema
 );
-
-Reservation.updateMany(
-  { isAlive: { $exists: false } },
-  { $set: { isAlive: true } },
-  (err, data) => {
-    if (err) console.log(err);
-    if (data.nModified) console.log("reservation", data);
-  }
-);
-
-export default Reservation;
