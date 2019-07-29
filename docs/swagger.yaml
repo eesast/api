@@ -1244,7 +1244,64 @@ paths:
         5XX:
           description: Unexpected error
       security: 
+        - bearerAuth: []  
+  /v1/timeline:
+    post:
+      tags:
+        - timeline
+      summary: 主页时间线上添加一个新节点
+      description: 需要 `root` 或 `keeper` 角色
+      operationId: addTimeline
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                    description: 编号
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        5XX:
+          description: Unexpected error
+      security:
         - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTimeline"
+      parameters: []
+    get:
+      tags:
+        - timeline
+      summary: 返回整条时间线
+      description: 返回整条时间线
+      operationId: getalltimeline
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Timeline"
+        5XX:
+          description: Unexpected error
+  /v1/timeline/{id}:
+    delete:
+      tags:
+        - timeline
+      summary: 删除某个节点
+      description: 基于id删除某个节点
+      operationId: deleteTimeline
+      responses:
+        "204":
+          description: Successful deleted
+        5XX:
+          description: Unexpected error
+
 components:
   schemas:
     Article:
@@ -1520,6 +1577,35 @@ components:
             格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
         updatedBy:
           type: number
+    Timeline:
+      type: object
+      required:
+        - id
+        - title
+        - alias
+        - description
+        - originalURI
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        alias:
+          type: string
+        description:
+          type: string
+        originalURI:
+          type: string
+        createdAt:
+          $ref: "#/components/schemas/Date"
+        createdBy:
+          type: number
+        updatedAt:
+          $ref: "#/components/schemas/Date"
+        updatedBy:
+          type: number
+        link:
+          type: string
   requestBodies:
     addArticle:
       content:
@@ -1826,6 +1912,28 @@ components:
               inviteCode:
                 type: string
       description: 增加队员的提交格式
+      required: true
+    addTimeline:
+      content:
+        application/json:
+          schema:
+            required:
+              - title
+              - alias
+              - description
+              - originalURI
+            properties:
+              title:
+                type: string
+              alias:
+                type: string
+              description:
+                type: string
+              originalURI:
+                type: string
+              link:
+                type: string
+      description: 新增时间线的提交格式
       required: true
   responses:
     UnauthorizedError:
