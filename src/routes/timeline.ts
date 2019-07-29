@@ -45,7 +45,6 @@ router.post(
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.status(201).end(JSON.stringify({ id: item.id }));
     } catch (err) {
-      console.log(err);
       return res.status(500).end();
     }
   }
