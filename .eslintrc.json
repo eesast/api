@@ -10,5 +10,13 @@
     "plugin:@typescript-eslint/recommended",
     "prettier",
     "prettier/@typescript-eslint"
-  ]
+  ],
+  "rules": {
+    "@typescript-eslint/interface-name-prefix": 0,
+    "@typescript-eslint/no-non-null-assertion": 0,
+    "@typescript-eslint/no-namespace": 1,
+    "require-atomic-updates": 1,
+    "@typescript-eslint/explicit-function-return-type": 0
+
+  }
 }
