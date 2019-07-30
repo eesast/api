@@ -11,7 +11,7 @@ servers:
 info:
   title: API Backend for EESAST
   description: |
-    清华大学电子工程系学生科协后端 API。了解更多 EESAST 内容，请访问：[GitHub 主页](https://github.com/eesast/)或 [EESAST 官方网站](https://eesast.com/)。
+  清华大学电子工程系学生科协后端 API。了解更多 EESAST 内容，请访问：[GitHub 主页](https://github.com/eesast/)或 [EESAST 官方网站](https://eesast.com/)。
   version: 1.0.0
   contact:
     name: API Support
@@ -31,6 +31,8 @@ tags:
     description: 静态文件
   - name: teams
     description: 队伍
+  - name: announcements
+    description: 公告
 paths:
   /v1/articles:
     post:
@@ -1106,7 +1108,7 @@ paths:
           description: Successful operation
           headers:
             Location:
-              description: 被更新文章的 URL
+              description: 被更新队伍的 URL
               schema:
                 type: string
         "400":
@@ -1243,7 +1245,163 @@ paths:
           description: "Not Found: Team does not exist / Member does not exist"
         5XX:
           description: Unexpected error
-      security: 
+      security:
+        - bearerAuth: []
+  /v1/announcements:
+    get:
+      tags:
+        - announcements
+      summary: 返回匹配查询的公告
+      description: 可以通过 query 进行筛选
+      operationId: findAnnouncements
+      parameters:
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: 公告标题，采用部分匹配
+        - name: alias
+          in: query
+          schema:
+            type: string
+          description: 别名，通常是公告的 URL
+        - name: contestId
+          in: query
+          schema:
+            type: string
+          description: 比赛ID
+        - name: priority
+          in: query
+          schema:
+            type: string
+          description: 公告显示优先级
+        - name: noContent
+          in: query
+          schema:
+            type: boolean
+          description: "设置是否需要获取公告内容。若设置为 `true`, 则响应中不包含 `content` 键值对"
+        - name: begin
+          in: query
+          schema:
+            type: string
+          description: 按时间降序排列，起始公告的位置
+        - name: end
+          in: query
+          schema:
+            type: string
+          description: 按时间降序排列，结束公告的位置
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Announcement"
+        5XX:
+          description: Unexpected error
+    post:
+      tags:
+        - announcements
+      summary: 发布一篇新的公告
+      description: 需要 `root` 角色
+      operationId: addAnnouncements
+      responses:
+        "201":
+          description: Successful operation
+          headers:
+            Location:
+              description: 新发布公告的 URL
+              schema:
+                type: string
+        "401":
+          description: "Access token is missing, invalid or expired / Permission denied"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addAnnouncement"
+      parameters: []
+  "/v1/announcements/{announcementId}":
+    get:
+      tags:
+        - announcements
+      summary: 根据 ID 获取公告
+      operationId: getAnnouncementById
+      parameters:
+        - name: announcementId
+          description: 公告的 ID
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "404":
+          description: "Not Found: Announcement does not exist"
+        5XX:
+          description: Unexpected error
+    put:
+      tags:
+        - announcements
+      summary: 更新已经存在的公告
+      description: 需要 `root` 角色
+      operationId: updateAnnouncement
+      parameters:
+        - name: announcementId
+          in: path
+          description: 要更新的公告ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新公告的 URL
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Announcement does not exist"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/updateAnnouncement"
+    delete:
+      tags:
+        - announcements
+      summary: 删除一篇公告
+      description: 需要 `root` 角色
+      operationId: deleteAnnouncement
+      parameters:
+        - name: announcementId
+          in: path
+          description: 要删除的公告ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Announcement does not exist"
+        5XX:
+          description: Unexpected error
+      security:
         - bearerAuth: []
 components:
   schemas:
@@ -1518,6 +1676,50 @@ components:
           description: >-
             日期对象。使用时采用 ISO
             格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
+        updatedBy:
+          type: number
+    Announcement:
+      type: object
+      required:
+        - id
+        - contsetId
+        - title
+        - alias
+        - author
+        - content
+      properties:
+        id:
+          type: number
+          description: 自增值
+        contestId:
+          type: number
+          description: 比赛ID
+        title:
+          type: string
+        alias:
+          type: string
+          description: 用于 SEO 与 URL
+        author:
+          type: number
+        content:
+          type: string
+          description: 公告内容(支持 Markdown)
+        abstract:
+          type: string
+          description: 摘要，用于预览功能
+        views:
+          type: number
+          default: 0
+        priority:
+          type: number
+          default: 1
+          description: 优先级，用于排序
+        createdAt:
+          $ref: "#/components/schemas/Date"
+        createdBy:
+          type: number
+        updatedAt:
+          $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
   requestBodies:
@@ -1826,6 +2028,68 @@ components:
               inviteCode:
                 type: string
       description: 增加队员的提交格式
+      required: true
+    addAnnouncement:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - contsetId
+              - title
+              - alias
+              - author
+              - content
+            properties:
+              contestId:
+                type: number
+                description: 比赛ID
+              title:
+                type: string
+              alias:
+                type: string
+                description: 用于 SEO 与 URL
+              author:
+                type: number
+              content:
+                type: string
+                description: 文章内容(支持 Markdown)
+              abstract:
+                type: string
+                description: 摘要，用于预览功能
+              priority:
+                type: number
+                default: 1
+                description: 优先级，用于排序
+      description: 发布公告的提交格式
+      required: true
+    updateAnnouncement:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              contestId:
+                type: number
+                description: 比赛ID
+              title:
+                type: string
+              alias:
+                type: string
+                description: 用于 SEO 与 URL
+              author:
+                type: number
+              content:
+                type: string
+                description: 公告内容(支持 Markdown)
+              abstract:
+                type: string
+                description: 摘要，用于预览功能
+              priority:
+                type: number
+                default: 1
+                description: 优先级，用于排序
+      description: 更新公告的提交格式
       required: true
   responses:
     UnauthorizedError:
