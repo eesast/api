@@ -31,6 +31,8 @@ tags:
     description: 静态文件
   - name: teams
     description: 队伍
+  - name: contests
+    description: 比赛
 paths:
   /v1/articles:
     post:
@@ -433,6 +435,152 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           description: "Not Found: Comment does not exist"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+  /v1/contests:
+    post:
+      tags:
+        - contests
+      summary: 发布一场新比赛
+      description: 需要 `root`角色
+      operationId: addContest
+      responses:
+        "201":
+          description: Successful operation
+          headers:
+            Location:
+              description: 新发布比赛的 URL
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addContest"
+      parameters: []
+    get:
+      tags:
+        - contests
+      summary: 返回匹配查询的比赛
+      description: 可以通过 query 进行筛选
+      operationId: findContests
+      parameters:
+        - name: name
+          in: query
+          description: 比赛名称，采用部分匹配
+          schema:
+            type: string
+        - name: alias
+          in: query
+          description: 别名，通常是比赛的 URL
+          schema:
+            type: string
+        - name: begin
+          in: query
+          description: 按时间降序排列，起始比赛的位置
+          schema:
+            type: number
+        - name: end
+          in: query
+          description: 按时间降序排列，结束比赛的位置
+          schema:
+            type: number
+        - name: available
+          in: query
+          description: 设置是否查看已结束的比赛
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contest"
+        5XX:
+          description: Unexpected error
+  "/v1/contests/{contestId}":
+    get:
+      tags:
+        - contests
+      summary: 根据 ID 获取比赛
+      operationId: getContestById
+      parameters:
+        - name: contestId
+          in: path
+          description: 比赛 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contest"
+        "404":
+          description: "Not Found: Contest does not exist"
+        5XX:
+          description: Unexpected error
+    put:
+      tags:
+        - contests
+      summary: 更新已存在的比赛
+      description: 需要 `root` 角色
+      operationId: updateContest
+      parameters:
+        - name: contestId
+          in: path
+          description: 待更新比赛的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新比赛的 URL
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Contest does not exist"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/updateContest"
+    delete:
+      tags:
+        - contests
+      summary: 删除一场比赛
+      description: 需要 `root` 角色
+      operationId: deleteContest
+      parameters:
+        - name: contestId
+          in: path
+          description: 要删除比赛的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Contest does not exist"
         5XX:
           description: Unexpected error
       security:
@@ -1243,8 +1391,9 @@ paths:
           description: "Not Found: Team does not exist / Member does not exist"
         5XX:
           description: Unexpected error
-      security: 
+      security:
         - bearerAuth: []
+
 components:
   schemas:
     Article:
@@ -1326,6 +1475,34 @@ components:
           items:
             type: number
             description: 点赞用户的 ID
+        createdAt:
+          $ref: "#/components/schemas/Date"
+        createdBy:
+          type: number
+        updatedAt:
+          $ref: "#/components/schemas/Date"
+        updatedBy:
+          type: number
+    Contest:
+      type: object
+      required:
+        - id
+        - name
+        - alias
+        - available
+      properties:
+        id:
+          type: number
+          description: 自增值
+        name:
+          type: string
+        alias:
+          type: string
+          description: 用于 SEO 与 URL
+        available:
+          type: boolean
+          default: false
+          description: 比赛是否结束
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:
@@ -1643,6 +1820,46 @@ components:
                   type: number
                   description: 点赞用户的 ID
       description: 更新评论的提交格式
+      required: true
+    addContest:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - alias
+            properties:
+              name:
+                type: string
+              alias:
+                type: string
+                description: 用于 SEO 与 URL
+              available:
+                type: boolean
+                default: true
+                description: 比赛是否结束
+      description: 发布比赛的提交格式
+      required: true
+    updateContest:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - alias
+            properties:
+              name:
+                type: string
+              alias:
+                type: string
+                description: 用于 SEO 与 URL
+              available:
+                type: boolean
+                default: false
+                description: 比赛是否结束
+      description: 更新比赛的提交格式
       required: true
     addItem:
       content:
