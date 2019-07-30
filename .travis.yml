@@ -4,6 +4,7 @@ cache: yarn
 install:
   - yarn
 script:
+  - yarn lint
   - yarn build
 deploy:
   provider: script

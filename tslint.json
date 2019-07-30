@@ -1,7 +1,0 @@
-{
-  "extends": ["tslint:latest", "tslint-eslint-rules", "tslint-config-prettier"],
-  "rules": {
-    "member-access": [true, "no-public"],
-    "object-literal-sort-keys": false
-  }
-}

@@ -68,7 +68,8 @@ database
 public
 
 # VSCode
-.vscode/
+.vscode/*
+!.vscode/settings.json
 
 # macOS
 .DS_Store
