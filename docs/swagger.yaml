@@ -1245,10 +1245,10 @@ paths:
           description: Unexpected error
       security: 
         - bearerAuth: []  
-  /v1/timeline:
+  /v1/timelines:
     post:
       tags:
-        - timeline
+        - timelines
       summary: 主页时间线上添加一个新节点
       description: 需要 `root` 或 `keeper` 角色
       operationId: addTimeline
@@ -1274,10 +1274,10 @@ paths:
       parameters: []
     get:
       tags:
-        - timeline
+        - timelines
       summary: 返回整条时间线
       description: 返回整条时间线
-      operationId: getalltimeline
+      operationId: getalltimelines
       responses:
         "200":
           description: Successful operation
@@ -1289,18 +1289,58 @@ paths:
                   $ref: "#/components/schemas/Timeline"
         5XX:
           description: Unexpected error
-  /v1/timeline/{id}:
+  "/v1/timelines/{id}":
     delete:
       tags:
-        - timeline
+        - timelines
       summary: 删除某个节点
-      description: 基于id删除某个节点
+      description: 需要 `root` 或 `keeper` 角色
       operationId: deleteTimeline
+      parameters:
+        - name: id
+          in: path
+          description: 节点 ID
+          required: true
+          schema:
+            type: number
       responses:
         "204":
           description: Successful deleted
         5XX:
           description: Unexpected error
+      security:
+        - bearerAuth: []
+    put:
+      tags:
+        - timelines
+      summary: 更新已存在的时间线节点
+      description: 需要 `root` 或 `keeper` 角色
+      operationId: updateTimeline
+      parameters:
+        - name: id
+          in: path
+          description: 需要更新的时间线节点的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新节点的 URL
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Timeline does not exist"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTimeline"
 
 components:
   schemas:

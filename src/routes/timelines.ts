@@ -1,7 +1,7 @@
 import * as express from "express";
 import authenticate from "../middlewares/authenticate";
-import Timeline from "../models/timeline";
-import { editableParams as timelineEditableParams } from "../models/timeline";
+import Timeline from "../models/timelines";
+import { editableParams as timelineEditableParams } from "../models/timelines";
 import dataCleaner from "../middlewares/dataCleaner";
 
 const router = express.Router();
@@ -13,7 +13,10 @@ const router = express.Router();
  */
 router.get("/", async (req, res) => {
   try {
-    let timeline = await Timeline.find({ isAlive: true }, "-_id -__v -isAlive");
+    const timeline = await Timeline.find(
+      { isAlive: true },
+      "-_id -__v -isAlive"
+    );
     if (!timeline) {
       return res.status(404).send("404 Not Found: Item does not exist");
     }
@@ -34,14 +37,14 @@ router.post(
   dataCleaner(timelineEditableParams),
   async (req, res) => {
     try {
-      let newTimeline = new Timeline({
+      const newTimeline = new Timeline({
         createdAt: new Date(),
         createdBy: req.auth.id,
         updatedAt: new Date(),
         updatedBy: req.auth.id,
         ...req.body
       });
-      let item = await newTimeline.save();
+      const item = await newTimeline.save();
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.status(201).end(JSON.stringify({ id: item.id }));
     } catch (err) {
@@ -61,7 +64,7 @@ router.put(
   dataCleaner(timelineEditableParams),
   async (req, res) => {
     try {
-      let item = await Timeline.findOneAndUpdate(
+      const item = await Timeline.findOneAndUpdate(
         { id: req.params.id, isAlive: true },
         {
           $set: {
@@ -87,7 +90,7 @@ router.put(
  */
 router.delete("/:id", authenticate(["root"]), async (req, res) => {
   try {
-    let item = await Timeline.findOneAndUpdate(
+    const item = await Timeline.findOneAndUpdate(
       { id: req.params.id },
       {
         $set: {

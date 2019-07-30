@@ -15,8 +15,8 @@ const cleaner = (datakey: string[] | undefined) => (
     req.body = {};
     return next();
   }
-  let rest: { [propName: string]: any } = {};
-  for (let str of datakey) {
+  const rest: { [propName: string]: any } = {};
+  for (const str of datakey) {
     if (req.body[str]) rest[str] = req.body[str];
   }
   req.body = rest;
