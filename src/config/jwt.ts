@@ -17,8 +17,9 @@ export interface IAuthRequest extends Partial<IJWTPayload> {
 }
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
-    // tslint:disable-next-line: interface-name
+    // eslint-disable-next-line @typescript-eslint/interface-name-prefix
     interface Request {
       auth: IAuthRequest;
       filename: string;
