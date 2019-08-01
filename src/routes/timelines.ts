@@ -92,7 +92,7 @@ router.delete("/:id", authenticate(["root"]), async (req, res) => {
   try {
     const item = await Timeline.findOneAndDelete({ id: req.params.id });
     if (!item) {
-      return res.status(404).send("404 Not Found: Timespot  does not exist");
+      return res.status(404).send("404 Not Found: Timespot does not exist");
     }
     res.status(204).end();
   } catch (err) {
