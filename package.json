@@ -7,7 +7,7 @@
     "build": "tsc --outDir build",
     "serve": "NODE_ENV=production node build/index.js",
     "lint": "eslint --ext .js,.ts src/",
-    "typecheck": "tsc --noUnusedLocals",
+    "typecheck": "tsc --noUnusedLocals --noEmit",
     "prettier": "prettier -c \"src/**/*.{js,ts,json,md}\" --write"
   },
   "dependencies": {
