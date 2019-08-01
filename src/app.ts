@@ -3,6 +3,7 @@ import * as express from "express";
 import * as logger from "morgan";
 import * as path from "path";
 import serverConfig from "./config/server";
+import announcementRouter from "./routes/announcements";
 import articleRouter from "./routes/articles";
 import commentRouter from "./routes/comments";
 import itemRouter from "./routes/items";
@@ -34,6 +35,7 @@ app.use("/v1/users", userRouter);
 app.use("/v1/items", itemRouter);
 app.use("/v1/reservations", reservationRouter);
 app.use("/v1/teams", teamRouter);
+app.use("/v1/announcements", announcementRouter);
 app.use("/v1/timelines", timelineRouter);
 
 export default app;
