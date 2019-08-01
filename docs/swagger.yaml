@@ -1399,10 +1399,105 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           description: "Not Found: Announcement does not exist"
+      security: 
+        - bearerAuth: []  
+  /v1/timelines:
+    post:
+      tags:
+        - timelines
+      summary: 主页时间线上添加一个新节点
+      description: 需要 `root` 或 `keeper` 角色
+      operationId: addTimeline
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                    description: 编号
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
         5XX:
           description: Unexpected error
       security:
         - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTimeline"
+      parameters: []
+    get:
+      tags:
+        - timelines
+      summary: 返回整条时间线
+      description: 返回整条时间线
+      operationId: getalltimelines
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Timeline"
+        5XX:
+          description: Unexpected error
+  "/v1/timelines/{id}":
+    delete:
+      tags:
+        - timelines
+      summary: 删除某个节点
+      description: 需要 `root` 或 `keeper` 角色
+      operationId: deleteTimeline
+      parameters:
+        - name: id
+          in: path
+          description: 节点 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful deleted
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+    put:
+      tags:
+        - timelines
+      summary: 更新已存在的时间线节点
+      description: 需要 `root` 或 `keeper` 角色
+      operationId: updateTimeline
+      parameters:
+        - name: id
+          in: path
+          description: 需要更新的时间线节点的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新节点的 URL
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: "Not Found: Timeline does not exist"
+        5XX:
+          description: Unexpected error
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTimeline"
+
 components:
   schemas:
     Article:
@@ -1694,6 +1789,17 @@ components:
         contestId:
           type: number
           description: 比赛ID
+    Timeline:
+      type: object
+      required:
+        - id
+        - title
+        - alias
+        - description
+        - originalURI
+      properties:
+        id:
+          type: number
         title:
           type: string
         alias:
@@ -1714,6 +1820,10 @@ components:
           type: number
           default: 1
           description: 优先级，用于排序
+        description:
+          type: string
+        originalURI:
+          type: string
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:
@@ -1722,6 +1832,8 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
+        link:
+          type: string
   requestBodies:
     addArticle:
       content:
@@ -2044,6 +2156,16 @@ components:
               contestId:
                 type: number
                 description: 比赛ID
+    addTimeline:
+      content:
+        application/json:
+          schema:
+            required:
+              - title
+              - alias
+              - description
+              - originalURI
+            properties:
               title:
                 type: string
               alias:
@@ -2090,6 +2212,13 @@ components:
                 default: 1
                 description: 优先级，用于排序
       description: 更新公告的提交格式
+              description:
+                type: string
+              originalURI:
+                type: string
+              link:
+                type: string
+      description: 新增时间线的提交格式
       required: true
   responses:
     UnauthorizedError:
