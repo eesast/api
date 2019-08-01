@@ -39,8 +39,8 @@ router.get(
       query.title = { $regex: req.query.title, $options: "i" };
     }
     if (req.query.alias) {
-        query.alias = req.query.alias;
-      }
+      query.alias = req.query.alias;
+    }
     if (req.query.contestId) {
       query.contestId = parseInt(req.query.contestId, 10);
     }
@@ -113,22 +113,18 @@ router.get(
  * POST new announcement
  * @returns Location header
  */
-router.post(
-  "/",
-  authenticate(["root"]),
-  (req, res) => {
-    const newAnnouncement = new Announcement(req.body);
+router.post("/", authenticate(["root"]), (req, res) => {
+  const newAnnouncement = new Announcement(req.body);
 
-    newAnnouncement.save((err, announcement) => {
-      if (err) {
-        return res.status(500).end();
-      }
+  newAnnouncement.save((err, announcement) => {
+    if (err) {
+      return res.status(500).end();
+    }
 
-      res.setHeader("Location", "/v1/announcements/" + announcement.id);
-      res.status(201).end();
-    });
-  }
-);
+    res.setHeader("Location", "/v1/announcements/" + announcement.id);
+    res.status(201).end();
+  });
+});
 
 /**
  * PUT existing announcement
