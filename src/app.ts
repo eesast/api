@@ -11,6 +11,7 @@ import staticRouter from "./routes/static";
 import teamRouter from "./routes/teams";
 import userRouter from "./routes/users";
 import timelineRouter from "./routes/timelines";
+
 const app = express();
 
 // Enable header access in client

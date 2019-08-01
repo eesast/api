@@ -13,10 +13,7 @@ const router = express.Router();
  */
 router.get("/", async (req, res) => {
   try {
-    const timeline = await Timeline.find(
-      { isAlive: true },
-      "-_id -__v -isAlive"
-    );
+    const timeline = await Timeline.find({}, "-_id -__v");
     if (!timeline) {
       return res.status(404).send("404 Not Found: Item does not exist");
     }
@@ -38,11 +35,11 @@ router.post(
   async (req, res) => {
     try {
       const newTimeline = new Timeline({
+        ...req.body,
         createdAt: new Date(),
         createdBy: req.auth.id,
         updatedAt: new Date(),
-        updatedBy: req.auth.id,
-        ...req.body
+        updatedBy: req.auth.id
       });
       const item = await newTimeline.save();
       res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -55,7 +52,7 @@ router.post(
 
 /**
  * PUT a timeline of Id
- * @param {number} id - deleting timeline's id
+ * @param {number} id - change timeline's id
  * @returns No Content or Not Found
  */
 router.put(
@@ -65,12 +62,14 @@ router.put(
   async (req, res) => {
     try {
       const item = await Timeline.findOneAndUpdate(
-        { id: req.params.id, isAlive: true },
+        {
+          id: req.params.id
+        },
         {
           $set: {
+            ...req.body,
             updatedAt: new Date(),
-            updatedBy: req.auth.id,
-            ...req.body
+            updatedBy: req.auth.id
           }
         }
       );
@@ -83,6 +82,7 @@ router.put(
     }
   }
 );
+
 /**
  * DELETE a timeline of Id
  * @param {number} id - deleting timeline's id
@@ -90,16 +90,7 @@ router.put(
  */
 router.delete("/:id", authenticate(["root"]), async (req, res) => {
   try {
-    const item = await Timeline.findOneAndUpdate(
-      { id: req.params.id },
-      {
-        $set: {
-          isAlive: false,
-          updatedAt: new Date(),
-          updatedBy: req.auth.id
-        }
-      }
-    );
+    const item = await Timeline.findOneAndDelete({ id: req.params.id });
     if (!item) {
       return res.status(404).send("404 Not Found: Timespot  does not exist");
     }
