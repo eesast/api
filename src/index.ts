@@ -62,6 +62,11 @@ server.on("error", (error: NodeJS.ErrnoException) => {
 
 server.on("listening", () => {
   const addr = server.address();
-  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr!.port;
-  debug("Listening on " + bind);
+  if (addr) {
+    const bind =
+      typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+    debug("Listening on " + bind);
+  } else {
+    throw new Error("Server address not found");
+  }
 });

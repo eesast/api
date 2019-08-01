@@ -6,12 +6,17 @@ import * as path from "path";
 import { v1 as uuid } from "uuid";
 import serverConfig from "../config/server";
 import authenticate from "../middlewares/authenticate";
+import * as Debug from "debug";
 
 const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.resolve(serverConfig.staticFilePath, req.params.category!);
-    mkdirp(dir, err => cb(err, dir));
+    if (req.params.category) {
+      const dir = path.resolve(serverConfig.staticFilePath);
+      mkdirp(dir, err => cb(err, dir));
+    } else {
+      throw new Error("Category address not found");
+    }
   },
   filename: (req, file, cb) => {
     const dotIndex = file.originalname.lastIndexOf(".");
