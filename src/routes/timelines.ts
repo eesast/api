@@ -74,7 +74,7 @@ router.put(
         }
       );
       if (!item) {
-        return res.status(404).send("404 Not Found: Timespot  does not exist");
+        return res.status(404).send("404 Not Found: Timespot does not exist");
       }
       res.status(204).end();
     } catch (err) {
