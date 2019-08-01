@@ -6,7 +6,6 @@ import * as path from "path";
 import { v1 as uuid } from "uuid";
 import serverConfig from "../config/server";
 import authenticate from "../middlewares/authenticate";
-import * as Debug from "debug";
 
 const router = express.Router();
 const storage = multer.diskStorage({

@@ -143,6 +143,8 @@ router.post(
     }
 
     delete req.body.id;
+
+    /* eslint-disable require-atomic-updates */
     if (req.auth.id) {
       req.body.members = [req.auth.id];
       req.body.leader = req.auth.id;
@@ -150,6 +152,7 @@ router.post(
     req.body.inviteCode = Math.random()
       .toString(36)
       .slice(2, 10);
+    /* eslint-enable */
     const newTeam = new Team(req.body);
 
     newTeam.save((err, team) => {
