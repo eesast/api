@@ -68,6 +68,13 @@ EESAST 后端 API
 
 在 `yarn build` 生成的 `build` 文件夹中运行，启动生产环境服务器
 
+#### `yarn dev:debug`
+
+配合 VSCode 调试服务器。操作方式如下：
+
+- 无需手动执行该命令。只需切换到 VSCode 的调试窗口，运行 `Debug server` 调试配置。
+- 或者，先运行该命令，然后运行 `Attach` 调试配置。
+
 #### `yarn lint`
 
 使用 ESLint 进行代码风格检查

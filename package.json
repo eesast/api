@@ -6,6 +6,7 @@
     "start": "nodemon",
     "build": "tsc --outDir build",
     "serve": "NODE_ENV=production node build/index.js",
+    "dev:debug": "nodemon --exec \"node -r ts-node/register --inspect-brk\" src/index.ts",
     "lint": "eslint --ext .js,.ts src/",
     "typecheck": "tsc --noUnusedLocals --noEmit",
     "prettier": "prettier -c \"src/**/*.{js,ts,json,md}\" --write"
