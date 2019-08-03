@@ -1,15 +1,14 @@
 import * as mongoose from "mongoose";
 
-export interface ICounterModel extends mongoose.Document {
+export interface Counter extends mongoose.Document {
   _id: string;
   count: number;
 }
 
 /**
- * Counter schema
  * Used for auto-increment id
  */
-const counterSchema = new mongoose.Schema(
+const counterSchema = new mongoose.Schema<Counter>(
   {
     _id: { type: String, required: true },
     count: { type: Number, default: 0 }
@@ -19,4 +18,4 @@ const counterSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model<ICounterModel>("Counter", counterSchema);
+export default mongoose.model<Counter>("Counter", counterSchema);

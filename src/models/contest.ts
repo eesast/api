@@ -1,26 +1,23 @@
 import * as mongoose from "mongoose";
 import Counter from "./counter";
 
-export interface IContestModel extends mongoose.Document {
+export interface Contest extends mongoose.Document {
   id: number;
+  type: string;
   name: string;
-  alias: string;
-  available: boolean;
+  year: number;
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
 }
 
-/**
- * Contest schema
- */
-const contestSchema = new mongoose.Schema(
+const contestSchema = new mongoose.Schema<Contest>(
   {
     id: { type: Number, unique: true },
-    name: { type: String, required: true },
-    alias: { type: String, required: true },
-    available: { type: Boolean, required: true },
+    type: { type: String, required: true }, // ["电设", "队式", "软设"]
+    name: { type: String, required: true }, // 清华大学电子工程系第一届软件设计大赛
+    year: { type: Number, required: true },
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
@@ -31,17 +28,12 @@ const contestSchema = new mongoose.Schema(
   }
 );
 
-/**
- * Enable auto-increment
- * DO NOT USE ARROW FUNCTION HERE
- * Problem of `this` scope
- */
-contestSchema.pre("save", function(next) {
+contestSchema.pre<Contest>("save", function(next) {
   Counter.findByIdAndUpdate(
     "contest",
     { $inc: { count: 1 } },
-    { new: true, upsert: true },
-    (err, counter: any) => {
+    { rawResult: true, new: true, upsert: true },
+    (err, counter) => {
       if (err) {
         return next(err);
       }
@@ -51,4 +43,4 @@ contestSchema.pre("save", function(next) {
   );
 });
 
-export default mongoose.model<IContestModel>("Contest", contestSchema);
+export default mongoose.model<Contest>("Contest", contestSchema);
