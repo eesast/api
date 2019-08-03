@@ -1092,7 +1092,7 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@^1.4.0:
+express-openapi-validator@1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-1.4.0.tgz#9f249bceb669586f3e9f78c8d275c206925d219d"
   integrity sha512-x9+dKbuw9Zs8QW0X1BCwgNwTpe8co1We+xckLDa1VepqZJ3FZmiG+cY8E+WdXWKL3y1BlvcgWbR5sPtDv+D02g==
