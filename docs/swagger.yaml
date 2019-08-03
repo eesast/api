@@ -1,4 +1,5 @@
 openapi: 3.0.0
+
 servers:
   - url: "https://api.eesast.com"
     description: Remote API Server
@@ -8,6 +9,7 @@ servers:
       port:
         description: 端口号
         default: "28888"
+        
 info:
   title: API Backend for EESAST
   description: |
@@ -16,7 +18,10 @@ info:
   contact:
     name: API Support
     email: i@raineggplant.com
+    
 tags:
+  - name: static
+    description: 静态文件
   - name: articles
     description: 文章
   - name: comments
@@ -27,39 +32,83 @@ tags:
     description: 预约
   - name: users
     description: 用户
-  - name: static
-    description: 静态文件
   - name: teams
     description: 队伍
   - name: contests
     description: 比赛
   - name: announcements
     description: 公告
+    
 paths:
-  /v1/articles:
+  "/static/{category}":
     post:
       tags:
-        - articles
-      summary: 发布一篇新文章
+        - static
+      summary: 上传文件
       description: 需要 `root` 或 `writer` 角色
-      operationId: addArticle
+      operationId: uploadFile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
-        "201":
+        201:
           description: Successful operation
           headers:
             Location:
-              description: 新发布文章的 URL
+              description: 新增文件的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+      
+  "/static/{category}/{filename}":
+    delete:
+      tags:
+        - static
+      summary: 删除一个文件
+      description: 需要 `root` 或 `writer` 角色
+      operationId: deleteFile
       security:
         - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addArticle"
-      parameters: []
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: File does not exist"
+        500:
+          description: Server error
+  
+  "/v1/articles":
     get:
       tags:
         - articles
@@ -113,7 +162,7 @@ paths:
           schema:
             type: boolean
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -121,8 +170,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Article"
-        5XX:
-          description: Unexpected error
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+  
+    post:
+      tags:
+        - articles
+      summary: 发布一篇新文章
+      description: 需要 `root` 或 `writer` 角色
+      operationId: addArticle
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addArticle"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新发布文章的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+  
   "/v1/articles/{articleId}":
     get:
       tags:
@@ -137,22 +214,27 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Article"
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Article does not exist"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+    
     put:
       tags:
         - articles
       summary: 更新已存在的文章
       description: 需要 `root` 角色，或待更新文章的作者为请求者
       operationId: updateArticle
+      security:
+        - bearerAuth: []      
       parameters:
         - name: articleId
           in: path
@@ -160,30 +242,33 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateArticle"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新文章的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Article does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/updateArticle"
+        500:
+          description: Server error
+    
     delete:
       tags:
         - articles
       summary: 删除一篇文章
       description: 需要 `root` 角色
       operationId: deleteArticle
+      security:
+        - bearerAuth: []
       parameters:
         - name: articleId
           in: path
@@ -192,16 +277,17 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Article does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+  
   "/v1/articles/{articleId}/like":
     get:
       tags:
@@ -209,6 +295,8 @@ paths:
       summary: 点赞
       description: 需要已登录用户
       operationId: likeArticle
+      security:
+        - bearerAuth: []
       parameters:
         - name: articleId
           in: path
@@ -217,16 +305,17 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Article does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+
   "/v1/articles/{articleId}/unlike":
     get:
       tags:
@@ -234,6 +323,8 @@ paths:
       summary: 取消点赞
       description: 需要已登录用户
       operationId: unlikeArticle
+      security:
+        - bearerAuth: []
       parameters:
         - name: articleId
           in: path
@@ -242,40 +333,18 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Article does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/comments:
-    post:
-      tags:
-        - comments
-      summary: 发布一条新评论
-      description: "需要 `root`, `writer` 或 `reader` 角色"
-      operationId: addComment
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新发布评论的 URL
-              schema:
-                type: string
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addComment"
-      parameters: []
+        500:
+          description: Server error
+
+  "/v1/comments":
     get:
       tags:
         - comments
@@ -285,7 +354,7 @@ paths:
       parameters:
         - name: replyTo
           in: query
-          description: "回复的上级评论的 ID, -1 代表一级（独立）评论"
+          description: 回复的上级评论的 ID, -1 代表一级（独立）评论
           schema:
             type: number
         - name: likedBy
@@ -302,7 +371,7 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -310,8 +379,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Comment"
-        5XX:
-          description: Unexpected error
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+    
+    post:
+      tags:
+        - comments
+      summary: 发布一条新评论
+      description: "需要 `root`, `writer` 或 `reader` 角色"
+      operationId: addComment
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addComment"      
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新发布评论的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+    
   "/v1/comments/{commentId}":
     get:
       tags:
@@ -326,22 +423,27 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Comment"
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Comment does not exist"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+          
     put:
       tags:
         - comments
       summary: 更新已存在的评论
       description: 需要 `root` 角色，或待更新评论的作者为请求者
       operationId: updateComment
+      security:
+        - bearerAuth: []
       parameters:
         - name: commentId
           in: path
@@ -349,30 +451,33 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateComment"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新评论的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Comment does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/updateComment"
+        500:
+          description: Server error
+      
     delete:
       tags:
         - comments
       summary: 删除一条评论
       description: 需要 `root` 角色
       operationId: deleteComment
+      security:
+        - bearerAuth: []
       parameters:
         - name: commentId
           in: path
@@ -381,16 +486,17 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Comment does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+      
   "/v1/comments/{commentId}/like":
     get:
       tags:
@@ -398,6 +504,8 @@ paths:
       summary: 点赞
       description: 需要已登录用户
       operationId: likeComment
+      security:
+        - bearerAuth: []
       parameters:
         - name: commentId
           in: path
@@ -406,16 +514,17 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Comment does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+      
   "/v1/comments/{commentId}/unlike":
     get:
       tags:
@@ -423,6 +532,8 @@ paths:
       summary: 取消点赞
       description: 需要已登录用户
       operationId: unlikeComment
+      security:
+        - bearerAuth: []
       parameters:
         - name: commentId
           in: path
@@ -431,40 +542,18 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Comment does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/contests:
-    post:
-      tags:
-        - contests
-      summary: 发布一场新比赛
-      description: 需要 `root`角色
-      operationId: addContest
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新发布比赛的 URL
-              schema:
-                type: string
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addContest"
-      parameters: []
+        500:
+          description: Server error
+      
+  "/v1/contests":
     get:
       tags:
         - contests
@@ -498,7 +587,7 @@ paths:
           schema:
             type: boolean
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -506,8 +595,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Contest"
-        5XX:
-          description: Unexpected error
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+    
+    post:
+      tags:
+        - contests
+      summary: 发布一场新比赛
+      description: 需要 `root`角色
+      operationId: addContest
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addContest"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新发布比赛的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+
   "/v1/contests/{contestId}":
     get:
       tags:
@@ -522,22 +639,27 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contest"
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Contest does not exist"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+          
     put:
       tags:
         - contests
       summary: 更新已存在的比赛
       description: 需要 `root` 角色
       operationId: updateContest
+      security:
+        - bearerAuth: []
       parameters:
         - name: contestId
           in: path
@@ -545,30 +667,33 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateContest"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新比赛的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Contest does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/updateContest"
+        500:
+          description: Server error
+      
     delete:
       tags:
         - contests
       summary: 删除一场比赛
       description: 需要 `root` 角色
       operationId: deleteContest
+      security:
+        - bearerAuth: []
       parameters:
         - name: contestId
           in: path
@@ -577,40 +702,18 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Contest does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/items:
-    post:
-      tags:
-        - items
-      summary: 添加一个新物品
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: addItem
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新添加物品的 URL
-              schema:
-                type: string
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addItem"
-      parameters: []
+        500:
+          description: Server error
+      
+  "/v1/items":
     get:
       tags:
         - items
@@ -639,7 +742,7 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -647,8 +750,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Item"
-        5XX:
-          description: Unexpected error
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+    
+    post:
+      tags:
+        - items
+      summary: 添加一个新物品
+      description: 需要 `root` 或 `keeper` 角色
+      operationId: addItem
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addItem"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新添加物品的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+    
   "/v1/items/{itemId}":
     get:
       tags:
@@ -663,22 +794,27 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Item"
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Item does not exist"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+          
     put:
       tags:
         - items
       summary: 更新已存在的物品
       description: 需要 `root` 或 `keeper` 角色
       operationId: updateItem
+      security:
+        - bearerAuth: []
       parameters:
         - name: itemId
           in: path
@@ -686,30 +822,33 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateItem"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新物品的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Item does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/updateItem"
+        500:
+          description: Server error
+    
     delete:
       tags:
         - items
       summary: 删除一个物品
       description: 需要 `root` 或 `keeper` 角色
       operationId: deleteItem
+      security:
+        - bearerAuth: []
       parameters:
         - name: itemId
           in: path
@@ -718,40 +857,18 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Item does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/reservations:
-    post:
-      tags:
-        - reservations
-      summary: 新增一个预约
-      description: 需要已登录用户
-      operationId: addReservation
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新增预约的 URL
-              schema:
-                type: string
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addReservation"
-      parameters: []
+        500:
+          description: Server error
+      
+  "/v1/reservations":
     get:
       tags:
         - reservations
@@ -788,7 +905,7 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -796,8 +913,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Reservation"
-        5XX:
-          description: Unexpected error
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+    
+    post:
+      tags:
+        - reservations
+      summary: 新增一个预约
+      description: 需要已登录用户
+      operationId: addReservation
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addReservation"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新增预约的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+      
   "/v1/reservations/{reservationId}":
     get:
       tags:
@@ -812,22 +957,27 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Reservation"
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Item does not exist"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+          
     put:
       tags:
         - reservations
       summary: 更新已存在的预约
       description: 需要 `root` 或 `keeper` 角色
       operationId: updateReservation
+      security:
+        - bearerAuth: []
       parameters:
         - name: reservationId
           in: path
@@ -835,30 +985,33 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateReservation"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新预约的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Reservation does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/updateReservation"
+        500:
+          description: Server error
+      
     delete:
       tags:
         - reservations
       summary: 删除一个预约
       description: 需要 `root` 或 `keeper` 角色
       operationId: deleteReservation
+      security:
+        - bearerAuth: []
       parameters:
         - name: reservationId
           in: path
@@ -867,44 +1020,26 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Reservation does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/users:
-    post:
-      tags:
-        - users
-      summary: 新建用户
-      description: '新增用户的默认用户组为 "student", 角色为 "reader"'
-      operationId: addUser
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新增用户的 URL
-              schema:
-                type: string
-        "422":
-          description: "Unprocessable Entity: Missing form data"
-        5XX:
-          description: Unexpected error
-      requestBody:
-        $ref: "#/components/requestBodies/addUser"
-      parameters: []
+        500:
+          description: Server error
+      
+  "/v1/users":
     get:
       tags:
         - users
       summary: 返回匹配查询的用户
       description: 需要已登录用户，可以通过 query 进行筛选
       operationId: getUsers
+      security:
+        - bearerAuth: []
       parameters:
         - name: username
           in: query
@@ -936,7 +1071,7 @@ paths:
           schema:
             type: boolean
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -944,18 +1079,44 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/User"
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+    
+    post:
+      tags:
+        - users
+      summary: 新建用户
+      description: '新增用户的默认用户组为 "student", 角色为 "reader"'
+      operationId: addUser
+      requestBody:
+        $ref: "#/components/requestBodies/addUser"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新增用户的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        422:
+          description: "Unprocessable Entity: Missing form data"
+        500:
+          description: Server error
+      
   "/v1/users/{userId}":
     get:
       tags:
         - users
       summary: 根据 ID 获取用户
       operationId: getUserById
+      security:
+        - bearerAuth: []
       parameters:
         - name: userId
           in: path
@@ -970,56 +1131,62 @@ paths:
           schema:
             type: boolean
       responses:
-        "200":
+        200:
           description: successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: User does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+      
     put:
       tags:
         - users
       summary: 更新已存在的用户
       description: 需要 `root` 角色，或待更新用户为请求者自身
       operationId: updateUser
+      security:
+        - bearerAuth: []
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateUser"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 更新用户的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: User does not exist"
-        5XX:
-          description: Unexpected error
-      requestBody:
-        $ref: "#/components/requestBodies/updateUser"
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+      
     delete:
       tags:
         - users
       summary: 删除一个用户
       description: 需要 `root` 角色
       operationId: deleteUser
+      security:
+        - bearerAuth: []
       parameters:
         - name: userId
           in: path
@@ -1027,17 +1194,18 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: User does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/users/login:
+        500:
+          description: Server error
+      
+  "/v1/users/login":
     post:
       tags:
         - users
@@ -1057,7 +1225,7 @@ paths:
                 password:
                   type: string
       responses:
-        "200":
+        200:
           description: successful operation
           content:
             application/json:
@@ -1068,115 +1236,34 @@ paths:
                     type: string
                     example: >-
                       eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwidXNlcm5hbWUiOiJhZG1pbiIsImdyb3VwIjoiYWRtaW4iLCJyb2xlIjoicm9vdCIsImlhdCI6MTU0OTE2MTI5NiwiZXhwIjoxNTQ5MjA0NDk2fQ.1__SnI_vAeMrIZe6D0mXv4_umQEg53_iUHNeGJOQSoU
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           description: Invalid password supplied
-        "404":
+        404:
           description: "Not Found: User does not exist"
-        5XX:
-          description: Unexpected error
-      parameters: []
-  /v1/users/forgot:
+        500:
+          description: Server error
+
+  "/v1/users/forgot":
     get:
       tags:
         - users
       summary: 忘记密码
       operationId: recoverAccount
       responses:
-        "404":
+        404:
           description: Operation not implemented yet
-      parameters: []
-  "/static/{category}":
-    post:
-      tags:
-        - static
-      summary: 上传文件
-      description: 需要 `root` 或 `writer` 角色
-      operationId: uploadFile
-      parameters:
-        - name: category
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-              format: binary
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新增文件的 URL
-              schema:
-                type: string
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  "/static/{category}/{filename}":
-    delete:
-      tags:
-        - static
-      summary: 删除一个文件
-      description: 需要 `root` 或 `writer` 角色
-      operationId: deleteFile
-      parameters:
-        - name: category
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: filename
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: Successful operation
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          description: "Not Found: File does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/teams:
-    post:
-      tags:
-        - teams
-      summary: 新建队伍
-      description: 需要已登录用户
-      operationId: addTeam
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新建队伍的 URL
-              schema:
-                type: string
-        "409":
-          description: Team name already exists / User is already in a team
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addTeam"
-      parameters: []
+
+  "/v1/teams":
     get:
       tags:
         - teams
       summary: 返回匹配查询的队伍
       description: 可以通过 query 进行筛选，已登录用户可以查询本队邀请码， `root` 角色可查询所有邀请码
       operationId: findTeams
+      security:
+        - bearerAuth: []
       parameters:
         - name: contestId
           in: query
@@ -1199,7 +1286,7 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -1207,10 +1294,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Team"
-        5XX:
-          description: Unexpected error
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+    
+    post:
+      tags:
+        - teams
+      summary: 新建队伍
+      description: 需要已登录用户
+      operationId: addTeam
       security:
         - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTeam"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新建队伍的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        409:
+          description: Team name already exists / User is already in a team
+        500:
+          description: Server error
+
   "/v1/teams/{teamId}":
     get:
       tags:
@@ -1218,6 +1331,8 @@ paths:
       summary: 根据 ID 获取队伍
       description: 本队用户或 `root` 角色可见邀请码
       operationId: getTeamById
+      security:
+        - bearerAuth: []
       parameters:
         - name: teamId
           in: path
@@ -1226,24 +1341,27 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Team"
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Team does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+      
     put:
       tags:
         - teams
       summary: 更新已存在的队伍
       description: 需要 `root` 角色，或待更新队伍的队长为请求者
       operationId: updateTeam
+      security:
+        - bearerAuth: []
       parameters:
         - name: teamId
           in: path
@@ -1251,34 +1369,38 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateTeam"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新队伍的 URL
               schema:
                 type: string
-        "400":
-          description: Invalid members / Captain is not a member of the team
-        "401":
+        400:
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description: 
+            "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Team does not exist"
-        "409":
+        409:
           description: Team name already exists
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/updateTeam"
+        500:
+          description: Server error
+      
     delete:
       tags:
         - teams
       summary: 删除一支队伍
       description: 需要 `root` 角色，或待删除队伍的队长为请求者
       operationId: deleteTeam
+      security:
+        - bearerAuth: []
       parameters:
         - name: teamId
           in: path
@@ -1287,56 +1409,18 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Team does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        500:
+          description: Server error
+      
   "/v1/teams/{teamId}/members":
-    post:
-      tags:
-        - teams
-      summary: 根据队伍 ID 向队伍增加队员
-      description: 需要 `root` 角色，或增加队员为请求者自身且邀请码正确
-      operationId: addMemberToTeamId
-      parameters:
-        - name: teamId
-          in: path
-          description: 队伍 ID
-          required: true
-          schema:
-            type: number
-      responses:
-        "201":
-          description: Successful operation
-          headers:
-            Location:
-              description: 新增队员的 URL
-              schema:
-                type: string
-        "400":
-          description: Member does not exist
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "403":
-          description: Team is not available / Incorrect invite code
-        "404":
-          description: "Not Found: Team does not exist"
-        "409":
-          description: The number of members exceeds / User is already in a team
-        "422":
-          description: Missing credentials
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addTeamMember"
     get:
       tags:
         - teams
@@ -1350,7 +1434,7 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -1358,10 +1442,56 @@ paths:
                 type: array
                 items:
                   type: number
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Team does not exist"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+    
+    post:
+      tags:
+        - teams
+      summary: 根据队伍 ID 向队伍增加队员
+      description: 需要 `root` 角色，或增加队员为请求者自身且邀请码正确
+      operationId: addMemberToTeamId
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamId
+          in: path
+          description: 队伍 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        $ref: "#/components/requestBodies/addTeamMember"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新增队员的 URL
+              schema:
+                type: string
+        400:
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description: 
+            "TODO: Solve status code conflict. --- Member does not exist"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: Team is not available / Incorrect invite code
+        404:
+          description: "Not Found: Team does not exist"
+        409:
+          description: The number of members exceeds / User is already in a team
+        422:
+          description: Missing credentials
+        500:
+          description: Server error
+    
   "/v1/teams/{teamId}/members/{memberId}":
     delete:
       tags:
@@ -1369,6 +1499,8 @@ paths:
       summary: 根据ID删除指定队伍中的队员
       description: 需要 `root` 角色，或队伍队长为请求者自身
       operationId: deleteMemberFromTeamId
+      security:
+        - bearerAuth: []
       parameters:
         - name: teamId
           in: path
@@ -1383,19 +1515,21 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "400":
-          description: Leader cannot be deleted
-        "401":
+        400:
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description: 
+            "TODO: Solve status code conflict. --- Leader cannot be deleted"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Team does not exist / Member does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-  /v1/announcements:
+        500:
+          description: Server error
+      
+  "/v1/announcements":
     get:
       tags:
         - announcements
@@ -1439,7 +1573,7 @@ paths:
             type: string
           description: 按时间降序排列，结束公告的位置
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
@@ -1447,31 +1581,34 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Announcement"
-        5XX:
-          description: Unexpected error
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+    
     post:
       tags:
         - announcements
       summary: 发布一篇新的公告
       description: 需要 `root` 角色
       operationId: addAnnouncements
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addAnnouncement"
       responses:
-        "201":
+        201:
           description: Successful operation
           headers:
             Location:
               description: 新发布公告的 URL
               schema:
                 type: string
-        "401":
+        401:
           description: "Access token is missing, invalid or expired / Permission denied"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addAnnouncement"
-      parameters: []
+        500:
+          description: Server error
+
   "/v1/announcements/{announcementId}":
     get:
       tags:
@@ -1486,22 +1623,27 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Announcement"
-        "404":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
           description: "Not Found: Announcement does not exist"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+          
     put:
       tags:
         - announcements
       summary: 更新已经存在的公告
       description: 需要 `root` 角色
       operationId: updateAnnouncement
+      security:
+        - bearerAuth: []
       parameters:
         - name: announcementId
           in: path
@@ -1509,30 +1651,33 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateAnnouncement"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新公告的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Announcement does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/updateAnnouncement"
+        500:
+          description: Server error
+      
     delete:
       tags:
         - announcements
       summary: 删除一篇公告
       description: 需要 `root` 角色
       operationId: deleteAnnouncement
+      security: 
+        - bearerAuth: []
       parameters:
         - name: announcementId
           in: path
@@ -1541,23 +1686,48 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful operation
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Announcement does not exist"
-      security: 
-        - bearerAuth: []  
-  /v1/timelines:
+        
+  "/v1/timelines":
+    get:
+      tags:
+        - timelines
+      summary: 返回整条时间线
+      description: 返回整条时间线
+      operationId: getalltimelines
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Timeline"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+    
     post:
       tags:
         - timelines
       summary: 主页时间线上添加一个新节点
       description: 需要 `root` 或 `keeper` 角色
       operationId: addTimeline
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTimeline"
       responses:
-        "201":
+        201:
           description: Successful operation
           content:
             application/json:
@@ -1567,32 +1737,13 @@ paths:
                   id:
                     type: number
                     description: 编号
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addTimeline"
-      parameters: []
-    get:
-      tags:
-        - timelines
-      summary: 返回整条时间线
-      description: 返回整条时间线
-      operationId: getalltimelines
-      responses:
-        "200":
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Timeline"
-        5XX:
-          description: Unexpected error
+        500:
+          description: Server error
+      
   "/v1/timelines/{id}":
     delete:
       tags:
@@ -1600,6 +1751,8 @@ paths:
       summary: 删除某个节点
       description: 需要 `root` 或 `keeper` 角色
       operationId: deleteTimeline
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -1608,18 +1761,21 @@ paths:
           schema:
             type: number
       responses:
-        "204":
+        204:
           description: Successful deleted
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+      
     put:
       tags:
         - timelines
       summary: 更新已存在的时间线节点
       description: 需要 `root` 或 `keeper` 角色
       operationId: updateTimeline
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -1627,25 +1783,25 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/addTimeline"
       responses:
-        "204":
+        204:
           description: Successful operation
           headers:
             Location:
               description: 被更新节点的 URL
               schema:
                 type: string
-        "401":
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
+        404:
           description: "Not Found: Timeline does not exist"
-        5XX:
-          description: Unexpected error
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addTimeline"
-
+        500:
+          description: Server error
+      
 components:
   schemas:
     Article:
@@ -1700,6 +1856,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
+    
     Comment:
       type: object
       required:
@@ -1735,6 +1892,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
+    
     Contest:
       type: object
       required:
@@ -1763,6 +1921,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
+    
     User:
       type: object
       required:
@@ -1822,6 +1981,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
+    
     Counter:
       type: object
       required:
@@ -1832,6 +1992,7 @@ components:
         count:
           type: number
           default: 0
+    
     Item:
       type: object
       required:
@@ -1858,6 +2019,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
+    
     Reservation:
       type: object
       required:
@@ -1891,6 +2053,7 @@ components:
         updatedBy:
           type: number
       description: from/to 指 预约起始/结束时间
+    
     Date:
       type: string
       format: date-time
@@ -1934,21 +2097,14 @@ components:
           default: true
           description: 队伍是否仍具有参赛资格
         createdAt:
-          type: string
-          format: date-time
-          description: >-
-            日期对象。使用时采用 ISO
-            格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
+          $ref: "#/components/schemas/Date"
         createdBy:
           type: number
         updatedAt:
-          type: string
-          format: date-time
-          description: >-
-            日期对象。使用时采用 ISO
-            格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
+          $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
+    
     Announcement:
       type: object
       required:
@@ -1965,6 +2121,7 @@ components:
         contestId:
           type: number
           description: 比赛ID
+    
     Timeline:
       type: object
       required:
@@ -2010,6 +2167,7 @@ components:
           type: number
         link:
           type: string
+  
   requestBodies:
     addArticle:
       content:
@@ -2048,6 +2206,7 @@ components:
                 description: 文章可见性，用于审阅功能
       description: 发布文章的提交格式
       required: true
+    
     updateArticle:
       content:
         application/json:
@@ -2088,6 +2247,7 @@ components:
                 description: 文章可见性，用于审阅功能
       description: 更新文章的提交格式
       required: true
+    
     addComment:
       content:
         application/json:
@@ -2111,6 +2271,7 @@ components:
                 description: "回复的上级评论的 ID, -1 代表一级（独立）评论"
       description: 发布评论的提交格式
       required: true
+    
     updateComment:
       content:
         application/json:
@@ -2134,6 +2295,7 @@ components:
                   description: 点赞用户的 ID
       description: 更新评论的提交格式
       required: true
+    
     addContest:
       content:
         application/json:
@@ -2154,6 +2316,7 @@ components:
                 description: 比赛是否结束
       description: 发布比赛的提交格式
       required: true
+    
     updateContest:
       content:
         application/json:
@@ -2174,6 +2337,7 @@ components:
                 description: 比赛是否结束
       description: 更新比赛的提交格式
       required: true
+    
     addItem:
       content:
         application/json:
@@ -2195,6 +2359,7 @@ components:
                 type: number
       description: 新增物品的提交格式
       required: true
+    
     updateItem:
       content:
         application/json:
@@ -2210,6 +2375,7 @@ components:
                 type: number
       description: 更新物品的提交格式
       required: true
+    
     addReservation:
       content:
         application/json:
@@ -2232,6 +2398,7 @@ components:
                 type: string
       description: 新增预约的提交格式
       required: true
+    
     updateReservation:
       content:
         application/json:
@@ -2251,6 +2418,7 @@ components:
                 type: boolean
       description: 更新预约的提交格式
       required: true
+    
     addUser:
       content:
         application/json:
@@ -2278,6 +2446,7 @@ components:
                 type: string
       description: 新增用户的提交格式
       required: true
+   
     updateUser:
       content:
         application/json:
@@ -2299,6 +2468,7 @@ components:
                 type: string
       description: 更新用户的提交格式
       required: true
+ 
     addTeam:
       content:
         application/json:
@@ -2324,6 +2494,7 @@ components:
                 type: boolean
       description: 新建队伍的提交格式
       required: true
+  
     updateTeam:
       content:
         application/json:
@@ -2343,6 +2514,7 @@ components:
                 type: boolean
       description: 更新队伍的提交格式
       required: true
+ 
     addTeamMember:
       content:
         application/json:
@@ -2357,6 +2529,7 @@ components:
                 type: string
       description: 增加队员的提交格式
       required: true
+  
     addAnnouncement:
       content:
         application/json:
@@ -2372,6 +2545,7 @@ components:
               contestId:
                 type: number
                 description: 比赛ID
+  
     addTimeline:
       content:
         application/json:
@@ -2401,6 +2575,7 @@ components:
                 description: 优先级，用于排序
       description: 发布公告的提交格式
       required: true
+ 
     updateAnnouncement:
       content:
         application/json:
@@ -2427,23 +2602,48 @@ components:
                 type: number
                 default: 1
                 description: 优先级，用于排序
-      description: 更新公告的提交格式
               description:
                 type: string
               originalURI:
                 type: string
               link:
                 type: string
-      description: 新增时间线的提交格式
+      description: 更新公告的提交格式
       required: true
+
   responses:
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                description: 错误列表
+                items:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                      description: 错误位置
+                      example: ".params.articleId"
+                    message:
+                      type: string
+                      description: 错误信息
+                      example: "should be number"
+                    errorCode:
+                      type: string
+                      description: 错误码
+                      example: "type.openapi.validation"
+      description: 包含请求错误信息的 JSON
+   
     UnauthorizedError:
       description: "Access token is missing, invalid or expired / Permission denied"
+ 
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  links: {}
-  callbacks: {}
-security: []
+ 
