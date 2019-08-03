@@ -2,6 +2,8 @@ import * as cors from "cors";
 import * as express from "express";
 import * as logger from "morgan";
 import * as path from "path";
+import { OpenApiValidator } from "express-openapi-validator";
+import errorHandler from "./middlewares/errorHandler";
 import serverConfig from "./config/server";
 import announcementRouter from "./routes/announcements";
 import articleRouter from "./routes/articles";
@@ -16,7 +18,7 @@ import timelineRouter from "./routes/timelines";
 
 const app = express();
 
-// Enable header access in client
+// enable header access in client
 app.use(
   cors({
     exposedHeaders: "Location"
@@ -30,6 +32,13 @@ app.use(express.urlencoded({ limit: "50mb", extended: false }));
 app.use("/static", express.static(serverConfig.staticFilePath));
 app.use("/static", staticRouter);
 app.use("/v1", express.static(path.resolve(__dirname, "../docs")));
+
+// install the Open-Api Validator
+const apiSpecPath = path.resolve(__dirname, "../docs/swagger.yaml");
+new OpenApiValidator({
+  apiSpecPath
+}).install(app);
+
 app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);
 app.use("/v1/contests", contestRouter);
@@ -39,5 +48,7 @@ app.use("/v1/reservations", reservationRouter);
 app.use("/v1/teams", teamRouter);
 app.use("/v1/announcements", announcementRouter);
 app.use("/v1/timelines", timelineRouter);
+
+app.use(errorHandler);
 
 export default app;
