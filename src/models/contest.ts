@@ -1,7 +1,7 @@
 import * as mongoose from "mongoose";
 import Counter from "./counter";
 
-export interface Contest extends mongoose.Document {
+export interface ContestModel extends mongoose.Document {
   id: number;
   type: string;
   name: string;
@@ -12,7 +12,7 @@ export interface Contest extends mongoose.Document {
   updatedBy: number;
 }
 
-const contestSchema = new mongoose.Schema<Contest>(
+const contestSchema = new mongoose.Schema<ContestModel>(
   {
     id: { type: Number, unique: true },
     type: { type: String, required: true }, // ["电设", "队式", "软设"]
@@ -28,7 +28,7 @@ const contestSchema = new mongoose.Schema<Contest>(
   }
 );
 
-contestSchema.pre<Contest>("save", function(next) {
+contestSchema.pre<ContestModel>("save", function(next) {
   Counter.findByIdAndUpdate(
     "contest",
     { $inc: { count: 1 } },
@@ -43,4 +43,4 @@ contestSchema.pre<Contest>("save", function(next) {
   );
 });
 
-export default mongoose.model<Contest>("Contest", contestSchema);
+export default mongoose.model<ContestModel>("Contest", contestSchema);
