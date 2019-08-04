@@ -5,3 +5,6 @@ full-trace: true
 bail: true
 file:
   - ./test/setup.ts
+  - ./test/users.ts
+ignore:
+  - ./test/variables.ts

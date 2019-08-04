@@ -1108,7 +1108,57 @@ paths:
           description: "Unprocessable Entity: Missing form data"
         500:
           description: Server error
-      
+
+  "/v1/users/login":
+    post:
+      tags:
+        - users
+      summary: 用户登录
+      operationId: loginUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: >-
+                      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwidXNlcm5hbWUiOiJhZG1pbiIsImdyb3VwIjoiYWRtaW4iLCJyb2xlIjoicm9vdCIsImlhdCI6MTU0OTE2MTI5NiwiZXhwIjoxNTQ5MjA0NDk2fQ.1__SnI_vAeMrIZe6D0mXv4_umQEg53_iUHNeGJOQSoU
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Invalid password supplied
+        404:
+          description: "Not Found: User does not exist"
+        500:
+          description: Server error
+
+  "/v1/users/forgot":
+    get:
+      tags:
+        - users
+      summary: 忘记密码
+      operationId: recoverAccount
+      responses:
+        404:
+          description: Operation not implemented yet    
+
   "/v1/users/{userId}":
     get:
       tags:
@@ -1204,56 +1254,6 @@ paths:
           description: "Not Found: User does not exist"
         500:
           description: Server error
-      
-  "/v1/users/login":
-    post:
-      tags:
-        - users
-      summary: 用户登录
-      operationId: loginUser
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - username
-                - password
-              properties:
-                username:
-                  type: string
-                password:
-                  type: string
-      responses:
-        200:
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                    example: >-
-                      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwidXNlcm5hbWUiOiJhZG1pbiIsImdyb3VwIjoiYWRtaW4iLCJyb2xlIjoicm9vdCIsImlhdCI6MTU0OTE2MTI5NiwiZXhwIjoxNTQ5MjA0NDk2fQ.1__SnI_vAeMrIZe6D0mXv4_umQEg53_iUHNeGJOQSoU
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          description: Invalid password supplied
-        404:
-          description: "Not Found: User does not exist"
-        500:
-          description: Server error
-
-  "/v1/users/forgot":
-    get:
-      tags:
-        - users
-      summary: 忘记密码
-      operationId: recoverAccount
-      responses:
-        404:
-          description: Operation not implemented yet
 
   "/v1/teams":
     get:
