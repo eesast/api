@@ -5,7 +5,7 @@
   "scripts": {
     "start": "nodemon",
     "build": "tsc --outDir build",
-    "serve": "NODE_ENV=production node build/index.js",
+    "serve": "cross-env NODE_ENV=production node build/index.js",
     "dev:debug": "nodemon --exec \"node -r ts-node/register --inspect-brk\" src/index.ts",
     "lint": "eslint --ext .js,.ts src/",
     "typecheck": "tsc --noUnusedLocals --noEmit",
@@ -41,6 +41,7 @@
     "@types/uuid": "3.4.5",
     "@typescript-eslint/eslint-plugin": "1.13.0",
     "@typescript-eslint/parser": "1.13.0",
+    "cross-env": "^5.2.0",
     "eslint": "6.1.0",
     "eslint-config-prettier": "6.0.0",
     "husky": "3.0.2",
