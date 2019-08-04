@@ -1,0 +1,7 @@
+require:
+  - ts-node/register
+timeout: 2000
+full-trace: true
+bail: true
+file:
+  - ./test/setup.ts

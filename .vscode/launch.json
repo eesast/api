@@ -21,6 +21,16 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "port": 9229
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug test",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["test:debug"],
+      "restart": true,
+      "console": "integratedTerminal",
+      "port": 9229
     }
   ]
 }

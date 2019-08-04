@@ -75,6 +75,14 @@ EESAST 后端 API
 - 无需手动执行该命令。只需切换到 VSCode 的调试窗口，运行 `Debug server` 调试配置。
 - 或者，先运行该命令，然后运行 `Attach` 调试配置。
 
+#### `yarn test`
+
+运行 mocha 测试
+
+#### `yarn test`
+
+调试测试，对应 VSCode 的 `Debug test` 调试配置。
+
 #### `yarn lint`
 
 使用 ESLint 进行代码风格检查
