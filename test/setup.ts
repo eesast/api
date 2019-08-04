@@ -2,8 +2,8 @@ import * as bcrypt from "bcrypt";
 import * as dotenv from "dotenv";
 import * as mongoose from "mongoose";
 import "mocha";
-import variables from "./variables";
 import User from "../src/models/user";
+import variables from "./variables";
 
 dotenv.config();
 
