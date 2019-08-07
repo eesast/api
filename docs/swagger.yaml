@@ -9,7 +9,7 @@ servers:
       port:
         description: 端口号
         default: "28888"
-        
+
 info:
   title: API Backend for EESAST
   description: |
@@ -18,7 +18,7 @@ info:
   contact:
     name: API Support
     email: i@raineggplant.com
-    
+
 tags:
   - name: static
     description: 静态文件
@@ -38,7 +38,7 @@ tags:
     description: 比赛
   - name: announcements
     description: 公告
-    
+
 paths:
   "/static/{category}":
     post:
@@ -75,7 +75,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
-      
+
   "/static/{category}/{filename}":
     delete:
       tags:
@@ -107,7 +107,7 @@ paths:
           description: "Not Found: File does not exist"
         500:
           description: Server error
-  
+
   "/v1/articles":
     get:
       tags:
@@ -174,7 +174,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-  
+
     post:
       tags:
         - articles
@@ -199,7 +199,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
-  
+
   "/v1/articles/{articleId}":
     get:
       tags:
@@ -226,7 +226,7 @@ paths:
           description: "Not Found: Article does not exist"
         500:
           description: Server error
-    
+
     put:
       tags:
         - articles
@@ -234,7 +234,7 @@ paths:
       description: 需要 `root` 角色，或待更新文章的作者为请求者
       operationId: updateArticle
       security:
-        - bearerAuth: []      
+        - bearerAuth: []
       parameters:
         - name: articleId
           in: path
@@ -260,7 +260,7 @@ paths:
           description: "Not Found: Article does not exist"
         500:
           description: Server error
-    
+
     delete:
       tags:
         - articles
@@ -287,7 +287,7 @@ paths:
           description: "Not Found: Article does not exist"
         500:
           description: Server error
-  
+
   "/v1/articles/{articleId}/like":
     get:
       tags:
@@ -383,7 +383,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-    
+
     post:
       tags:
         - comments
@@ -393,7 +393,7 @@ paths:
       security:
         - bearerAuth: []
       requestBody:
-        $ref: "#/components/requestBodies/addComment"      
+        $ref: "#/components/requestBodies/addComment"
       responses:
         201:
           description: Successful operation
@@ -408,7 +408,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
-    
+
   "/v1/comments/{commentId}":
     get:
       tags:
@@ -435,7 +435,7 @@ paths:
           description: "Not Found: Comment does not exist"
         500:
           description: Server error
-          
+
     put:
       tags:
         - comments
@@ -469,7 +469,7 @@ paths:
           description: "Not Found: Comment does not exist"
         500:
           description: Server error
-      
+
     delete:
       tags:
         - comments
@@ -496,7 +496,7 @@ paths:
           description: "Not Found: Comment does not exist"
         500:
           description: Server error
-      
+
   "/v1/comments/{commentId}/like":
     get:
       tags:
@@ -524,7 +524,7 @@ paths:
           description: "Not Found: Comment does not exist"
         500:
           description: Server error
-      
+
   "/v1/comments/{commentId}/unlike":
     get:
       tags:
@@ -552,7 +552,7 @@ paths:
           description: "Not Found: Comment does not exist"
         500:
           description: Server error
-      
+
   "/v1/contests":
     get:
       tags:
@@ -599,7 +599,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-    
+
     post:
       tags:
         - contests
@@ -651,7 +651,7 @@ paths:
           description: "Not Found: Contest does not exist"
         500:
           description: Server error
-          
+
     put:
       tags:
         - contests
@@ -685,7 +685,7 @@ paths:
           description: "Not Found: Contest does not exist"
         500:
           description: Server error
-      
+
     delete:
       tags:
         - contests
@@ -712,7 +712,7 @@ paths:
           description: "Not Found: Contest does not exist"
         500:
           description: Server error
-      
+
   "/v1/items":
     get:
       tags:
@@ -754,7 +754,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-    
+
     post:
       tags:
         - items
@@ -779,7 +779,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
-    
+
   "/v1/items/{itemId}":
     get:
       tags:
@@ -806,7 +806,7 @@ paths:
           description: "Not Found: Item does not exist"
         500:
           description: Server error
-          
+
     put:
       tags:
         - items
@@ -840,7 +840,7 @@ paths:
           description: "Not Found: Item does not exist"
         500:
           description: Server error
-    
+
     delete:
       tags:
         - items
@@ -867,7 +867,7 @@ paths:
           description: "Not Found: Item does not exist"
         500:
           description: Server error
-      
+
   "/v1/reservations":
     get:
       tags:
@@ -917,7 +917,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-    
+
     post:
       tags:
         - reservations
@@ -942,7 +942,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
-      
+
   "/v1/reservations/{reservationId}":
     get:
       tags:
@@ -969,7 +969,7 @@ paths:
           description: "Not Found: Item does not exist"
         500:
           description: Server error
-          
+
     put:
       tags:
         - reservations
@@ -1003,7 +1003,7 @@ paths:
           description: "Not Found: Reservation does not exist"
         500:
           description: Server error
-      
+
     delete:
       tags:
         - reservations
@@ -1030,7 +1030,7 @@ paths:
           description: "Not Found: Reservation does not exist"
         500:
           description: Server error
-      
+
   "/v1/users":
     get:
       tags:
@@ -1085,7 +1085,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
-    
+
     post:
       tags:
         - users
@@ -1108,7 +1108,7 @@ paths:
           description: "Unprocessable Entity: Missing form data"
         500:
           description: Server error
-      
+
   "/v1/users/{userId}":
     get:
       tags:
@@ -1145,7 +1145,7 @@ paths:
           description: "Not Found: User does not exist"
         500:
           description: Server error
-      
+
     put:
       tags:
         - users
@@ -1178,7 +1178,7 @@ paths:
           description: "Not Found: User does not exist"
         500:
           description: Server error
-      
+
     delete:
       tags:
         - users
@@ -1204,7 +1204,7 @@ paths:
           description: "Not Found: User does not exist"
         500:
           description: Server error
-      
+
   "/v1/users/login":
     post:
       tags:
@@ -1275,6 +1275,11 @@ paths:
           description: 队伍是否仍具有参赛资格
           schema:
             type: boolean
+        - name: self
+          in: query
+          description: 是否只查询含有自身的队伍
+          schema:
+            type: boolean
         - name: begin
           in: query
           description: 按时间降序排列，起始队伍的位置
@@ -1298,7 +1303,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-    
+
     post:
       tags:
         - teams
@@ -1353,7 +1358,7 @@ paths:
           description: "Not Found: Team does not exist"
         500:
           description: Server error
-      
+
     put:
       tags:
         - teams
@@ -1382,7 +1387,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description: 
+          description:
             "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team"
         401:
           $ref: "#/components/responses/UnauthorizedError"
@@ -1392,7 +1397,7 @@ paths:
           description: Team name already exists
         500:
           description: Server error
-      
+
     delete:
       tags:
         - teams
@@ -1419,7 +1424,7 @@ paths:
           description: "Not Found: Team does not exist"
         500:
           description: Server error
-      
+
   "/v1/teams/{teamId}/members":
     get:
       tags:
@@ -1448,7 +1453,7 @@ paths:
           description: "Not Found: Team does not exist"
         500:
           description: Server error
-    
+
     post:
       tags:
         - teams
@@ -1477,7 +1482,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description: 
+          description:
             "TODO: Solve status code conflict. --- Member does not exist"
         401:
           $ref: "#/components/responses/UnauthorizedError"
@@ -1491,7 +1496,7 @@ paths:
           description: Missing credentials
         500:
           description: Server error
-    
+
   "/v1/teams/{teamId}/members/{memberId}":
     delete:
       tags:
@@ -1520,7 +1525,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description: 
+          description:
             "TODO: Solve status code conflict. --- Leader cannot be deleted"
         401:
           $ref: "#/components/responses/UnauthorizedError"
@@ -1528,7 +1533,7 @@ paths:
           description: "Not Found: Team does not exist / Member does not exist"
         500:
           description: Server error
-      
+
   "/v1/announcements":
     get:
       tags:
@@ -1585,7 +1590,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-    
+
     post:
       tags:
         - announcements
@@ -1635,7 +1640,7 @@ paths:
           description: "Not Found: Announcement does not exist"
         500:
           description: Server error
-          
+
     put:
       tags:
         - announcements
@@ -1669,14 +1674,14 @@ paths:
           description: "Not Found: Announcement does not exist"
         500:
           description: Server error
-      
+
     delete:
       tags:
         - announcements
       summary: 删除一篇公告
       description: 需要 `root` 角色
       operationId: deleteAnnouncement
-      security: 
+      security:
         - bearerAuth: []
       parameters:
         - name: announcementId
@@ -1694,7 +1699,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         404:
           description: "Not Found: Announcement does not exist"
-        
+
   "/v1/timelines":
     get:
       tags:
@@ -1715,7 +1720,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-    
+
     post:
       tags:
         - timelines
@@ -1743,7 +1748,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
-      
+
   "/v1/timelines/{id}":
     delete:
       tags:
@@ -1767,7 +1772,7 @@ paths:
           $ref: "#/components/responses/BadRequest"
         500:
           description: Server error
-      
+
     put:
       tags:
         - timelines
@@ -1801,7 +1806,7 @@ paths:
           description: "Not Found: Timeline does not exist"
         500:
           description: Server error
-      
+
 components:
   schemas:
     Article:
@@ -1856,7 +1861,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
-    
+
     Comment:
       type: object
       required:
@@ -1892,7 +1897,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
-    
+
     Contest:
       type: object
       required:
@@ -1921,7 +1926,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
-    
+
     User:
       type: object
       required:
@@ -1981,7 +1986,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
-    
+
     Counter:
       type: object
       required:
@@ -1992,7 +1997,7 @@ components:
         count:
           type: number
           default: 0
-    
+
     Item:
       type: object
       required:
@@ -2019,7 +2024,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
-    
+
     Reservation:
       type: object
       required:
@@ -2053,7 +2058,7 @@ components:
         updatedBy:
           type: number
       description: from/to 指 预约起始/结束时间
-    
+
     Date:
       type: string
       format: date-time
@@ -2104,7 +2109,7 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
-    
+
     Announcement:
       type: object
       required:
@@ -2121,7 +2126,7 @@ components:
         contestId:
           type: number
           description: 比赛ID
-    
+
     Timeline:
       type: object
       required:
@@ -2167,7 +2172,7 @@ components:
           type: number
         link:
           type: string
-  
+
   requestBodies:
     addArticle:
       content:
@@ -2206,7 +2211,7 @@ components:
                 description: 文章可见性，用于审阅功能
       description: 发布文章的提交格式
       required: true
-    
+
     updateArticle:
       content:
         application/json:
@@ -2247,7 +2252,7 @@ components:
                 description: 文章可见性，用于审阅功能
       description: 更新文章的提交格式
       required: true
-    
+
     addComment:
       content:
         application/json:
@@ -2271,7 +2276,7 @@ components:
                 description: "回复的上级评论的 ID, -1 代表一级（独立）评论"
       description: 发布评论的提交格式
       required: true
-    
+
     updateComment:
       content:
         application/json:
@@ -2295,7 +2300,7 @@ components:
                   description: 点赞用户的 ID
       description: 更新评论的提交格式
       required: true
-    
+
     addContest:
       content:
         application/json:
@@ -2316,7 +2321,7 @@ components:
                 description: 比赛是否结束
       description: 发布比赛的提交格式
       required: true
-    
+
     updateContest:
       content:
         application/json:
@@ -2337,7 +2342,7 @@ components:
                 description: 比赛是否结束
       description: 更新比赛的提交格式
       required: true
-    
+
     addItem:
       content:
         application/json:
@@ -2359,7 +2364,7 @@ components:
                 type: number
       description: 新增物品的提交格式
       required: true
-    
+
     updateItem:
       content:
         application/json:
@@ -2375,7 +2380,7 @@ components:
                 type: number
       description: 更新物品的提交格式
       required: true
-    
+
     addReservation:
       content:
         application/json:
@@ -2398,7 +2403,7 @@ components:
                 type: string
       description: 新增预约的提交格式
       required: true
-    
+
     updateReservation:
       content:
         application/json:
@@ -2418,7 +2423,7 @@ components:
                 type: boolean
       description: 更新预约的提交格式
       required: true
-    
+
     addUser:
       content:
         application/json:
@@ -2446,7 +2451,7 @@ components:
                 type: string
       description: 新增用户的提交格式
       required: true
-   
+
     updateUser:
       content:
         application/json:
@@ -2468,7 +2473,7 @@ components:
                 type: string
       description: 更新用户的提交格式
       required: true
- 
+
     addTeam:
       content:
         application/json:
@@ -2494,7 +2499,7 @@ components:
                 type: boolean
       description: 新建队伍的提交格式
       required: true
-  
+
     updateTeam:
       content:
         application/json:
@@ -2514,7 +2519,7 @@ components:
                 type: boolean
       description: 更新队伍的提交格式
       required: true
- 
+
     addTeamMember:
       content:
         application/json:
@@ -2529,7 +2534,7 @@ components:
                 type: string
       description: 增加队员的提交格式
       required: true
-  
+
     addAnnouncement:
       content:
         application/json:
@@ -2545,7 +2550,7 @@ components:
               contestId:
                 type: number
                 description: 比赛ID
-  
+
     addTimeline:
       content:
         application/json:
@@ -2575,7 +2580,7 @@ components:
                 description: 优先级，用于排序
       description: 发布公告的提交格式
       required: true
- 
+
     updateAnnouncement:
       content:
         application/json:
@@ -2637,13 +2642,12 @@ components:
                       description: 错误码
                       example: "type.openapi.validation"
       description: 包含请求错误信息的 JSON
-   
+
     UnauthorizedError:
       description: "Access token is missing, invalid or expired / Permission denied"
- 
+
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
- 
