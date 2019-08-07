@@ -11,6 +11,7 @@ const router = express.Router();
  * GET teams with queries
  * @param {number} contestId
  * @param {boolean} available - only get available teams if true
+ * @param {boolean} self - only get team with self if true
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} teams of given contest
@@ -46,10 +47,12 @@ router.get(
     let teams: ITeamModel[] = [];
     let teamSelf: ITeamModel[] = [];
     try {
-      teams = await Team.find(
-        { ...query, members: { $nin: req.auth.id } },
-        select
-      );
+      if (req.query.self !== "true") {
+        teams = await Team.find(
+          { ...query, members: { $nin: req.auth.id } },
+          select
+        );
+      }
       teamSelf = await Team.find(
         { ...query, members: { $in: req.auth.id } },
         "-_id -__v"
