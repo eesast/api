@@ -10,6 +10,7 @@ const router = express.Router();
  * GET teams with queries
  * @param {number} contestId
  * @param {boolean} available - only get available teams if true
+ * @param {boolean} self - only get team with self if true
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} teams of given contest
@@ -32,16 +33,31 @@ router.get("/", checkToken, async (req, res) => {
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select = "-_id -__v" + (req.auth.role === "root" ? "" : " -inviteCode");
 
-  let teams: TeamModel[] = [];
-  let teamSelf: TeamModel[] = [];
-  try {
-    teams = await Team.find(
-      { ...query, members: { $nin: req.auth.id } },
-      select
-    );
-    teamSelf = await Team.find(
-      { ...query, members: { $in: req.auth.id } },
-      "-_id -__v"
+    let teams: ITeamModel[] = [];
+    let teamSelf: ITeamModel[] = [];
+    try {
+      if (req.query.self !== "true") {
+        teams = await Team.find(
+          { ...query, members: { $nin: req.auth.id } },
+          select
+        );
+      }
+      teamSelf = await Team.find(
+        { ...query, members: { $in: req.auth.id } },
+        "-_id -__v"
+      );
+    } catch (err) {
+      return res.status(500).end();
+    }
+
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(200).end(
+      JSON.stringify(
+        teams
+          .concat(teamSelf)
+          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+          .slice(begin, end)
+      )
     );
   } catch (err) {
     return res.status(500).end();
