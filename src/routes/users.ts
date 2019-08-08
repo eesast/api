@@ -1,7 +1,7 @@
 import * as bcrypt from "bcrypt";
 import * as express from "express";
 import * as jwt from "jsonwebtoken";
-import secret from "../config/secret";
+import secret from "../configs/secret";
 import authenticate from "../middlewares/authenticate";
 import checkToken from "../middlewares/checkToken";
 import User from "../models/user";
