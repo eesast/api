@@ -1,8 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
-import { IJWTPayload } from "../config/jwt";
-import secret from "../config/secret";
-import User from "../models/user";
+import secret from "../configs/secret";
+import User, { UserModel } from "../models/user";
 
 /**
  * Middleware: validate user authorizations; reject if necessary
@@ -20,10 +19,9 @@ const authenticate: (
       return res.status(401).send("401 Unauthorized: Missing token");
     }
 
-    // get token from Auth bearer header
     const token = authHeader.substring(7);
     return jwt.verify(token, secret, (err, decoded) => {
-      const userInfo = decoded as IJWTPayload;
+      const userInfo = decoded as UserModel;
 
       if (err) {
         return res
@@ -31,7 +29,7 @@ const authenticate: (
           .send("401 Unauthorized: Token expired or invalid");
       }
 
-      req.auth = userInfo;
+      req.auth = { tokenValid: true, ...userInfo };
 
       // use authenticate() to accept all registered users
       if (!acceptableRoles || acceptableRoles.length === 0) {
