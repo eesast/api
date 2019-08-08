@@ -4,7 +4,7 @@ import * as logger from "morgan";
 import * as path from "path";
 import { OpenApiValidator } from "express-openapi-validator";
 import errorHandler from "./middlewares/errorHandler";
-import serverConfig from "./config/server";
+import serverConfig from "./configs/server";
 import announcementRouter from "./routes/announcements";
 import articleRouter from "./routes/articles";
 import commentRouter from "./routes/comments";

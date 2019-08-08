@@ -4,7 +4,7 @@ import * as mkdirp from "mkdirp";
 import * as multer from "multer";
 import * as path from "path";
 import { v1 as uuid } from "uuid";
-import serverConfig from "../config/server";
+import serverConfig from "../configs/server";
 import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();

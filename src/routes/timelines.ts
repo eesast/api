@@ -1,8 +1,6 @@
 import * as express from "express";
 import authenticate from "../middlewares/authenticate";
-import Timeline from "../models/timelines";
-import { editableParams as timelineEditableParams } from "../models/timelines";
-import dataCleaner from "../middlewares/dataCleaner";
+import Timeline from "../models/timeline";
 
 const router = express.Router();
 
@@ -28,60 +26,50 @@ router.get("/", async (req, res) => {
  * POST new timeline
  * @returns Location header
  */
-router.post(
-  "/",
-  authenticate(["root", "editor"]),
-  dataCleaner(timelineEditableParams),
-  async (req, res) => {
-    try {
-      const newTimeline = new Timeline({
-        ...req.body,
-        createdAt: new Date(),
-        createdBy: req.auth.id,
-        updatedAt: new Date(),
-        updatedBy: req.auth.id
-      });
-      const item = await newTimeline.save();
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(201).end(JSON.stringify({ id: item.id }));
-    } catch (err) {
-      return res.status(500).end();
-    }
+router.post("/", authenticate(["root", "editor"]), async (req, res) => {
+  try {
+    const newTimeline = new Timeline({
+      ...req.body,
+      createdAt: new Date(),
+      createdBy: req.auth.id,
+      updatedAt: new Date(),
+      updatedBy: req.auth.id
+    });
+    const item = await newTimeline.save();
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.status(201).end(JSON.stringify({ id: item.id }));
+  } catch (err) {
+    return res.status(500).end();
   }
-);
+});
 
 /**
  * PUT a timeline of Id
  * @param {number} id - change timeline's id
  * @returns No Content or Not Found
  */
-router.put(
-  "/:id",
-  authenticate(["root", "editor"]),
-  dataCleaner(timelineEditableParams),
-  async (req, res) => {
-    try {
-      const item = await Timeline.findOneAndUpdate(
-        {
-          id: req.params.id
-        },
-        {
-          $set: {
-            ...req.body,
-            updatedAt: new Date(),
-            updatedBy: req.auth.id
-          }
+router.put("/:id", authenticate(["root", "editor"]), async (req, res) => {
+  try {
+    const item = await Timeline.findOneAndUpdate(
+      {
+        id: req.params.id
+      },
+      {
+        $set: {
+          ...req.body,
+          updatedAt: new Date(),
+          updatedBy: req.auth.id
         }
-      );
-      if (!item) {
-        return res.status(404).send("404 Not Found: Timespot does not exist");
       }
-      res.status(204).end();
-    } catch (err) {
-      return res.status(500).end();
+    );
+    if (!item) {
+      return res.status(404).send("404 Not Found: Timespot does not exist");
     }
+    res.status(204).end();
+  } catch (err) {
+    return res.status(500).end();
   }
-);
+});
 
 /**
  * DELETE a timeline of Id
