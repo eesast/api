@@ -571,11 +571,16 @@ paths:
           description: 比赛名称，采用部分匹配
           schema:
             type: string
-        - name: alias
+        - name: type
           in: query
-          description: 别名，通常是比赛的 URL
+          description: 比赛分类，目前为["电设", "队式", "软设"]
           schema:
             type: string
+        - name: year
+          in: query
+          description: 比赛开展的年份
+          schema:
+            type: number
         - name: begin
           in: query
           description: 按时间降序排列，起始比赛的位置
@@ -586,11 +591,6 @@ paths:
           description: 按时间降序排列，结束比赛的位置
           schema:
             type: number
-        - name: available
-          in: query
-          description: 设置是否查看已结束的比赛
-          schema:
-            type: boolean
       responses:
         200:
           description: Successful operation
@@ -1916,13 +1916,12 @@ components:
           description: 自增值
         name:
           type: string
-        alias:
+        type:
           type: string
-          description: 用于 SEO 与 URL
-        available:
-          type: boolean
-          default: false
-          description: 比赛是否结束
+          description: 比赛类别，即软设、电设、队式
+        year:
+          type: number
+          description: 比赛开展的年份
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:

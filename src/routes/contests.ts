@@ -8,8 +8,8 @@ const router = express.Router();
  * GET contests with queries
  * @param {number} id
  * @param {string} name
- * @param {string} alias
- * @param {boolean} available
+ * @param {string} type
+ * @param {number} year
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} certain contests
@@ -22,11 +22,11 @@ router.get("/", (req, res) => {
   if (req.query.name) {
     query.name = req.query.name;
   }
-  if (req.query.alias) {
-    query.alias = req.query.alias;
+  if (req.query.type) {
+    query.type = req.query.type;
   }
-  if (req.query.available === "true") {
-    query.available = true;
+  if (req.query.year) {
+    query.year = req.query.year;
   }
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
