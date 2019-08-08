@@ -75,7 +75,7 @@ router.get("/:id", (req, res) => {
  * POST new contest
  * @returns {String} Location header
  */
-router.post("/", authenticate(["root"]), (req, res) => {
+router.post("/", authenticate(["root", "organizer"]), (req, res) => {
   const newContest = new Contest(req.body);
 
   newContest.save((err, contest) => {
@@ -93,7 +93,7 @@ router.post("/", authenticate(["root"]), (req, res) => {
  * @param {Number} id - updating contest's id
  * @returns {String} Location header or Not Found
  */
-router.put("/:id", authenticate(["root"]), (req, res) => {
+router.put("/:id", authenticate(["root", "organizer"]), (req, res) => {
   Contest.findOne({ id: req.params.id }, (err, contest) => {
     if (err) {
       return res.status(500).end();
@@ -126,7 +126,7 @@ router.put("/:id", authenticate(["root"]), (req, res) => {
  * @param {Number} id
  * @returns No Contest or Not Found
  */
-router.delete("/:id", authenticate(["root"]), (req, res) => {
+router.delete("/:id", authenticate(["root", "organizer"]), (req, res) => {
   Contest.findOneAndDelete({ id: req.params.id }, (err, contest) => {
     if (err) {
       return res.status(500).end();
