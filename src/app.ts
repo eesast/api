@@ -1,7 +1,7 @@
-import * as cors from "cors";
-import * as express from "express";
-import * as logger from "morgan";
-import * as path from "path";
+import cors from "cors";
+import express from "express";
+import logger from "morgan";
+import path from "path";
 import { OpenApiValidator } from "express-openapi-validator";
 import errorHandler from "./middlewares/errorHandler";
 import serverConfig from "./configs/server";

@@ -34,18 +34,6 @@ EESAST 后端 API
   - Prettier
   - ESLint
 
-    在 VSCode 设置中添加以下内容，开启 ESLint 插件对 TypeScript 的支持：
-
-    ```json
-    "eslint.autoFixOnSave": true,
-    "eslint.validate": [
-        "javascript",
-        "javascriptreact",
-        { "language": "typescript", "autoFix": true },
-        { "language": "typescriptreact", "autoFix": true }
-    ],
-    ```
-
 - MongoDB Compass Community
 
 - Postman
@@ -62,7 +50,7 @@ EESAST 后端 API
 
 #### `yarn build`
 
-使用 `tsc` 编译源文件
+使用 `babel` 编译源文件
 
 #### `yarn serve`
 
@@ -72,8 +60,8 @@ EESAST 后端 API
 
 配合 VSCode 调试服务器。操作方式如下：
 
-- 无需手动执行该命令。只需切换到 VSCode 的调试窗口，运行 `Debug server` 调试配置。
-- 或者，先运行该命令，然后运行 `Attach` 调试配置。
+1. 设置断点；
+2. 按下 F5，或在调试窗口点击绿色箭头。
 
 #### `yarn lint`
 
@@ -82,7 +70,3 @@ EESAST 后端 API
 #### `yarn typecheck`
 
 检查类型错误
-
-#### `yarn prettier`
-
-使用 Prettier 进行代码格式修正

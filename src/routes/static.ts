@@ -1,8 +1,8 @@
-import * as express from "express";
-import * as fs from "fs";
-import * as mkdirp from "mkdirp";
-import * as multer from "multer";
-import * as path from "path";
+import express from "express";
+import fs from "fs";
+import mkdirp from "mkdirp";
+import multer from "multer";
+import path from "path";
 import { v1 as uuid } from "uuid";
 import serverConfig from "../configs/server";
 import authenticate from "../middlewares/authenticate";

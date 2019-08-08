@@ -1,4 +1,4 @@
-import * as express from "express";
+import express from "express";
 import authenticate from "../middlewares/authenticate";
 import checkToken from "../middlewares/checkToken";
 import Team, { TeamModel } from "../models/team";

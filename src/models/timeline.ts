@@ -1,4 +1,4 @@
-import * as mongoose from "mongoose";
+import mongoose from "mongoose";
 import Counter from "./counter";
 
 export interface TimelineModel extends mongoose.Document {
