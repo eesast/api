@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
-import { IJWTPayload } from "../config/jwt";
-import secret from "../config/secret";
+import secret from "../configs/secret";
+import { UserModel } from "../models/user";
 
 /**
- * Middleware: Only check token status; do not reject
+ * Middleware: only check token status; does not reject
  */
 const checkToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.get("Authorization");
@@ -24,12 +24,10 @@ const checkToken = (req: Request, res: Response, next: NextFunction) => {
       return next();
     }
 
-    const userInfo = decoded as IJWTPayload;
+    const user = decoded as UserModel;
     req.auth = {
       tokenValid: true,
-      id: userInfo.id,
-      group: userInfo.group,
-      role: userInfo.role
+      ...user
     };
     next();
   });
