@@ -33,35 +33,32 @@ router.get("/", checkToken, async (req, res) => {
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select = "-_id -__v" + (req.auth.role === "root" ? "" : " -inviteCode");
 
-    let teams: ITeamModel[] = [];
-    let teamSelf: ITeamModel[] = [];
-    try {
-      if (req.query.self !== "true") {
-        teams = await Team.find(
-          { ...query, members: { $nin: req.auth.id } },
-          select
-        );
-      }
-      teamSelf = await Team.find(
-        { ...query, members: { $in: req.auth.id } },
-        "-_id -__v"
+  let teams: TeamModel[] = [];
+  let teamSelf: TeamModel[] = [];
+  try {
+    if (req.query.self !== "true") {
+      teams = await Team.find(
+        { ...query, members: { $nin: req.auth.id } },
+        select
       );
-    } catch (err) {
-      return res.status(500).end();
     }
-
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(
-      JSON.stringify(
-        teams
-          .concat(teamSelf)
-          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-          .slice(begin, end)
-      )
+    teamSelf = await Team.find(
+      { ...query, members: { $in: req.auth.id } },
+      "-_id -__v"
     );
   } catch (err) {
     return res.status(500).end();
   }
+
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.status(200).end(
+    JSON.stringify(
+      teams
+        .concat(teamSelf)
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        .slice(begin, end)
+    )
+  );
 
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.status(200).end(
