@@ -10,6 +10,13 @@ declare global {
 
     export interface Request {
       auth: Auth;
+      params: {
+        id?: number;
+        category?: string;
+      };
+      file: {
+        filename?: string;
+      };
     }
   }
 }

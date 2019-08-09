@@ -40,8 +40,8 @@ teamSchema.pre<TeamModel>("save", function(next) {
   Counter.findByIdAndUpdate(
     "team",
     { $inc: { count: 1 } },
-    { rawResult: true, new: true, upsert: true },
-    (err, counter) => {
+    { new: true, upsert: true },
+    (err, counter: any) => {
       if (err) {
         return next(err);
       }

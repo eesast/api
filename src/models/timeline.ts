@@ -32,8 +32,8 @@ timelineSchema.pre<TimelineModel>("save", function(next) {
   Counter.findByIdAndUpdate(
     "timeline",
     { $inc: { count: 1 } },
-    { rawResult: true, new: true, upsert: true },
-    (err, counter) => {
+    { new: true, upsert: true },
+    (err, counter: any) => {
       if (err) {
         return next(err);
       }

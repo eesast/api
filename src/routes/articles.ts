@@ -1,6 +1,7 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Article from "../models/article";
+import pick from "lodash.pick";
 
 const router = express.Router();
 
@@ -17,57 +18,38 @@ const router = express.Router();
  * @param {boolean} invisible
  * @returns {Object[]} certain articles
  */
-router.get("/", (req, res) => {
-  const query: any = {};
-  if (req.query.title) {
-    query.title = { $regex: req.query.title, $options: "i" };
-  }
-  if (req.query.author) {
-    query.author = req.query.author;
-  }
-  if (req.query.alias) {
-    query.alias = req.query.alias;
-  }
-  if (req.query.tag) {
-    query.tags = req.query.tag;
-  }
-  if (req.query.likedBy) {
-    query.likers = req.query.likedBy;
-  }
-  if (!req.query.invisible) {
-    query.visible = true;
-  }
+router.get("/", async (req, res, next) => {
+  const query = {
+    ...pick(req.query, ["author", "alias", "tag", "likedBy"]),
+    ...(req.query.title && {
+      title: { $regex: req.query.title, $options: "i" }
+    }),
+    visible: !req.query.invisible
+  };
+
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select =
     "-_id -__v" + (req.query.noContent === "true" ? " -content" : "");
 
-  Article.find(
-    query,
-    select,
-    { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
-    (err, articles) => {
-      if (err) {
-        return res.status(500).end();
-      }
+  try {
+    const articles = await Article.find(query, select, {
+      skip: begin,
+      limit: end - begin + 1,
+      sort: "-createdAt"
+    });
 
-      if (articles.length === 0) {
-        return res.status(200).end(JSON.stringify([]));
-      }
-
-      if (query.alias) {
-        Article.findOneAndUpdate(
-          { id: articles[0].id },
-          { $inc: { views: 1 } },
-          // tslint:disable-next-line: no-empty
-          () => {}
-        );
-      }
-
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(200).end(JSON.stringify(articles));
+    if (query.alias) {
+      await Article.findOneAndUpdate(
+        { id: articles[0].id },
+        { $inc: { views: 1 } }
+      );
     }
-  );
+
+    res.json(articles);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -75,18 +57,18 @@ router.get("/", (req, res) => {
  * @param {number} id - article Id
  * @returns {Object} article with id
  */
-router.get("/:id", (req, res) => {
-  Article.findOne({ id: req.params.id }, "-_id -__v", (err, article) => {
-    if (err) {
-      return res.status(500).end();
-    }
+router.get("/:id", async (req, res, next) => {
+  try {
+    const article = await Article.findOne({ id: req.params.id }, "-_id -__v");
+
     if (!article) {
       return res.status(404).send("404 Not Found: Article does not exist");
     }
 
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(article));
-  });
+    res.json(article);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -94,22 +76,21 @@ router.get("/:id", (req, res) => {
  * @param {number} id
  * @returns No Content or Not Found
  */
-router.get("/:id/like", authenticate([]), (req, res) => {
-  Article.findOneAndUpdate(
-    { id: req.params.id },
-    { $addToSet: { likers: req.auth.id } },
-    (err, article) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!article) {
-        return res.status(404).send("404 Not Found: Article does not exist");
-      }
+router.get("/:id/like", authenticate([]), async (req, res, next) => {
+  try {
+    const article = await Article.findOneAndUpdate(
+      { id: req.params.id },
+      { $addToSet: { likers: req.auth.id } }
+    );
 
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(204).end();
+    if (!article) {
+      return res.status(404).send("404 Not Found: Article does not exist");
     }
-  );
+
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -117,39 +98,40 @@ router.get("/:id/like", authenticate([]), (req, res) => {
  * @param {number} id
  * @returns No Content or Not Found
  */
-router.get("/:id/unlike", authenticate([]), (req, res) => {
-  Article.findOneAndUpdate(
-    { id: req.params.id },
-    { $pullAll: { likers: [req.auth.id] } },
-    (err, article) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!article) {
-        return res.status(404).send("404 Not Found: Article does not exist");
-      }
+router.get("/:id/unlike", authenticate([]), async (req, res, next) => {
+  try {
+    const article = await Article.findOneAndUpdate(
+      { id: req.params.id },
+      { $pullAll: { likers: [req.auth.id] } }
+    );
 
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(204).end();
+    if (!article) {
+      return res.status(404).send("404 Not Found: Article does not exist");
     }
-  );
+
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * POST new article
  * @returns Location header
  */
-router.post("/", authenticate(["root", "writer"]), (req, res) => {
-  const newArticle = new Article(req.body);
-
-  newArticle.save((err, article) => {
-    if (err) {
-      return res.status(500).end();
-    }
+router.post("/", authenticate(["root", "writer"]), async (req, res, next) => {
+  try {
+    const article = await new Article({
+      ...req.body,
+      createdBy: req.auth.id,
+      updatedBy: req.auth.id
+    }).save();
 
     res.setHeader("Location", "/v1/articles/" + article.id);
     res.status(201).end();
-  });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -157,56 +139,65 @@ router.post("/", authenticate(["root", "writer"]), (req, res) => {
  * @param {number} id - updating article's id
  * @returns Location header or Not Found
  */
-router.put("/:id", authenticate(["root", "self", "editor"]), (req, res) => {
-  Article.findOne({ id: req.params.id }, (err, article) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!article) {
-      return res.status(404).send("404 Not Found: Article does not exist");
-    }
+router.put(
+  "/:id",
+  authenticate(["root", "self", "editor"]),
+  async (req, res, next) => {
+    try {
+      const article = await Article.findOne({ id: req.params.id });
 
-    if (req.auth.selfCheckRequired) {
-      if (article.authorId !== req.auth.id) {
-        return res.status(401).send("401 Unauthorized: Permission denied");
+      if (!article) {
+        return res.status(404).send("404 Not Found: Article does not exist");
       }
-    }
 
-    const update = { updatedAt: new Date(), ...req.body };
-    Article.findOneAndUpdate(
-      { id: req.params.id },
-      update,
-      (error, newArticle) => {
-        if (error) {
-          return res.status(500).end();
+      if (req.auth.selfCheckRequired) {
+        if (article.authorId !== req.auth.id) {
+          return res.status(401).send("401 Unauthorized: Permission denied");
         }
-        if (!newArticle) {
-          return res.status(404).send("404 Not Found: Article does not exist");
-        }
-
-        res.setHeader("Location", "/v1/articles/" + newArticle.id);
-        res.status(204).end();
       }
-    );
-  });
-});
+
+      const update = {
+        ...req.body,
+        updatedAt: new Date(),
+        updatedBy: req.auth.id
+      };
+
+      const newArticle = await Article.findOneAndUpdate(
+        { id: req.params.id },
+        update
+      );
+
+      res.setHeader("Location", "/v1/articles/" + newArticle!.id);
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 /**
  * DELETE an article of Id
  * @param {Number} id - deleting article's id
  * @returns No Content or Not Found
  */
-router.delete("/:id", authenticate(["root"]), (req, res) => {
-  Article.findOneAndDelete({ id: req.params.id }, (err, article) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!article) {
-      return res.status(404).send("404 Not Found: Article does not exist");
-    }
+router.delete(
+  "/:id",
+  authenticate(["root", "editor"]),
+  async (req, res, next) => {
+    try {
+      const deleteArticle = await Article.findOneAndDelete({
+        id: req.params.id
+      });
 
-    res.status(204).end();
-  });
-});
+      if (!deleteArticle) {
+        return res.status(404).send("404 Not Found: Article does not exist");
+      }
+
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

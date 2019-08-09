@@ -1,6 +1,7 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Reservation from "../models/reservation";
+import pick from "lodash.pick";
 
 const router = express.Router();
 
@@ -15,47 +16,37 @@ const router = express.Router();
  * @param {string} roomOnly
  * @returns {Object[]} certain reservations
  */
-router.get("/", (req, res) => {
-  const query: any = {};
-  if (req.query.itemId) {
-    query.itemId = req.query.itemId;
-  }
-  if (req.query.userId) {
-    query.userId = req.query.userId;
-  }
-  if (req.query.from) {
-    query.from = {
-      $gte: new Date(req.query.from),
-      $lt: new Date().setDate(new Date(req.query.from).getDate() + 1)
-    };
-  }
-  if (req.query.to) {
-    query.to = {
-      $gte: new Date(req.query.to),
-      $lt: new Date().setDate(new Date(req.query.to).getDate() + 1)
-    };
-  }
-  if (req.query.roomOnly && req.query.roomOnly === "true") {
-    query.itemId = -1;
-  }
-  if (!req.query.roomOnly || req.query.roomOnly === "false") {
-    query.itemId = { $ne: -1 };
-  }
+router.get("/", async (req, res, next) => {
+  const query = {
+    ...pick(req.query, ["itemId", "userId"]),
+    ...(req.query.from && {
+      from: {
+        $gte: new Date(req.query.from),
+        $lt: new Date().setDate(new Date(req.query.from).getDate() + 1)
+      }
+    }),
+    ...(req.query.to && {
+      to: {
+        $gte: new Date(req.query.to),
+        $lt: new Date().setDate(new Date(req.query.to).getDate() + 1)
+      }
+    }),
+    itemId: req.query.roomOnly === "true" ? -1 : { $ne: -1 }
+  };
+
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
 
-  Reservation.find(
-    query,
-    "-_id -__v",
-    { skip: begin, limit: end - begin + 1, sort: "-createdAt" },
-    (err, reservations) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(200).end(JSON.stringify(reservations));
-    }
-  );
+  try {
+    const reservations = await Reservation.find(query, "-_id -__v", {
+      skip: begin,
+      limit: end - begin + 1,
+      sort: "-createdAt"
+    });
+    res.json(reservations);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -63,47 +54,40 @@ router.get("/", (req, res) => {
  * @param {number} id
  * @returns {Object} reservation with id
  */
-router.get("/:id", (req, res) => {
-  Reservation.findOne(
-    { id: req.params.id },
-    "-_id -__v",
-    (err, reservation) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!reservation) {
-        return res
-          .status(404)
-          .send("404 Not Found: Reservation does not exist");
-      }
+router.get("/:id", async (req, res, next) => {
+  try {
+    const reservation = await Reservation.findOne(
+      { id: req.params.id },
+      "-_id -__v"
+    );
 
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(200).end(JSON.stringify(reservation));
+    if (!reservation) {
+      return res.status(404).send("404 Not Found: Reservation does not exist");
     }
-  );
+
+    res.json(reservation);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * POST new reservation
  * @returns Location header
  */
-router.post("/", authenticate([]), (req, res) => {
-  if (req.body.from) {
-    req.body.from = new Date(req.body.from);
-  }
-  if (req.body.to) {
-    req.body.to = new Date(req.body.to);
-  }
-  const newReservation = new Reservation(req.body);
-
-  newReservation.save((err, reservation) => {
-    if (err) {
-      return res.status(500).end();
-    }
+router.post("/", authenticate([]), async (req, res, next) => {
+  try {
+    const reservation = await new Reservation({
+      ...req.body,
+      createdBy: req.auth.id,
+      updatedBy: req.auth.id
+    }).save();
 
     res.setHeader("Location", "/v1/reservations/" + reservation.id);
     res.status(201).end();
-  });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -111,44 +95,69 @@ router.post("/", authenticate([]), (req, res) => {
  * @param {number} id - updating reservation's id
  * @returns Location header or Not Found
  */
-router.put("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  const update = { updatedAt: new Date(), ...req.body };
+router.put(
+  "/:id",
+  authenticate(["root", "self", "keeper"]),
+  async (req, res, next) => {
+    try {
+      const reservation = await Reservation.findOne({ id: req.params.id });
 
-  Reservation.findOneAndUpdate(
-    { id: req.params.id },
-    update,
-    (err, reservation) => {
-      if (err) {
-        return res.status(500).end();
-      }
       if (!reservation) {
         return res
           .status(404)
           .send("404 Not Found: Reservation does not exist");
       }
 
-      res.setHeader("Location", "/v1/reservations/" + reservation.id);
+      if (req.auth.selfCheckRequired) {
+        if (reservation.userId !== req.auth.id) {
+          return res.status(401).send("401 Unauthorized: Permission denied");
+        }
+      }
+
+      const update = {
+        ...req.body,
+        updatedAt: new Date(),
+        updatedBy: req.auth.id
+      };
+
+      const newReservation = await Reservation.findOneAndUpdate(
+        { id: req.params.id },
+        update
+      );
+
+      res.setHeader("Location", "/v1/reservations/" + newReservation!.id);
       res.status(204).end();
+    } catch (err) {
+      next(err);
     }
-  );
-});
+  }
+);
 
 /**
  * DELETE a reservation of Id
  * @param {number} id - deleting reservation's id
  * @returns No Content or Not Found
  */
-router.delete("/:id", authenticate(["root", "keeper"]), (req, res) => {
-  Reservation.findOneAndDelete({ id: req.params.id }, (err, reservation) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!reservation) {
-      return res.status(404).send("404 Not Found: Reservation does not exist");
-    }
+router.delete(
+  "/:id",
+  authenticate(["root", "keeper"]),
+  async (req, res, next) => {
+    try {
+      const deleteReservation = await Reservation.findOneAndDelete({
+        id: req.params.id
+      });
 
-    res.status(204).end();
-  });
-});
+      if (!deleteReservation) {
+        return res
+          .status(404)
+          .send("404 Not Found: Reservation does not exist");
+      }
+
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

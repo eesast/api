@@ -34,8 +34,8 @@ itemSchema.pre<ItemModel>("save", function(next) {
   Counter.findByIdAndUpdate(
     "item",
     { $inc: { count: 1 } },
-    { rawResult: true, new: true, upsert: true },
-    (err, counter) => {
+    { new: true, upsert: true },
+    (err, counter: any) => {
       if (err) {
         return next(err);
       }
