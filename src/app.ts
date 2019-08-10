@@ -29,8 +29,8 @@ app.use(logger("dev"));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-app.use("/static", express.static(serverConfig.staticFilePath));
 app.use("/static", staticRouter);
+app.use("/static", express.static(serverConfig.staticFilePath));
 app.use("/v1", express.static(path.resolve(__dirname, "../docs")));
 
 // install the Open-Api Validator
