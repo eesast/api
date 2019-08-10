@@ -44,9 +44,16 @@ EESAST 后端 API
 
 安装所有 `dependencies` 和 `devDependencies`
 
-#### `yarn start`
+#### `yarn dev`
 
 启动开发服务器，自动监听源文件更改（数据库需要自行启动）
+
+#### `yarn dev:debug`
+
+配合 VSCode 调试服务器。操作方式如下：
+
+1. 设置断点；
+2. 按下 F5，或在调试窗口点击绿色箭头。
 
 #### `yarn build`
 
@@ -56,9 +63,13 @@ EESAST 后端 API
 
 在 `yarn build` 生成的 `build` 文件夹中运行，启动生产环境服务器
 
-#### `yarn dev:debug`
+#### `yarn test`
 
-配合 VSCode 调试服务器。操作方式如下：
+运行 mocha 测试
+
+#### `yarn test:debug`
+
+调试测试，对应 VSCode 的 `Debug test` 调试配置。操作方式如下：
 
 1. 设置断点；
 2. 按下 F5，或在调试窗口点击绿色箭头。
