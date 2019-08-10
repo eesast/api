@@ -1,11 +1,13 @@
-import * as bcrypt from "bcrypt";
+import bcrypt from "bcrypt";
 import express from "express";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import secret from "../configs/secret";
 import authenticate from "../middlewares/authenticate";
 import checkToken from "../middlewares/checkToken";
 import User from "../models/user";
 import pick from "lodash.pick";
+import { sendEmail } from "../helpers";
+import { resetPasswordTemplate } from "../helpers/htmlTemplates";
 
 const router = express.Router();
 
@@ -161,11 +163,78 @@ router.post("/login", async (req, res, next) => {
 });
 
 /**
- * POST i-forgot password retrieval
+ * POST reset password
  * @returns No Content or Not Found
  */
-router.post("/forgot", async (req, res) => {
-  res.status(404).end();
+router.post("/reset", async (req, res, next) => {
+  try {
+    const query = pick(req.body, ["username", "id", "email"]);
+    if (!(query.id || query.username || query.email) || !req.body.action) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing essential information");
+    }
+
+    const user = await User.findOne(query);
+
+    if (!user) {
+      return res.status(404).send("404 Not Found: User does not exist");
+    }
+    if (!user.email) {
+      return res.status(404).send("404 Not Found: User does not have an email");
+    }
+
+    if (req.body.action === "get") {
+      const token = jwt.sign({ ...query, action: "reset" }, secret, {
+        expiresIn: "15m"
+      });
+
+      await sendEmail(
+        user.email,
+        "重置您的密码",
+        resetPasswordTemplate(user.name, "https://eesast.com/reset/" + token)
+      );
+
+      res.status(201).end();
+    }
+    if (req.body.action === "set") {
+      if (!req.body.password) {
+        return res
+          .status(422)
+          .send("422 Unprocessable Entity: Missing essential information");
+      }
+
+      const saltRounds = 10;
+      const hash = await bcrypt.hash(req.body.password, saltRounds);
+
+      await user.updateOne({
+        password: hash,
+        updatedAt: new Date()
+      });
+
+      res.status(204).end();
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST check token for resetting password
+ * @returns 200 or 401
+ */
+router.get("/reset/:token", (req, res) => {
+  try {
+    const decoded = jwt.verify(req.params.token, secret) as any;
+
+    if (decoded.action === "reset") {
+      res.status(200).end();
+    } else {
+      res.status(401).send("401 Unauthorized: Wrong token");
+    }
+  } catch (err) {
+    res.status(401).send("401 Unauthorized: Wrong token");
+  }
 });
 
 /**
