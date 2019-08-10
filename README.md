@@ -67,7 +67,7 @@ EESAST 后端 API
 
 运行 mocha 测试
 
-#### `yarn test`
+#### `yarn test:debug`
 
 调试测试，对应 VSCode 的 `Debug test` 调试配置。
 
