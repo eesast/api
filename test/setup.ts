@@ -1,6 +1,6 @@
 import * as bcrypt from "bcrypt";
-import * as dotenv from "dotenv";
-import * as mongoose from "mongoose";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
 import "mocha";
 import User from "../src/models/user";
 import variables from "./variables";
@@ -26,7 +26,7 @@ before("Set up the database for testing", function(done) {
 });
 
 before("Create admin user", async function() {
-  this.timeout(5000);
+  this.timeout(10000);
 
   const admin = new User({
     id: 0,

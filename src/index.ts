@@ -1,9 +1,9 @@
-import * as Debug from "debug";
-import * as dotenv from "dotenv";
-import * as http from "http";
-import * as mongoose from "mongoose";
+import Debug from "debug";
+import dotenv from "dotenv";
+import http from "http";
+import mongoose from "mongoose";
 import app from "./app";
-import serverConfig from "./config/server";
+import serverConfig from "./configs/server";
 
 dotenv.config();
 const debug = Debug("sast-api");

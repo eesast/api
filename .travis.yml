@@ -5,6 +5,7 @@ install:
   - yarn
 script:
   - yarn lint
+  - yarn typecheck
   - yarn build
 deploy:
   provider: script

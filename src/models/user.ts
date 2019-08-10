@@ -1,37 +1,34 @@
-import * as mongoose from "mongoose";
+import mongoose from "mongoose";
 
-export interface IUserModel extends mongoose.Document {
+export interface UserModel extends mongoose.Document {
   id: number;
   username: string;
+  password: string;
+  name: string;
+  department: string;
   group: string;
   role: string;
-  password: string;
-  email?: string;
-  name?: string;
-  phone?: number;
-  department?: string;
   class?: string;
+  email?: string;
+  phone?: number;
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
 }
 
-/**
- * User schema
- */
-const userSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema<UserModel>(
   {
-    id: { type: Number, required: true, unique: true }, // user ID
-    username: { type: String, unique: true }, // alphanumeric string
+    id: { type: Number, required: true, unique: true },
+    username: { type: String, unique: true },
+    password: { type: String, required: true },
+    name: { type: String, required: true },
+    department: { type: String, required: true },
     group: { type: String, required: true },
     role: { type: String, required: true },
-    password: { type: String, required: true },
-    email: { type: String, unique: true },
-    name: String,
-    phone: Number,
-    department: String,
     class: String,
+    email: { type: String, unique: true },
+    phone: Number,
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
@@ -42,4 +39,4 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model<IUserModel>("User", userSchema);
+export default mongoose.model<UserModel>("User", userSchema);

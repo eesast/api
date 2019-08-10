@@ -3,15 +3,7 @@
   // Hover to view descriptions of existing attributes.
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "attach",
-      "name": "Attach",
-      "restart": true,
-      "port": 9229
-    },
-    {
+  "configurations": [{
       "type": "node",
       "request": "launch",
       "name": "Debug server",
@@ -19,8 +11,7 @@
       "runtimeArgs": ["dev:debug"],
       "restart": true,
       "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "port": 9229
+      "internalConsoleOptions": "neverOpen"
     },
     {
       "type": "node",
@@ -29,8 +20,8 @@
       "runtimeExecutable": "yarn",
       "runtimeArgs": ["test:debug"],
       "restart": true,
-      "console": "integratedTerminal",
-      "port": 9229
+      "console": "integratedTerminal" //,
+      //"port": 9229
     }
   ]
 }

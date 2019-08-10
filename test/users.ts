@@ -1,5 +1,5 @@
 import "mocha";
-import * as request from "supertest";
+import request from "supertest";
 import { expect } from "chai";
 import Server from "../src/app";
 import variables from "./variables";
@@ -56,7 +56,7 @@ describe("Users", () => {
       .expect(204)
       .then(r =>
         request(Server)
-          .get(r.header["location"])
+          .get(r.header.location)
           .expect("Content-Type", /json/)
           .then(r => {
             expect(r.body)

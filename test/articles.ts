@@ -1,5 +1,5 @@
 import "mocha";
-import * as request from "supertest";
+import request from "supertest";
 import { expect } from "chai";
 import Server from "../src/app";
 import variables from "./variables";
@@ -21,17 +21,6 @@ describe("Articles", () => {
       })
       .expect(201));
 
-  it("Get all articles", () =>
-    request(Server)
-      .get("/v1/articles")
-      .set("Authorization", "bearer " + variables.admin.token)
-      .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("array")
-          .of.length(1);
-      }));
-
   it("Update, approve and get the article with id 1", () =>
     request(Server)
       .put("/v1/articles/1")
@@ -43,7 +32,7 @@ describe("Articles", () => {
       .expect(204)
       .then(r =>
         request(Server)
-          .get(r.header["location"])
+          .get(r.header.location)
           .expect("Content-Type", /json/)
           .then(r => {
             expect(r.body)
@@ -52,6 +41,16 @@ describe("Articles", () => {
               .equal("new title");
           })
       ));
+
+  it("Get all articles", () =>
+    request(Server)
+      .get("/v1/articles")
+      .expect("Content-Type", /json/)
+      .then(r => {
+        expect(r.body)
+          .to.be.an("array")
+          .of.length(1);
+      }));
 
   it("Like the article with id 1", () =>
     request(Server)
@@ -90,7 +89,7 @@ describe("Articles", () => {
       .delete("/v1/articles/1")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect(204)
-      .then(r =>
+      .then(() =>
         request(Server)
           .get("/v1/articles/1")
           .expect(404)
