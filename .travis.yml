@@ -7,7 +7,7 @@ install:
   - yarn
 before_script:
   - sleep 15
-  - mongo sast-api-test --eval 'db.createUser({user:"travis",pwd:"test",roles:"root"});'
+  - mongo sast-api-test --eval 'db.createUser({user:"travis",pwd:"test",roles:["root"]});'
 script:
   - yarn lint
   - yarn typecheck
