@@ -3,7 +3,7 @@ import express from "express";
 import logger from "morgan";
 import path from "path";
 // import { OpenApiValidator } from "express-openapi-validator";
-import errorHandler from "./middlewares/errorHandler";
+// import errorHandler from "./middlewares/errorHandler";
 import serverConfig from "./configs/server";
 import announcementRouter from "./routes/announcements";
 import articleRouter from "./routes/articles";
@@ -49,6 +49,6 @@ app.use("/v1/teams", teamRouter);
 app.use("/v1/announcements", announcementRouter);
 app.use("/v1/timelines", timelineRouter);
 
-app.use(errorHandler);
+// app.use(errorHandler);
 
 export default app;
