@@ -10,13 +10,26 @@ dotenv.config();
 before("Set up the database for testing", function(done) {
   this.timeout(15000);
 
-  mongoose.connect(`mongodb://localhost:27017/sast-api-test?authSource=admin`, {
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-    user: process.env.DB_USER,
-    pass: process.env.DB_PASS
-  });
+  if (process.env.CI) {
+    mongoose.connect(`mongodb://localhost:27017/sast-api-test`, {
+      useNewUrlParser: true,
+      useCreateIndex: true,
+      useFindAndModify: false,
+      user: "travis",
+      pass: "test"
+    });
+  } else {
+    mongoose.connect(
+      `mongodb://localhost:27017/sast-api-test?authSource=admin`,
+      {
+        useNewUrlParser: true,
+        useCreateIndex: true,
+        useFindAndModify: false,
+        user: process.env.DB_USER,
+        pass: process.env.DB_PASS
+      }
+    );
+  }
 
   const db = mongoose.connection;
   db.once("open", async () => {
