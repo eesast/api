@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import logger from "morgan";
 import path from "path";
-import { OpenApiValidator } from "express-openapi-validator";
+// import { OpenApiValidator } from "express-openapi-validator";
 import errorHandler from "./middlewares/errorHandler";
 import serverConfig from "./configs/server";
 import announcementRouter from "./routes/announcements";
@@ -34,10 +34,10 @@ app.use("/static", staticRouter);
 app.use("/v1", express.static(path.resolve(__dirname, "../docs")));
 
 // install the Open-Api Validator
-const apiSpecPath = path.resolve(__dirname, "../docs/swagger.yaml");
-new OpenApiValidator({
-  apiSpecPath
-}).install(app);
+// const apiSpecPath = path.resolve(__dirname, "../docs/swagger.yaml");
+// new OpenApiValidator({
+//   apiSpecPath
+// }).install(app);
 
 app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);
