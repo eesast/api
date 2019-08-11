@@ -1,6 +1,7 @@
-import * as express from "express";
+import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Comment from "../models/comment";
+import pick from "lodash.pick";
 
 const router = express.Router();
 
@@ -12,28 +13,21 @@ const router = express.Router();
  * @param {number} authorId
  * @returns {Object[]} certain articles
  */
-router.get("/", (req, res) => {
-  const query: any = {};
-  if (req.query.replyTo) {
-    query.replyTo = req.query.replyTo;
-  }
-  if (req.query.articleId) {
-    query.articleId = req.query.articleId;
-  }
-  if (req.query.authorId) {
-    query.authorId = req.query.authorId;
-  }
-  if (req.query.likedBy) {
-    query.likers = req.query.likedBy;
-  }
+router.get("/", async (req, res, next) => {
+  const query = {
+    ...pick(req.query, ["replyTo", "articleId", "authorId", "likedBy"]),
+    ...(req.query.title && {
+      title: { $regex: req.query.title, $options: "i" }
+    }),
+    visible: !req.query.invisible
+  };
 
-  Comment.find(query, "-_id -__v", (err, comments) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(comments));
-  });
+  try {
+    const comments = await Comment.find(query, "-_id -__v");
+    res.json(comments);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -41,18 +35,18 @@ router.get("/", (req, res) => {
  * @param {number} id
  * @returns {Object} comment with id
  */
-router.get("/:id", (req, res) => {
-  Comment.findOne({ id: req.params.id }, "-_id -__v", (err, comment) => {
-    if (err) {
-      return res.status(500).end();
-    }
+router.get("/:id", async (req, res, next) => {
+  try {
+    const comment = await Comment.findOne({ id: req.params.id }, "-_id -__v");
+
     if (!comment) {
       return res.status(404).send("404 Not Found: Comment does not exist");
     }
 
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.status(200).end(JSON.stringify(comment));
-  });
+    res.json(comment);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -60,22 +54,21 @@ router.get("/:id", (req, res) => {
  * @param {number} id
  * @returns No Content or Not Found
  */
-router.get("/:id/like", authenticate([]), (req, res) => {
-  Comment.findOneAndUpdate(
-    { id: req.params.id },
-    { $addToSet: { likers: req.auth.id } },
-    (err, comment) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!comment) {
-        return res.status(404).send("404 Not Found: Comment does not exist");
-      }
+router.get("/:id/like", authenticate([]), async (req, res, next) => {
+  try {
+    const comment = await Comment.findOneAndUpdate(
+      { id: req.params.id },
+      { $addToSet: { likers: req.auth.id } }
+    );
 
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(204).end();
+    if (!comment) {
+      return res.status(404).send("404 Not Found: Comment does not exist");
     }
-  );
+
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -83,111 +76,110 @@ router.get("/:id/like", authenticate([]), (req, res) => {
  * @param {number} id
  * @returns No Content or Not Found
  */
-router.get("/:id/unlike", authenticate([]), (req, res) => {
-  Comment.findOneAndUpdate(
-    { id: req.params.id },
-    { $pullAll: { likers: [req.auth.id] } },
-    (err, comment) => {
-      if (err) {
-        return res.status(500).end();
-      }
-      if (!comment) {
-        return res.status(404).send("404 Not Found: Comment does not exist");
-      }
+router.get("/:id/unlike", authenticate([]), async (req, res, next) => {
+  try {
+    const comment = await Comment.findOneAndUpdate(
+      { id: req.params.id },
+      { $pullAll: { likers: [req.auth.id] } }
+    );
 
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(204).end();
+    if (!comment) {
+      return res.status(404).send("404 Not Found: Comment does not exist");
     }
-  );
+
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * POST new comment
  * @returns Location header
  */
-router.post("/", authenticate(["root", "writer", "reader"]), (req, res) => {
-  const newComment = new Comment(req.body);
+router.post(
+  "/",
+  authenticate(["root", "writer", "reader", "editor"]),
+  async (req, res, next) => {
+    try {
+      const comment = await new Comment({
+        ...req.body,
+        createdBy: req.auth.id,
+        updatedBy: req.auth.id
+      }).save();
 
-  newComment.save((err, comment) => {
-    if (err) {
-      return res.status(500).end();
+      res.setHeader("Location", "/v1/comments/" + comment.id);
+      res.status(201).end();
+    } catch (err) {
+      next(err);
     }
-
-    res.setHeader("Location", "/v1/comments/" + comment.id);
-    res.status(201).end();
-  });
-});
+  }
+);
 
 /**
  * PUT existing comment
  * @param {number} id - updating comment's id
  * @returns Location header or Not Found
  */
-router.put("/:id", authenticate(["root", "self"]), (req, res) => {
-  Comment.findOne({ id: req.params.id }, (err, comment) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!comment) {
-      return res.status(404).send("404 Not Found: Comment does not exist");
-    }
+router.put(
+  "/:id",
+  authenticate(["root", "self", "editor"]),
+  async (req, res, next) => {
+    try {
+      const comment = await Comment.findOne({ id: req.params.id });
 
-    if (req.auth.selfCheckRequired) {
-      if (comment.authorId !== req.auth.id) {
-        return res.status(401).send("401 Unauthorized: Permission denied");
+      if (!comment) {
+        return res.status(404).send("404 Not Found: Comment does not exist");
       }
-    }
 
-    const update = { updatedAt: new Date(), ...req.body };
-    Comment.findOneAndUpdate(
-      { id: req.params.id },
-      update,
-      (error, newComment) => {
-        if (error) {
-          return res.status(500).end();
+      if (req.auth.selfCheckRequired) {
+        if (comment.authorId !== req.auth.id) {
+          return res.status(401).send("401 Unauthorized: Permission denied");
         }
-        if (!newComment) {
-          return res.status(404).send("404 Not Found: Comment does not exist");
-        }
-
-        res.setHeader("Location", "/v1/comments/" + newComment.id);
-        res.status(204).end();
       }
-    );
-  });
-});
+
+      const update = {
+        ...req.body,
+        updatedAt: new Date(),
+        updatedBy: req.auth.id
+      };
+
+      const newComment = await Comment.findOneAndUpdate(
+        { id: req.params.id },
+        update
+      );
+
+      res.setHeader("Location", "/v1/articles/" + newComment!.id);
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 /**
  * DELETE a comment of Id
  * @param {number} id - deleting comment's id
  * @returns No Content or Not Found
  */
-router.delete("/:id", authenticate(["root", "self"]), (req, res) => {
-  Comment.findOne({ id: req.params.id }, (err, comment) => {
-    if (err) {
-      return res.status(500).end();
-    }
-    if (!comment) {
-      return res.status(404).send("404 Not Found: Comment does not exist");
-    }
+router.delete(
+  "/:id",
+  authenticate(["root", "self", "editor"]),
+  async (req, res, next) => {
+    try {
+      const deleteComment = await Comment.findOneAndDelete({
+        id: req.params.id
+      });
 
-    if (req.auth.selfCheckRequired) {
-      if (comment.authorId !== req.auth.id) {
-        return res.status(401).send("401 Unauthorized: Permission denied");
-      }
-    }
-
-    Comment.findOneAndDelete({ id: req.params.id }, (error, oldComment) => {
-      if (error) {
-        return res.status(500).end();
-      }
-      if (!oldComment) {
+      if (!deleteComment) {
         return res.status(404).send("404 Not Found: Comment does not exist");
       }
 
       res.status(204).end();
-    });
-  });
-});
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

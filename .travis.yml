@@ -1,9 +1,17 @@
 language: node_js
+services:
+  - mongodb
 node_js: "node"
 cache: yarn
 install:
   - yarn
+before_script:
+  - sleep 15
+  - mongo sast-api-test --eval 'db.createUser({user:"travis",pwd:"test",roles:[{role:"root",db:"admin"}]});'
 script:
+  - yarn lint
+  - yarn typecheck
+  - yarn test
   - yarn build
 deploy:
   provider: script
