@@ -103,7 +103,7 @@ router.post("/", async (req, res, next) => {
 
     const user = await new User({
       group: "student",
-      role: "writer",
+      role: "student",
       ...req.body,
       password: hash
     }).save();
@@ -145,8 +145,14 @@ router.post("/login", async (req, res, next) => {
           username: user.username,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           group: user.group,
-          role: user.role
+          role: user.role,
+          "https://hasura.io/jwt/claims": {
+            "x-hasura-allowed-roles": ["student", "counselor", "teacher"],
+            "x-hasura-default-role": user.role,
+            "x-hasura-user-id": user.id.toString()
+          }
         },
         secret,
         {

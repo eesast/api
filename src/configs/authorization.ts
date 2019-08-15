@@ -13,10 +13,10 @@ const roles = {
     "counselor" // manage info
   ],
   student: [
-    "default",
+    "student",
     "writer" // write articles
   ],
-  teacher: ["default"]
+  teacher: ["teacher"]
 };
 
 export { groups, roles };
