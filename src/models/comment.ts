@@ -1,4 +1,4 @@
-import * as mongoose from "mongoose";
+import mongoose from "mongoose";
 import Counter from "./counter";
 
 export interface CommentModel extends mongoose.Document {
@@ -36,8 +36,8 @@ commentSchema.pre<CommentModel>("save", function(next) {
   Counter.findByIdAndUpdate(
     "comment",
     { $inc: { count: 1 } },
-    { rawResult: true, new: true, upsert: true },
-    (err, counter) => {
+    { new: true, upsert: true },
+    (err, counter: any) => {
       if (err) {
         return next(err);
       }
