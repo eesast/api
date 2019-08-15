@@ -1,4 +1,4 @@
-import * as mongoose from "mongoose";
+import mongoose from "mongoose";
 
 export interface CounterModel extends mongoose.Document {
   _id: string;
