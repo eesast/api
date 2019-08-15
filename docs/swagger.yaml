@@ -581,16 +581,6 @@ paths:
           description: 比赛开展的年份
           schema:
             type: number
-        - name: begin
-          in: query
-          description: 按时间降序排列，起始比赛的位置
-          schema:
-            type: number
-        - name: end
-          in: query
-          description: 按时间降序排列，结束比赛的位置
-          schema:
-            type: number
       responses:
         200:
           description: Successful operation
@@ -609,7 +599,7 @@ paths:
       tags:
         - contests
       summary: 发布一场新比赛
-      description: 需要 `root`角色
+      description: 需要 `root` 或 `organizer` 角色
       operationId: addContest
       security:
         - bearerAuth: []
@@ -661,7 +651,7 @@ paths:
       tags:
         - contests
       summary: 更新已存在的比赛
-      description: 需要 `root` 角色
+      description: 需要 `root` 或 `organizer` 角色
       operationId: updateContest
       security:
         - bearerAuth: []
@@ -695,7 +685,7 @@ paths:
       tags:
         - contests
       summary: 删除一场比赛
-      description: 需要 `root` 角色
+      description: 需要 `root` 或 `organizer` 角色
       operationId: deleteContest
       security:
         - bearerAuth: []
@@ -2069,6 +2059,7 @@ components:
       description: >-
         日期对象。使用时采用 ISO
         格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
+    
     Team:
       type: object
       required:
@@ -2312,17 +2303,17 @@ components:
             type: object
             required:
               - name
-              - alias
+              - type
+              - year
             properties:
               name:
                 type: string
-              alias:
+              type:
                 type: string
-                description: 用于 SEO 与 URL
-              available:
-                type: boolean
-                default: true
-                description: 比赛是否结束
+                description: 比赛分类，目前为["电设", "队式", "软设"]
+              year:
+                type: number
+                description: 比赛举办的年份
       description: 发布比赛的提交格式
       required: true
 
@@ -2333,17 +2324,17 @@ components:
             type: object
             required:
               - name
-              - alias
+              - type
+              - year
             properties:
               name:
                 type: string
-              alias:
+              type:
                 type: string
-                description: 用于 SEO 与 URL
-              available:
-                type: boolean
-                default: false
-                description: 比赛是否结束
+                description: 比赛分类，目前为["电设", "队式", "软设"]
+              year:
+                type: number
+                description: 比赛举办的年份
       description: 更新比赛的提交格式
       required: true
 
