@@ -1,4 +1,4 @@
-import * as mongoose from "mongoose";
+import mongoose from "mongoose";
 import Counter from "./counter";
 
 export interface ItemModel extends mongoose.Document {
@@ -34,8 +34,8 @@ itemSchema.pre<ItemModel>("save", function(next) {
   Counter.findByIdAndUpdate(
     "item",
     { $inc: { count: 1 } },
-    { rawResult: true, new: true, upsert: true },
-    (err, counter) => {
+    { new: true, upsert: true },
+    (err, counter: any) => {
       if (err) {
         return next(err);
       }

@@ -2,7 +2,7 @@
  * Server related config
  */
 
-import * as path from "path";
+import path from "path";
 
 const staticPath = path.resolve(__dirname, "../../public");
 
