@@ -956,10 +956,10 @@
     "@types/bson" "*"
     "@types/node" "*"
 
-"@types/mongoose@5.5.12":
-  version "5.5.12"
-  resolved "https://registry.yarnpkg.com/@types/mongoose/-/mongoose-5.5.12.tgz#030eb1401e5a449ff95f7b208ee201b44a0c9479"
-  integrity sha512-41TDORylr6M9Kytli/Qry28cQjD919+w+jHNR9rca95xH1/joNLUkLg9okKJ1I4mIR6Af28ESjBssed7RKElVA==
+"@types/mongoose@5.5.13":
+  version "5.5.13"
+  resolved "https://registry.yarnpkg.com/@types/mongoose/-/mongoose-5.5.13.tgz#f76215bb4848a85eb4f1cb50b051a6f4dd3a019b"
+  integrity sha512-k7Kxk5gugsZhkl7euWH1p6lmIdh9W8AsQgX0cO7kaihBie/P3ywU8LFMqo9ey6frdHBlGVaNICTeFZ/pZ6s5Lg==
   dependencies:
     "@types/mongodb" "*"
     "@types/node" "*"
