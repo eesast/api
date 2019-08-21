@@ -74,7 +74,7 @@ router.get("/:id", checkToken, async (req, res, next) => {
     }
   }
   if (!hasDetailInfo) {
-    select = select + " -group -role -email -phone -department -class";
+    select = select + " -group -role -email -phone -class";
   }
 
   try {
