@@ -37,12 +37,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    if (req.query.isTeacher) {
-      select = select + " -group -role -username -email -phone -class";
-    } else {
-      select =
-        select + " -group -role -username -email -phone -department -class";
-    }
+    select = select + " -group -role -username -email -phone -class";
   }
 
   try {
