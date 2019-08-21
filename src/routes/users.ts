@@ -19,10 +19,14 @@ const router = express.Router();
  * @param {number} begin
  * @param {number} end
  * @param {boolean} detailInfo
+ * @param {boolean} isTeacher
  * @returns certain users
  */
 router.get("/", authenticate([]), async (req, res, next) => {
-  const query = pick(req.query, ["username", "department", "class"]);
+  const query = {
+    ...pick(req.query, ["username", "department", "class"]),
+    ...(req.query.isTeacher && { group: "teacher" })
+  };
 
   let select = "-_id -__v -password";
   const begin = parseInt(req.query.begin, 10) || 0;
@@ -33,8 +37,12 @@ router.get("/", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select =
-      select + " -group -role -username -email -phone -department -class";
+    if (req.query.isTeacher) {
+      select = select + " -group -role -username -email -phone -class";
+    } else {
+      select =
+        select + " -group -role -username -email -phone -department -class";
+    }
   }
 
   try {
