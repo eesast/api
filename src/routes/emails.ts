@@ -23,11 +23,11 @@ router.post("/", async (req, res) => {
     case "mentor_application": {
       const studentId = data.student_id;
       const mentorId = data.mentor_id;
-      const student = await User.findById(studentId);
+      const student = await User.findOne({ id: studentId });
       if (!student) {
         return res.status(404).send("404 Not Found: Student does not exist");
       }
-      const mentor = await User.findById(mentorId);
+      const mentor = await User.findOne({ id: mentorId });
       if (!mentor) {
         return res.status(404).send("404 Not Found: Teacher does not exist");
       }
