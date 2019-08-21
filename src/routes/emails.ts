@@ -2,7 +2,10 @@ import express from "express";
 import secret from "../configs/secret";
 import User from "../models/user";
 import { sendEmail } from "../helpers";
-import { newMentorApplicationTemplate } from "../helpers/htmlTemplates";
+import {
+  newMentorApplicationTemplate,
+  updateMentorApplicationTemplate
+} from "../helpers/htmlTemplates";
 
 const router = express.Router();
 
@@ -20,21 +23,17 @@ router.post("/", async (req, res) => {
     case "mentor_application": {
       const studentId = data.student_id;
       const mentorId = data.mentor_id;
+      const student = await User.findById(studentId);
+      if (!student) {
+        return res.status(404).send("404 Not Found: Student does not exist");
+      }
+      const mentor = await User.findById(mentorId);
+      if (!mentor) {
+        return res.status(404).send("404 Not Found: Teacher does not exist");
+      }
 
       switch (op) {
         case "INSERT": {
-          const student = await User.findById(studentId);
-          if (!student) {
-            return res
-              .status(404)
-              .send("404 Not Found: Student does not exist");
-          }
-          const mentor = await User.findById(mentorId);
-          if (!mentor) {
-            return res
-              .status(404)
-              .send("404 Not Found: Teacher does not exist");
-          }
           if (!mentor.email) {
             return res
               .status(422)
@@ -51,8 +50,27 @@ router.post("/", async (req, res) => {
           );
           break;
         }
+        case "UPDATE": {
+          if (!student.email) {
+            return res
+              .status(422)
+              .send("422 Unprocessable Entity: Missing student email");
+          }
+          sendEmail(
+            student.email!,
+            `新生导师申请状态更新`,
+            updateMentorApplicationTemplate(
+              mentor.name,
+              student.name,
+              "https://info.eesast.com"
+            )
+          );
+          break;
+        }
       }
       break;
     }
   }
 });
+
+export default router;
