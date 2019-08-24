@@ -134,7 +134,11 @@ router.post("/login", async (req, res, next) => {
   }
 
   try {
-    const user = await User.findOne({ username });
+    let user = await User.findOne({ username });
+
+    if (!user) {
+      user = await User.findOne({ email });
+    }
 
     if (!user) {
       return res.status(404).send("404 Not Found: User does not exist");
