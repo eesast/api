@@ -37,7 +37,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select = select + " -group -role -username -email -phone -class";
+    select = select + " -group -role -username";
   }
 
   try {
