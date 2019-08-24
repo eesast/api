@@ -268,7 +268,7 @@ router.put(
       if (
         req.body.name !== team.name &&
         (await Team.findOne({
-          contestId: req.body.contestId,
+          contestId: team.contestId,
           name: req.body.name
         }))
       ) {
