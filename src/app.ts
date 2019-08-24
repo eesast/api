@@ -15,6 +15,7 @@ import staticRouter from "./routes/static";
 import teamRouter from "./routes/teams";
 import userRouter from "./routes/users";
 import timelineRouter from "./routes/timelines";
+import emailRouter from "./routes/emails";
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/v1/reservations", reservationRouter);
 app.use("/v1/teams", teamRouter);
 app.use("/v1/announcements", announcementRouter);
 app.use("/v1/timelines", timelineRouter);
+app.use("/v1/emails", emailRouter);
 
 // app.use(errorHandler);
 

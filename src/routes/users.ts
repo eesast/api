@@ -19,10 +19,14 @@ const router = express.Router();
  * @param {number} begin
  * @param {number} end
  * @param {boolean} detailInfo
+ * @param {boolean} isTeacher
  * @returns certain users
  */
 router.get("/", authenticate([]), async (req, res, next) => {
-  const query = pick(req.query, ["username", "department", "class"]);
+  const query = {
+    ...pick(req.query, ["username", "department", "class"]),
+    ...(req.query.isTeacher && { group: "teacher" })
+  };
 
   let select = "-_id -__v -password";
   const begin = parseInt(req.query.begin, 10) || 0;
@@ -33,8 +37,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select =
-      select + " -group -role -username -email -phone -department -class";
+    select = select + " -group -role -username";
   }
 
   try {
@@ -71,7 +74,7 @@ router.get("/:id", checkToken, async (req, res, next) => {
     }
   }
   if (!hasDetailInfo) {
-    select = select + " -group -role -email -phone -department -class";
+    select = select + " -group -role -email -phone -class";
   }
 
   try {
@@ -131,7 +134,11 @@ router.post("/login", async (req, res, next) => {
   }
 
   try {
-    const user = await User.findOne({ username });
+    let user = await User.findOne({ username });
+
+    if (!user) {
+      user = await User.findOne({ email });
+    }
 
     if (!user) {
       return res.status(404).send("404 Not Found: User does not exist");

@@ -255,7 +255,7 @@ router.put(
                   (await User.findOne({ id: cur })) &&
                   !(await Team.findOne({
                     id: { $ne: req.params.id },
-                    contestId: req.body.contestId,
+                    contestId: team.contestId,
                     members: { $in: cur }
                   }))
               ),
