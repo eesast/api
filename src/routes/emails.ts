@@ -4,7 +4,8 @@ import User from "../models/user";
 import { sendEmail } from "../helpers";
 import {
   newMentorApplicationTemplate,
-  updateMentorApplicationTemplate
+  updateMentorApplicationTemplate,
+  messageReceiveTemplate
 } from "../helpers/htmlTemplates";
 
 const router = express.Router();
@@ -62,6 +63,39 @@ router.post("/", async (req, res) => {
             updateMentorApplicationTemplate(
               mentor.name,
               student.name,
+              "https://info.eesast.com"
+            )
+          );
+          break;
+        }
+      }
+      break;
+    }
+    case "mentor_message": {
+      const from = data.from;
+      const to = data.to;
+      const fromUser = await User.findOne({ id: from });
+      if (!fromUser) {
+        return res.status(404).send("404 Not Found: Sender does not exist");
+      }
+      const toUser = await User.findOne({ id: to });
+      if (!toUser) {
+        return res.status(404).send("404 Not Found: Receiver does not exist");
+      }
+
+      switch (op) {
+        case "INSERT": {
+          if (!toUser.email) {
+            return res
+              .status(422)
+              .send("422 Unprocessable Entity: Missing receiver email");
+          }
+          sendEmail(
+            toUser.email!,
+            `来自${fromUser.name}的新消息`,
+            messageReceiveTemplate(
+              fromUser.name,
+              toUser.name,
               "https://info.eesast.com"
             )
           );
