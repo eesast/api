@@ -2114,10 +2114,8 @@ components:
       type: object
       required:
         - id
-        - contsetId
+        - contestId
         - title
-        - alias
-        - author
         - content
       properties:
         id:
@@ -2126,6 +2124,16 @@ components:
         contestId:
           type: number
           description: 比赛ID
+        title:
+          type: string
+          description: 公告标题
+        content:
+          type: string
+          description: 公告内容
+        priority:
+          type: number
+          default: 1
+          description: 公告显示优先级
 
     Timeline:
       type: object
@@ -2541,15 +2549,45 @@ components:
           schema:
             type: object
             required:
-              - contsetId
+              - contestId
               - title
-              - alias
-              - author
               - content
             properties:
               contestId:
                 type: number
                 description: 比赛ID
+              title:
+                type: string
+                description: 公告标题
+              content:
+                type: string
+                description: 文章内容(支持 Markdown)
+              priority:
+                type: number
+                description: 优先级，用于排序
+      description: 发布公告的提交格式
+      required: true
+
+    updateAnnouncement:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              contestId:
+                type: number
+                description: 比赛ID
+              title:
+                type: string
+                description: 公告标题
+              content:
+                type: string
+                description: 公告内容(支持 Markdown)
+              priority:
+                type: number
+                description: 优先级，用于排序
+      description: 更新公告的提交格式
+      required: true
 
     addTimeline:
       content:
@@ -2566,55 +2604,14 @@ components:
               alias:
                 type: string
                 description: 用于 SEO 与 URL
-              author:
-                type: number
-              content:
-                type: string
-                description: 文章内容(支持 Markdown)
-              abstract:
-                type: string
-                description: 摘要，用于预览功能
-              priority:
-                type: number
-                default: 1
-                description: 优先级，用于排序
-      description: 发布公告的提交格式
-      required: true
-
-    updateAnnouncement:
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              contestId:
-                type: number
-                description: 比赛ID
-              title:
-                type: string
-              alias:
-                type: string
-                description: 用于 SEO 与 URL
-              author:
-                type: number
-              content:
-                type: string
-                description: 公告内容(支持 Markdown)
-              abstract:
-                type: string
-                description: 摘要，用于预览功能
-              priority:
-                type: number
-                default: 1
-                description: 优先级，用于排序
               description:
                 type: string
               originalURI:
                 type: string
               link:
                 type: string
-      description: 更新公告的提交格式
-      required: true
+
+
 
   responses:
     BadRequest:
