@@ -9,7 +9,6 @@ const router = express.Router();
  * GET announcements with queries
  * @param {number} contestId
  * @param {number} priority
- * @param {boolean} noContent
  * @param {number} begin
  * @param {number} end
  * @returns {object[]} certain announcements
@@ -19,11 +18,9 @@ router.get("/", async (req, res, next) => {
 
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
-  const select =
-    "-_id -__v" + (req.query.noContent === "true" ? " -content" : "");
 
   try {
-    const announcements = await Announcement.find(query, select, {
+    const announcements = await Announcement.find(query, "-_id -__v", {
       skip: begin,
       limit: end - begin + 1,
       sort: "-priority -createdAt"

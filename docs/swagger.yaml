@@ -1552,11 +1552,6 @@ paths:
           schema:
             type: string
           description: 公告显示优先级
-        - name: noContent
-          in: query
-          schema:
-            type: boolean
-          description: "设置是否需要获取公告内容。若设置为 `true`, 则响应中不包含 `content` 键值对"
         - name: begin
           in: query
           schema:
