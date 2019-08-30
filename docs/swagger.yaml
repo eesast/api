@@ -561,16 +561,6 @@ paths:
       description: 可以通过 query 进行筛选
       operationId: findContests
       parameters:
-        - name: id
-          in: query
-          description: 比赛 ID
-          schema:
-            type: number
-        - name: name
-          in: query
-          description: 比赛名称，采用部分匹配
-          schema:
-            type: string
         - name: type
           in: query
           description: 比赛分类，目前为["电设", "队式", "软设"]
@@ -1883,14 +1873,15 @@ components:
       required:
         - id
         - name
-        - alias
-        - available
+        - type
+        - year
       properties:
         id:
           type: number
           description: 自增值
         name:
           type: string
+          description: 比赛名称
         type:
           type: string
           description: 比赛类别，即软设、电设、队式
@@ -2309,6 +2300,7 @@ components:
             properties:
               name:
                 type: string
+                description: 比赛名称
               type:
                 type: string
                 description: 比赛分类，目前为["电设", "队式", "软设"]
@@ -2330,6 +2322,7 @@ components:
             properties:
               name:
                 type: string
+                description: 比赛名称
               type:
                 type: string
                 description: 比赛分类，目前为["电设", "队式", "软设"]
