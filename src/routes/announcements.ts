@@ -23,7 +23,7 @@ router.get("/", async (req, res, next) => {
     const announcements = await Announcement.find(query, "-_id -__v", {
       skip: begin,
       limit: end - begin + 1,
-      sort: "-createdAt"
+      sort: "-priority -createdAt"
     });
 
     res.json(announcements);
