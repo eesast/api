@@ -28,7 +28,10 @@ mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api?authSource=admin`, {
 
 const db = mongoose.connection;
 
-db.on("error", error => debug("Database connection error: " + error));
+db.on("error", error => {
+  debug("Database connection error: " + error);
+  process.exit(1);
+});
 db.once("open", () => {
   debug("Database connected");
 });
