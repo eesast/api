@@ -1,5 +1,6 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
+import Contest from "../models/contest";
 import Team, { TeamModel } from "../models/team";
 import User from "../models/user";
 import pick from "lodash.pick";
@@ -101,6 +102,11 @@ router.get("/:id/members", async (req, res, next) => {
  */
 router.post("/", authenticate([]), async (req, res, next) => {
   try {
+    const contest = await Contest.findOne({ id: req.body.contestId });
+    if (!contest || !contest.available) {
+      return res.status(400).send("400 Bad Request: Contest not available");
+    }
+
     if (
       await Team.findOne({ contestId: req.body.contestId, name: req.body.name })
     ) {
@@ -152,6 +158,12 @@ router.post(
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
+
+      const contest = await Contest.findOne({ id: team.contestId });
+      if (!contest || !contest.available) {
+        return res.status(400).send("400 Bad Request: Contest not available");
+      }
+
       if (req.auth.selfCheckRequired) {
         if (!req.body.inviteCode) {
           return res
@@ -228,6 +240,12 @@ router.put(
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
+
+      const contest = await Contest.findOne({ id: team.contestId });
+      if (!contest || !contest.available) {
+        return res.status(400).send("400 Bad Request: Contest not available");
+      }
+
       if (req.auth.selfCheckRequired) {
         delete req.body.leader;
         delete req.body.members;
@@ -318,6 +336,12 @@ router.delete(
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
       }
+
+      const contest = await Contest.findOne({ id: team.contestId });
+      if (!contest || !contest.available) {
+        return res.status(400).send("400 Bad Request: Contest not available");
+      }
+
       if (req.auth.selfCheckRequired) {
         if (team.leader !== req.auth.id) {
           return res.status(401).send("401 Unauthorized: Permission denied");
@@ -355,6 +379,11 @@ router.delete(
       const team = await Team.findOne({ id: req.params.id });
       if (!team) {
         return res.status(404).send("404 Not Found: Team does not exist");
+      }
+
+      const contest = await Contest.findOne({ id: team.contestId });
+      if (!contest || !contest.available) {
+        return res.status(400).send("400 Bad Request: Contest not available");
       }
 
       const memberId = parseInt(req.params.memberId, 10);
