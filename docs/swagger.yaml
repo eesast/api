@@ -1308,7 +1308,10 @@ paths:
               schema:
                 type: string
         400:
-          $ref: "#/components/responses/BadRequest"
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description:
+            "TODO: Solve status code conflict. --- Contest not available"
         409:
           description: Team name already exists / User is already in a team
         500:
@@ -1373,7 +1376,7 @@ paths:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
           description:
-            "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team"
+            "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team / Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1402,7 +1405,10 @@ paths:
         204:
           description: Successful operation
         400:
-          $ref: "#/components/responses/BadRequest"
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description:
+            "TODO: Solve status code conflict. --- Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1468,7 +1474,7 @@ paths:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
           description:
-            "TODO: Solve status code conflict. --- Member does not exist"
+            "TODO: Solve status code conflict. --- Member does not exist / Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         403:
@@ -1511,7 +1517,7 @@ paths:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
           description:
-            "TODO: Solve status code conflict. --- Leader cannot be deleted"
+            "TODO: Solve status code conflict. --- Leader cannot be deleted / Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1888,6 +1894,10 @@ components:
         year:
           type: number
           description: 比赛开展的年份
+        enrollAvailable:
+          type: boolean
+          default: true
+          description: 当前比赛是否正在进行，允许队伍操作
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:
@@ -2035,7 +2045,7 @@ components:
       description: >-
         日期对象。使用时采用 ISO
         格式字符串表示。[更多信息](https://www.iso.org/iso-8601-date-and-time-format.html)
-    
+
     Team:
       type: object
       required:
@@ -2315,10 +2325,6 @@ components:
         application/json:
           schema:
             type: object
-            required:
-              - name
-              - type
-              - year
             properties:
               name:
                 type: string
@@ -2329,6 +2335,9 @@ components:
               year:
                 type: number
                 description: 比赛举办的年份
+              enrollAvailable:
+                type: boolean
+                description: 当前比赛是否正在进行，允许队伍操作
       description: 更新比赛的提交格式
       required: true
 
