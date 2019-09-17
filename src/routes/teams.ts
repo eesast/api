@@ -103,7 +103,7 @@ router.get("/:id/members", async (req, res, next) => {
 router.post("/", authenticate([]), async (req, res, next) => {
   try {
     const contest = await Contest.findOne({ id: req.body.contestId });
-    if (!contest || !contest.available) {
+    if (!contest || !contest.enrollAvailable) {
       return res.status(400).send("400 Bad Request: Contest not available");
     }
 
@@ -160,7 +160,7 @@ router.post(
       }
 
       const contest = await Contest.findOne({ id: team.contestId });
-      if (!contest || !contest.available) {
+      if (!contest || !contest.enrollAvailable) {
         return res.status(400).send("400 Bad Request: Contest not available");
       }
 
@@ -242,7 +242,7 @@ router.put(
       }
 
       const contest = await Contest.findOne({ id: team.contestId });
-      if (!contest || !contest.available) {
+      if (!contest || !contest.enrollAvailable) {
         return res.status(400).send("400 Bad Request: Contest not available");
       }
 
@@ -338,7 +338,7 @@ router.delete(
       }
 
       const contest = await Contest.findOne({ id: team.contestId });
-      if (!contest || !contest.available) {
+      if (!contest || !contest.enrollAvailable) {
         return res.status(400).send("400 Bad Request: Contest not available");
       }
 
@@ -382,7 +382,7 @@ router.delete(
       }
 
       const contest = await Contest.findOne({ id: team.contestId });
-      if (!contest || !contest.available) {
+      if (!contest || !contest.enrollAvailable) {
         return res.status(400).send("400 Bad Request: Contest not available");
       }
 

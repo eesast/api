@@ -1894,7 +1894,7 @@ components:
         year:
           type: number
           description: 比赛开展的年份
-        available:
+        enrollAvailable:
           type: boolean
           default: true
           description: 当前比赛是否正在进行，允许队伍操作
@@ -2335,7 +2335,7 @@ components:
               year:
                 type: number
                 description: 比赛举办的年份
-              available:
+              enrollAvailable:
                 type: boolean
                 description: 当前比赛是否正在进行，允许队伍操作
       description: 更新比赛的提交格式
