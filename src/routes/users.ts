@@ -203,7 +203,7 @@ router.post("/reset", async (req, res, next) => {
     }
 
     if (req.body.action === "get") {
-      const token = jwt.sign({ ...query, action: "reset" }, secret, {
+      const token = jwt.sign({ email: user.email, action: "reset" }, secret, {
         expiresIn: "15m"
       });
 
@@ -216,10 +216,22 @@ router.post("/reset", async (req, res, next) => {
       res.status(201).end();
     }
     if (req.body.action === "set") {
+      if (!req.body.token) {
+        return res.status(401).send("401 Unauthorized: Missing token");
+      }
       if (!req.body.password) {
         return res
           .status(422)
           .send("422 Unprocessable Entity: Missing essential information");
+      }
+
+      try {
+        const payload = jwt.verify(req.body.token, secret) as any;
+        if (payload.email !== user.email || payload.action !== "reset") {
+          return res.status(401).send("401 Unauthorized: Wrong token");
+        }
+      } catch {
+        return res.status(401).send("401 Unauthorized: Wrong token");
       }
 
       const saltRounds = 10;
