@@ -159,10 +159,14 @@ router.post("/login", async (req, res, next) => {
           class: user.class,
           "https://hasura.io/jwt/claims": {
             "x-hasura-allowed-roles": [
-              "student",
+              "root",
+              "editor",
+              "keeper",
+              "organizer",
               "counselor",
-              "teacher",
-              "root"
+              "student",
+              "writer",
+              "teacher"
             ],
             "x-hasura-default-role": user.role,
             "x-hasura-user-id": user.id.toString()
