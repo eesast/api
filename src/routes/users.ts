@@ -155,6 +155,8 @@ router.post("/login", async (req, res, next) => {
           phone: user.phone,
           group: user.group,
           role: user.role,
+          department: user.department,
+          class: user.class,
           "https://hasura.io/jwt/claims": {
             "x-hasura-allowed-roles": [
               "student",
