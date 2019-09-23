@@ -38,6 +38,10 @@ tags:
     description: 比赛
   - name: announcements
     description: 公告
+  - name: timelines
+    description: 时间线
+  - name: enrollments
+    description: 选课
 
 paths:
   "/static/{category}":
@@ -1783,6 +1787,158 @@ paths:
         500:
           description: Server error
 
+  "/v1/enrollments":
+    get:
+      tags:
+        - enrollments
+      summary: 返回匹配查询的选课信息
+      description: 可以通过 query 进行筛选
+      operationId: findEnrollments
+      parameters:
+        - name: userId
+          in: query
+          description: 用户ID
+          schema:
+            type: number
+        - name: contestId
+          in: query
+          description: 比赛ID
+          schema:
+            type: number
+        - name: enroll
+          in: query
+          description: 是否选课
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Enrollment"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+
+    post:
+      tags:
+        - enrollments
+      summary: 发布一个选课信息
+      description: 需要 `root`或 `organizer`角色，或已登录用户
+      operationId: addEnrollment
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addEnrollment"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新发布选课的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        409:
+          description: Enrollment already exists
+        500:
+          description: Server error
+
+  "/v1/enrollments/{enrollmentId}":
+    get:
+      tags:
+        - enrollments
+      summary: 根据 ID 获取选课信息
+      operationId: getEnrollmentById
+      parameters:
+        - name: enrollmentId
+          in: path
+          description: 选课信息 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contest"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
+          description: "Not Found: Enrollment does not exist"
+        500:
+          description: Server error
+
+    put:
+      tags:
+        - enrollments
+      summary: 更新已存在的选课
+      description: 需要 `root` 或 `organizer` 角色，或待更新选课信息的用户为请求者
+      operationId: updateEnrollment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enrollmentId
+          in: path
+          description: 待更新选课信息的 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateEnrollment"
+      responses:
+        204:
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新选课信息的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Enrollment does not exist"
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - enrollments
+      summary: 删除一个选课信息
+      description: 需要 `root` 或 `organizer` 角色，或待删除选课信息的用户为请求者
+      operationId: deleteEnrollment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enrollmentId
+          in: path
+          description: 要删除选课信息的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        204:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Enrollment does not exist"
+        500:
+          description: Server error
+
 components:
   schemas:
     Article:
@@ -2169,6 +2325,34 @@ components:
           type: number
         link:
           type: string
+
+    Enrollment:
+      required:
+        - id
+        - userId
+        - contestId
+      properties:
+        id:
+          type: number
+          description: 自增值
+        userId:
+          type: number
+          description: 用户ID
+        contestId:
+          type: number
+          description: 比赛ID
+        enroll:
+          type: boolean
+          default: false
+          description: 是否选课
+        createdAt:
+          $ref: "#/components/schemas/Date"
+        createdBy:
+          type: number
+        updatedAt:
+          $ref: "#/components/schemas/Date"
+        updatedBy:
+          type: number
 
   requestBodies:
     addArticle:
@@ -2579,29 +2763,39 @@ components:
       description: 更新公告的提交格式
       required: true
 
-    addTimeline:
+    addEnrollment:
       content:
         application/json:
           schema:
+            type: object
             required:
-              - title
-              - alias
-              - description
-              - originalURI
+              - userId
+              - contestId
             properties:
-              title:
-                type: string
-              alias:
-                type: string
-                description: 用于 SEO 与 URL
-              description:
-                type: string
-              originalURI:
-                type: string
-              link:
-                type: string
+              userId:
+                type: number
+                description: 用户ID
+              contestId:
+                type: number
+                description: 比赛ID
+              enroll:
+                type: boolean
+                default: false
+                description: 是否选课
+      description: 发布选课信息的提交格式
+      required: true
 
-
+    updateEnrollment:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              enroll:
+                type: boolean
+                description: 是否选课
+      description: 更新选课信息的提交格式
+      required: true
 
   responses:
     BadRequest:
