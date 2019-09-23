@@ -39,7 +39,7 @@ router.get("/:id", async (req, res, next) => {
 
     const num = await Team.count({ contestId: req.params.id });
 
-    res.json({ contest, totalTeams: num });
+    res.json({ ...contest, totalTeams: num });
   } catch (err) {
     next(err);
   }
