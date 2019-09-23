@@ -3,6 +3,8 @@ import authenticate from "../middlewares/authenticate";
 import Contest from "../models/contest";
 import pick from "lodash.pick";
 
+import Team from "../models/team";
+
 const router = express.Router();
 
 /**
@@ -35,7 +37,9 @@ router.get("/:id", async (req, res, next) => {
       return res.status(404).send("404 Not Found: Contest does not exist");
     }
 
-    res.json(contest);
+    const num = await Team.count({ contestId: req.params.id });
+
+    res.json({ contest, totalTeams: num });
   } catch (err) {
     next(err);
   }
