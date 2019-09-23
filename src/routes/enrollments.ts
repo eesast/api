@@ -9,10 +9,11 @@ const router = express.Router();
  * GET enrollment with queries
  * @param {number} userId
  * @param {number} contestId
+ * @param {boolean} enroll
  * @returns {Object[]} enrollment of given contest and user
  */
 router.get("/", async (req, res, next) => {
-  const query = pick(req.query, ["userId", "contestId"]);
+  const query = pick(req.query, ["userId", "contestId", "enroll"]);
 
   try {
     const enrollments = await Enrollment.find(query, "-_id -__v");
@@ -28,11 +29,17 @@ router.get("/", async (req, res, next) => {
  * @returns {Object} enrollment of given id
  */
 router.get("/:id", async (req, res, next) => {
-  const query = pick(req.query, ["userId", "contestId"]);
-
   try {
-    const enrollments = await Enrollment.find(query, "-_id -__v");
-    res.json(enrollments);
+    const enrollment = await Enrollment.findOne(
+      { id: req.params.id },
+      "-_id -__v"
+    );
+
+    if (!enrollment) {
+      return res.status(404).send("404 Not Found: Enrollment does not exist");
+    }
+
+    res.json(enrollment);
   } catch (err) {
     next(err);
   }
@@ -47,6 +54,10 @@ router.post(
   authenticate(["root", "organizer", "self"]),
   async (req, res, next) => {
     try {
+      if (req.auth.selfCheckRequired) {
+        req.body.userId = req.auth.id;
+      }
+
       if (
         await Enrollment.findOne({
           userId: req.body.userId,
@@ -81,7 +92,7 @@ router.put(
   authenticate(["root", "organizer", "self"]),
   async (req, res, next) => {
     const update = {
-      ...req.body,
+      enroll: req.body.enroll,
       updatedAt: new Date(),
       updatedBy: req.auth.id
     };
