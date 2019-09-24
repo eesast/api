@@ -17,6 +17,7 @@ import userRouter from "./routes/users";
 import timelineRouter from "./routes/timelines";
 import emailRouter from "./routes/emails";
 import enrollmentRouter from "./routes/enrollments";
+import appointmentRouter from "./routes/appointments";
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/v1/announcements", announcementRouter);
 app.use("/v1/timelines", timelineRouter);
 app.use("/v1/emails", emailRouter);
 app.use("/v1/enrollments", enrollmentRouter);
+app.use("/v1/appointments", appointmentRouter);
 
 // app.use(errorHandler);
 
