@@ -32,7 +32,7 @@ router.get("/", async (req, res, next) => {
     const appointments = await Appointment.find(query, "-_id -__v", {
       skip: begin,
       limit: end - begin + 1,
-      sort: "-createdAt"
+      sort: "-date"
     });
     res.json(appointments);
   } catch (err) {
