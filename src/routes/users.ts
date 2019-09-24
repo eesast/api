@@ -25,7 +25,8 @@ const router = express.Router();
 router.get("/", authenticate([]), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
-    ...(req.query.isTeacher && { group: "teacher" })
+    ...(req.query.isTeacher && { group: "teacher" }),
+    ...(req.body.ids && { id: { $in: req.body.ids } })
   };
 
   let select = "-_id -__v -password";
