@@ -26,7 +26,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
     ...(req.query.isTeacher && { group: "teacher" }),
-    ...(req.body.ids && { id: { $in: req.body.ids } })
+    ...(req.query.ids && { id: { $in: req.query.ids } })
   };
 
   let select = "-_id -__v -password";
