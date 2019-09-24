@@ -25,8 +25,49 @@ const router = express.Router();
 router.get("/", authenticate([]), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
+    ...(req.query.isTeacher && { group: "teacher" })
+  };
+
+  let select = "-_id -__v -password";
+  const begin = parseInt(req.query.begin, 10) || 0;
+  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const role = req.auth.role || "";
+  if (
+    role !== "root" ||
+    !req.query.detailInfo ||
+    req.query.detailInfo.toString() === "false"
+  ) {
+    select = select + " -group -role -username";
+  }
+
+  try {
+    const users = await User.find(query, select, {
+      skip: begin,
+      limit: end - begin + 1,
+      sort: "-createdAt"
+    });
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST users with queries
+ * @param {string} username
+ * @param {string} department
+ * @param {string} class
+ * @param {number} begin
+ * @param {number} end
+ * @param {boolean} detailInfo
+ * @param {boolean} isTeacher
+ * @returns certain users
+ */
+router.post("/details", authenticate([]), async (req, res, next) => {
+  const query = {
+    ...pick(req.query, ["username", "department", "class"]),
     ...(req.query.isTeacher && { group: "teacher" }),
-    ...(req.query.ids && { id: { $in: req.query.ids } })
+    ...(req.body.ids && { id: { $in: req.body.ids } })
   };
 
   let select = "-_id -__v -password";
