@@ -22,6 +22,7 @@ mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api?authSource=admin`, {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
+  useUnifiedTopology: true,
   user: process.env.DB_USER,
   pass: process.env.DB_PASS
 });
