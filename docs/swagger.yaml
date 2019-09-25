@@ -42,8 +42,6 @@ tags:
     description: 时间线
   - name: enrollments
     description: 选课
-  - name: appointments
-    description: 预约时间点
 
 paths:
   "/static/{category}":
@@ -1317,7 +1315,7 @@ paths:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
           description:
-            "TODO: Solve status code conflict. --- Contest not available / Appointment not available"
+            "TODO: Solve status code conflict. --- Contest not available"
         409:
           description: Team name already exists / User is already in a team
         500:
@@ -1382,7 +1380,7 @@ paths:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
           description:
-            "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team / Contest not available / Appointment not available"
+            "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team / Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1872,7 +1870,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Enrollment"
+                $ref: "#/components/schemas/Contest"
         400:
           $ref: "#/components/responses/BadRequest"
         404:
@@ -1938,166 +1936,6 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         404:
           description: "Not Found: Enrollment does not exist"
-        500:
-          description: Server error
-
-  "/v1/appointments":
-    get:
-      tags:
-        - appointments
-      summary: 返回匹配查询的预约时间点信息
-      description: 可以通过 query 进行筛选
-      operationId: findAppointments
-      parameters:
-        - name: contestId
-          in: query
-          description: 比赛ID
-          schema:
-            type: number
-        - name: from
-          in: query
-          description: 预约时间点起始时间
-          schema:
-            type: string
-        - name: to
-          in: query
-          description: 预约时间点截止时间
-          schema:
-            type: string
-        - name: begin
-          in: query
-          description: 按时间降序排列，起始预约时间点的位置
-          schema:
-            type: number
-        - name: end
-          in: query
-          description: 按时间降序排列，结束预约时间点的位置
-          schema:
-            type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Appointment"
-        400:
-          $ref: "#/components/responses/BadRequest"
-        500:
-          description: Server error
-
-    post:
-      tags:
-        - appointments
-      summary: 发布一个预约时间点信息
-      description: 需要 `root`或 `organizer`角色
-      operationId: addAppointment
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addAppointment"
-      responses:
-        201:
-          description: Successful operation
-          headers:
-            Location:
-              description: 新发布预约时间点的 URL
-              schema:
-                type: string
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        500:
-          description: Server error
-
-  "/v1/appointments/{appointmentId}":
-    get:
-      tags:
-        - appointments
-      summary: 根据 ID 获取预约时间点信息
-      operationId: getAppointmentById
-      parameters:
-        - name: appointmentId
-          in: path
-          description: 预约时间点 ID
-          required: true
-          schema:
-            type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Appointment"
-        400:
-          $ref: "#/components/responses/BadRequest"
-        404:
-          description: "Not Found: Appointment does not exist"
-        500:
-          description: Server error
-
-    put:
-      tags:
-        - appointments
-      summary: 更新已存在的预约时间点信息
-      description: 需要 `root` 或 `organizer` 角色
-      operationId: updateAppointment
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: appointmentId
-          in: path
-          description: 待更新预约时间点信息的 ID
-          required: true
-          schema:
-            type: number
-      requestBody:
-        $ref: "#/components/requestBodies/updateAppointment"
-      responses:
-        204:
-          description: Successful operation
-          headers:
-            Location:
-              description: 被更新选课信息的 URL
-              schema:
-                type: string
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        404:
-          description: "Not Found: Appointment does not exist"
-        500:
-          description: Server error
-
-    delete:
-      tags:
-        - appointments
-      summary: 删除一个预约时间点信息
-      description: 需要 `root` 或 `organizer` 角色，或待删除选课信息的用户为请求者
-      operationId: deleteAppointment
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: appointmentId
-          in: path
-          description: 要删除预约时间点信息的 ID
-          required: true
-          schema:
-            type: number
-      responses:
-        204:
-          description: Successful operation
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        404:
-          description: "Not Found: Appointment does not exist"
         500:
           description: Server error
 
@@ -2400,9 +2238,6 @@ components:
           type: boolean
           default: true
           description: 队伍是否仍具有参赛资格
-        appointment:
-          type: number
-          description: 选择的预约时间点ID
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:
@@ -2510,29 +2345,6 @@ components:
           type: boolean
           default: false
           description: 是否选课
-        createdAt:
-          $ref: "#/components/schemas/Date"
-        createdBy:
-          type: number
-        updatedAt:
-          $ref: "#/components/schemas/Date"
-        updatedBy:
-          type: number
-
-    Appointment:
-      required:
-        - id
-        - contestId
-        - date
-      properties:
-        id:
-          type: number
-          description: 自增值
-        contestId:
-          type: number
-          description: 比赛ID
-        date:
-          $ref: "#/components/schemas/Date"
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:
@@ -2867,8 +2679,6 @@ components:
                   type: number
               available:
                 type: boolean
-              appointment:
-                type: number
       description: 新建队伍的提交格式
       required: true
 
@@ -2889,8 +2699,6 @@ components:
                   type: number
               available:
                 type: boolean
-              appointment:
-                type: number
       description: 更新队伍的提交格式
       required: true
 
@@ -2955,28 +2763,6 @@ components:
       description: 更新公告的提交格式
       required: true
 
-    addTimeline:
-      content:
-        application/json:
-          schema:
-            required:
-              - title
-              - alias
-              - description
-              - originalURI
-            properties:
-              title:
-                type: string
-              alias:
-                type: string
-                description: 用于 SEO 与 URL
-              description:
-                type: string
-              originalURI:
-                type: string
-              link:
-                type: string
-
     addEnrollment:
       content:
         application/json:
@@ -3009,34 +2795,6 @@ components:
                 type: boolean
                 description: 是否选课
       description: 更新选课信息的提交格式
-      required: true
-
-    addAppointment:
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - contestId
-              - date
-            properties:
-              contestId:
-                type: number
-                description: 比赛ID
-              date:
-                $ref: "#/components/schemas/Date"
-      description: 发布预约时间点信息的提交格式
-      required: true
-
-    updateAppointment:
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              date:
-                $ref: "#/components/schemas/Date"
-      description: 更新预约时间点信息的提交格式
       required: true
 
   responses:

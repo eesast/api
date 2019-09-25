@@ -3,7 +3,6 @@ import authenticate from "../middlewares/authenticate";
 import Contest from "../models/contest";
 import Team, { TeamModel } from "../models/team";
 import User from "../models/user";
-import Appointment from "../models/appointment";
 import pick from "lodash.pick";
 import checkToken from "../middlewares/checkToken";
 
@@ -165,17 +164,6 @@ router.post(
         return res.status(400).send("400 Bad Request: Contest not available");
       }
 
-      if (req.body.appointment) {
-        const appointment = await Appointment.findOne({
-          id: req.body.appointment
-        });
-        if (!appointment || appointment.contestId !== team.contestId) {
-          return res
-            .status(400)
-            .send("400 Bad Request: Appointment not available");
-        }
-      }
-
       if (req.auth.selfCheckRequired) {
         if (!req.body.inviteCode) {
           return res
@@ -256,17 +244,6 @@ router.put(
       const contest = await Contest.findOne({ id: team.contestId });
       if (!contest || !contest.enrollAvailable) {
         return res.status(400).send("400 Bad Request: Contest not available");
-      }
-
-      if (req.body.appointment) {
-        const appointment = await Appointment.findOne({
-          id: req.body.appointment
-        });
-        if (!appointment || appointment.contestId !== team.contestId) {
-          return res
-            .status(400)
-            .send("400 Bad Request: Appointment not available");
-        }
       }
 
       if (req.auth.selfCheckRequired) {
