@@ -37,7 +37,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select = select + " -group -role -email -phone -name -class";
+    select = select + " -group -role -email -phone";
   }
 
   try {
@@ -79,7 +79,7 @@ router.post("/details", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select = select + " -group -role -email -phone -name -class";
+    select = select + " -group -role -email -phone";
   }
 
   try {
