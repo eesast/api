@@ -79,7 +79,7 @@ router.post("/details", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select = select + " -group -role -username";
+    select = select + " -group -role -name";
   }
 
   try {
