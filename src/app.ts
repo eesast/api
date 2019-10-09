@@ -9,12 +9,9 @@ import announcementRouter from "./routes/announcements";
 import articleRouter from "./routes/articles";
 import commentRouter from "./routes/comments";
 import contestRouter from "./routes/contests";
-import itemRouter from "./routes/items";
-import reservationRouter from "./routes/reservations";
 import staticRouter from "./routes/static";
 import teamRouter from "./routes/teams";
 import userRouter from "./routes/users";
-import timelineRouter from "./routes/timelines";
 import emailRouter from "./routes/emails";
 
 const app = express();
@@ -44,11 +41,8 @@ app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);
 app.use("/v1/contests", contestRouter);
 app.use("/v1/users", userRouter);
-app.use("/v1/items", itemRouter);
-app.use("/v1/reservations", reservationRouter);
 app.use("/v1/teams", teamRouter);
 app.use("/v1/announcements", announcementRouter);
-app.use("/v1/timelines", timelineRouter);
 app.use("/v1/emails", emailRouter);
 
 // app.use(errorHandler);
