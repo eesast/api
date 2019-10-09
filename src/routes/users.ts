@@ -37,7 +37,11 @@ router.get("/", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select = select + " -group -role -email -phone";
+    if (group === "teacher") {
+      select = select + " -group -role";
+    } else {
+      select = select + " -group -role -email -phone";
+    }
   }
 
   try {
@@ -79,7 +83,11 @@ router.post("/details", authenticate([]), async (req, res, next) => {
     !req.query.detailInfo ||
     req.query.detailInfo.toString() === "false"
   ) {
-    select = select + " -group -role -email -phone";
+    if (group === "teacher") {
+      select = select + " -group -role";
+    } else {
+      select = select + " -group -role -email -phone";
+    }
   }
 
   try {
