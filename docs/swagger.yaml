@@ -26,10 +26,6 @@ tags:
     description: 文章
   - name: comments
     description: 评论
-  - name: items
-    description: 物品
-  - name: reservations
-    description: 预约
   - name: users
     description: 用户
   - name: teams
@@ -698,324 +694,6 @@ paths:
         500:
           description: Server error
 
-  "/v1/items":
-    get:
-      tags:
-        - items
-      summary: 返回匹配查询的物品
-      description: 可以通过 query 进行筛选
-      operationId: findItems
-      parameters:
-        - name: name
-          in: query
-          description: 物品名称
-          schema:
-            type: string
-        - name: available
-          in: query
-          description: 当前是否可用
-          schema:
-            type: boolean
-        - name: begin
-          in: query
-          description: 按时间降序排列，起始物品的位置
-          schema:
-            type: number
-        - name: end
-          in: query
-          description: 按时间降序排列，结束物品的位置
-          schema:
-            type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Item"
-        400:
-          $ref: "#/components/responses/BadRequest"
-        500:
-          description: Server error
-
-    post:
-      tags:
-        - items
-      summary: 添加一个新物品
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: addItem
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addItem"
-      responses:
-        201:
-          description: Successful operation
-          headers:
-            Location:
-              description: 新添加物品的 URL
-              schema:
-                type: string
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        500:
-          description: Server error
-
-  "/v1/items/{itemId}":
-    get:
-      tags:
-        - items
-      summary: 根据 ID 获取物品
-      operationId: getItemById
-      parameters:
-        - name: itemId
-          in: path
-          description: 物品 ID
-          required: true
-          schema:
-            type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Item"
-        400:
-          $ref: "#/components/responses/BadRequest"
-        404:
-          description: "Not Found: Item does not exist"
-        500:
-          description: Server error
-
-    put:
-      tags:
-        - items
-      summary: 更新已存在的物品
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: updateItem
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: itemId
-          in: path
-          description: 需要更新的物品的 ID
-          required: true
-          schema:
-            type: number
-      requestBody:
-        $ref: "#/components/requestBodies/updateItem"
-      responses:
-        204:
-          description: Successful operation
-          headers:
-            Location:
-              description: 被更新物品的 URL
-              schema:
-                type: string
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        404:
-          description: "Not Found: Item does not exist"
-        500:
-          description: Server error
-
-    delete:
-      tags:
-        - items
-      summary: 删除一个物品
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: deleteItem
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: itemId
-          in: path
-          description: 要删除物品的 ID
-          required: true
-          schema:
-            type: string
-      responses:
-        204:
-          description: Successful operation
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        404:
-          description: "Not Found: Item does not exist"
-        500:
-          description: Server error
-
-  "/v1/reservations":
-    get:
-      tags:
-        - reservations
-      summary: 返回匹配查询的预约
-      description: 可以通过 query 进行筛选
-      operationId: getReservations
-      parameters:
-        - name: itemId
-          in: query
-          schema:
-            type: number
-        - name: userId
-          in: query
-          schema:
-            type: number
-        - name: from
-          in: query
-          description: 预约起始日期
-          schema:
-            $ref: "#/components/schemas/Date"
-        - name: to
-          in: query
-          description: 预约截止日期
-          schema:
-            $ref: "#/components/schemas/Date"
-        - name: begin
-          in: query
-          description: 按时间降序排列，起始预约的位置
-          schema:
-            type: number
-        - name: end
-          in: query
-          description: 按时间降序排列，结束预约的位置
-          schema:
-            type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Reservation"
-        400:
-          $ref: "#/components/responses/BadRequest"
-        500:
-          description: Server error
-
-    post:
-      tags:
-        - reservations
-      summary: 新增一个预约
-      description: 需要已登录用户
-      operationId: addReservation
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addReservation"
-      responses:
-        201:
-          description: Successful operation
-          headers:
-            Location:
-              description: 新增预约的 URL
-              schema:
-                type: string
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        500:
-          description: Server error
-
-  "/v1/reservations/{reservationId}":
-    get:
-      tags:
-        - reservations
-      summary: 根据 ID 获取预约
-      operationId: getReservationById
-      parameters:
-        - name: reservationId
-          in: path
-          description: 预约 ID
-          required: true
-          schema:
-            type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Reservation"
-        400:
-          $ref: "#/components/responses/BadRequest"
-        404:
-          description: "Not Found: Item does not exist"
-        500:
-          description: Server error
-
-    put:
-      tags:
-        - reservations
-      summary: 更新已存在的预约
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: updateReservation
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: reservationId
-          in: path
-          description: 需要更新的预约的 ID
-          required: true
-          schema:
-            type: number
-      requestBody:
-        $ref: "#/components/requestBodies/updateReservation"
-      responses:
-        204:
-          description: Successful operation
-          headers:
-            Location:
-              description: 被更新预约的 URL
-              schema:
-                type: string
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        404:
-          description: "Not Found: Reservation does not exist"
-        500:
-          description: Server error
-
-    delete:
-      tags:
-        - reservations
-      summary: 删除一个预约
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: deleteReservation
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: reservationId
-          in: path
-          description: 要删除预约的 ID
-          required: true
-          schema:
-            type: string
-      responses:
-        204:
-          description: Successful operation
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        404:
-          description: "Not Found: Reservation does not exist"
-        500:
-          description: Server error
-
   "/v1/users":
     get:
       tags:
@@ -1571,7 +1249,7 @@ paths:
       tags:
         - announcements
       summary: 发布一篇新的公告
-      description: 需要 `root` 角色
+      description: 需要 `root` 或 `organizer` 角色
       operationId: addAnnouncements
       security:
         - bearerAuth: []
@@ -1586,7 +1264,7 @@ paths:
               schema:
                 type: string
         401:
-          description: "Access token is missing, invalid or expired / Permission denied"
+          $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
 
@@ -1621,7 +1299,7 @@ paths:
       tags:
         - announcements
       summary: 更新已经存在的公告
-      description: 需要 `root` 角色
+      description: 需要 `root` 或 `organizer` 角色
       operationId: updateAnnouncement
       security:
         - bearerAuth: []
@@ -1655,7 +1333,7 @@ paths:
       tags:
         - announcements
       summary: 删除一篇公告
-      description: 需要 `root` 角色
+      description: 需要 `root` 或 `organizer` 角色
       operationId: deleteAnnouncement
       security:
         - bearerAuth: []
@@ -1675,113 +1353,6 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         404:
           description: "Not Found: Announcement does not exist"
-
-  "/v1/timelines":
-    get:
-      tags:
-        - timelines
-      summary: 返回整条时间线
-      description: 返回整条时间线
-      operationId: getalltimelines
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Timeline"
-        400:
-          $ref: "#/components/responses/BadRequest"
-        500:
-          description: Server error
-
-    post:
-      tags:
-        - timelines
-      summary: 主页时间线上添加一个新节点
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: addTimeline
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/addTimeline"
-      responses:
-        201:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:
-                    type: number
-                    description: 编号
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        500:
-          description: Server error
-
-  "/v1/timelines/{id}":
-    delete:
-      tags:
-        - timelines
-      summary: 删除某个节点
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: deleteTimeline
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          description: 节点 ID
-          required: true
-          schema:
-            type: number
-      responses:
-        204:
-          description: Successful deleted
-        400:
-          $ref: "#/components/responses/BadRequest"
-        500:
-          description: Server error
-
-    put:
-      tags:
-        - timelines
-      summary: 更新已存在的时间线节点
-      description: 需要 `root` 或 `keeper` 角色
-      operationId: updateTimeline
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          description: 需要更新的时间线节点的 ID
-          required: true
-          schema:
-            type: number
-      requestBody:
-        $ref: "#/components/requestBodies/addTimeline"
-      responses:
-        204:
-          description: Successful operation
-          headers:
-            Location:
-              description: 被更新节点的 URL
-              schema:
-                type: string
-        400:
-          $ref: "#/components/responses/BadRequest"
-        401:
-          $ref: "#/components/responses/UnauthorizedError"
-        404:
-          description: "Not Found: Timeline does not exist"
-        500:
-          description: Server error
 
 components:
   schemas:
@@ -1890,7 +1461,8 @@ components:
           description: 比赛名称
         type:
           type: string
-          description: 比赛类别，即软设、电设、队式
+          enum: [电设, 软设, 队式]
+          description: 比赛类别
         year:
           type: number
           description: 比赛开展的年份
@@ -1915,6 +1487,8 @@ components:
         - group
         - role
         - password
+        - name
+        - department
       properties:
         id:
           type: number
@@ -1927,18 +1501,23 @@ components:
           enum:
             - admin
             - student
+            - teacher
           description: |
             用户组:
              * `admin` - 管理员
              * `student` - 学生
+             * `teacher` - 教师
         role:
           type: string
           enum:
             - root
             - editor
             - keeper
-            - reader
+            - organizer
+            - counselor
+            - student
             - writer
+            - teacher
           description: |
             用户组:
              * `root` - 权限：weekly(rwe), resource(rwe), user(rwe)
@@ -1952,10 +1531,10 @@ components:
           type: string
         name:
           type: string
-        phone:
-          type: number
         department:
           type: string
+        phone:
+          type: number
         class:
           type: string
         createdAt:
@@ -1977,67 +1556,6 @@ components:
         count:
           type: number
           default: 0
-
-    Item:
-      type: object
-      required:
-        - id
-        - name
-        - total
-        - left
-      properties:
-        id:
-          type: number
-        name:
-          type: string
-        description:
-          type: string
-        total:
-          type: number
-        left:
-          type: number
-        createdAt:
-          $ref: "#/components/schemas/Date"
-        createdBy:
-          type: number
-        updatedAt:
-          $ref: "#/components/schemas/Date"
-        updatedBy:
-          type: number
-
-    Reservation:
-      type: object
-      required:
-        - id
-        - itemId
-        - userId
-        - from
-        - to
-      properties:
-        id:
-          type: number
-        itemId:
-          type: number
-        userId:
-          type: number
-        from:
-          $ref: "#/components/schemas/Date"
-        to:
-          $ref: "#/components/schemas/Date"
-        reason:
-          type: string
-        approved:
-          type: boolean
-          default: false
-        createdAt:
-          $ref: "#/components/schemas/Date"
-        createdBy:
-          type: number
-        updatedAt:
-          $ref: "#/components/schemas/Date"
-        updatedBy:
-          type: number
-      description: from/to 指 预约起始/结束时间
 
     Date:
       type: string
@@ -2098,6 +1616,7 @@ components:
         - contestId
         - title
         - content
+        - priority
       properties:
         id:
           type: number
@@ -2123,52 +1642,6 @@ components:
           $ref: "#/components/schemas/Date"
         updatedBy:
           type: number
-
-    Timeline:
-      type: object
-      required:
-        - id
-        - title
-        - alias
-        - description
-        - originalURI
-      properties:
-        id:
-          type: number
-        title:
-          type: string
-        alias:
-          type: string
-          description: 用于 SEO 与 URL
-        author:
-          type: number
-        content:
-          type: string
-          description: 公告内容(支持 Markdown)
-        abstract:
-          type: string
-          description: 摘要，用于预览功能
-        views:
-          type: number
-          default: 0
-        priority:
-          type: number
-          default: 1
-          description: 优先级，用于排序
-        description:
-          type: string
-        originalURI:
-          type: string
-        createdAt:
-          $ref: "#/components/schemas/Date"
-        createdBy:
-          type: number
-        updatedAt:
-          $ref: "#/components/schemas/Date"
-        updatedBy:
-          type: number
-        link:
-          type: string
 
   requestBodies:
     addArticle:
@@ -2341,87 +1814,6 @@ components:
       description: 更新比赛的提交格式
       required: true
 
-    addItem:
-      content:
-        application/json:
-          schema:
-            required:
-              - name
-              - total
-              - left
-            properties:
-              id:
-                type: number
-              name:
-                type: string
-              description:
-                type: string
-              total:
-                type: number
-              left:
-                type: number
-      description: 新增物品的提交格式
-      required: true
-
-    updateItem:
-      content:
-        application/json:
-          schema:
-            properties:
-              name:
-                type: string
-              description:
-                type: string
-              total:
-                type: number
-              left:
-                type: number
-      description: 更新物品的提交格式
-      required: true
-
-    addReservation:
-      content:
-        application/json:
-          schema:
-            required:
-              - itemId
-              - userId
-              - from
-              - to
-            properties:
-              itemId:
-                type: number
-              userId:
-                type: number
-              from:
-                $ref: "#/components/schemas/Date"
-              to:
-                $ref: "#/components/schemas/Date"
-              reason:
-                type: string
-      description: 新增预约的提交格式
-      required: true
-
-    updateReservation:
-      content:
-        application/json:
-          schema:
-            properties:
-              itemId:
-                type: number
-              userId:
-                type: number
-              from:
-                $ref: "#/components/schemas/Date"
-              to:
-                $ref: "#/components/schemas/Date"
-              reason:
-                type: string
-              approved:
-                type: boolean
-      description: 更新预约的提交格式
-      required: true
-
     addUser:
       content:
         application/json:
@@ -2578,30 +1970,6 @@ components:
                 description: 优先级，用于排序
       description: 更新公告的提交格式
       required: true
-
-    addTimeline:
-      content:
-        application/json:
-          schema:
-            required:
-              - title
-              - alias
-              - description
-              - originalURI
-            properties:
-              title:
-                type: string
-              alias:
-                type: string
-                description: 用于 SEO 与 URL
-              description:
-                type: string
-              originalURI:
-                type: string
-              link:
-                type: string
-
-
 
   responses:
     BadRequest:
