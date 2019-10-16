@@ -57,6 +57,7 @@ describe("Users", () => {
       .then(r =>
         request(Server)
           .get(r.header.location)
+          .set("Authorization", "bearer " + variables.admin.token)
           .expect("Content-Type", /json/)
           .then(r => {
             expect(r.body)
@@ -74,6 +75,7 @@ describe("Users", () => {
       .then(() =>
         request(Server)
           .get("/v1/users/2017000000")
+          .set("Authorization", "bearer " + variables.admin.token)
           .expect(404)
       ));
 });
