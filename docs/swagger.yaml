@@ -34,14 +34,71 @@ tags:
     description: 比赛
   - name: announcements
     description: 公告
+  - name: emails
+    description: 邮件
 
 paths:
+  "/static/files/:filename":
+    get:
+      tags:
+        - static
+      summary: 下载文件
+      operationId: getFile
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
+          description: "Not Found: File does not exist"
+        500:
+          description: Server error
+
+  "/static/images/:filename":
+    get:
+      tags:
+        - static
+      summary: 下载图片
+      description: 下载webp格式或其本身
+      operationId: getImage
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
+          description: "Not Found: File does not exist"
+        500:
+          description: Server error
+
   "/static/{category}":
     post:
       tags:
         - static
       summary: 上传文件
-      description: 需要 `root` 或 `writer` 角色
+      description: 需要已登录用户
       operationId: uploadFile
       security:
         - bearerAuth: []
@@ -77,7 +134,7 @@ paths:
       tags:
         - static
       summary: 删除一个文件
-      description: 需要 `root` 或 `writer` 角色
+      description: 需要 `root`, `writer`, `editor`, `keeper`, `organizer` 或 `counselor` 角色
       operationId: deleteFile
       security:
         - bearerAuth: []
@@ -611,6 +668,7 @@ paths:
       tags:
         - contests
       summary: 根据 ID 获取比赛
+      description: 同时返回totalTeams
       operationId: getContestById
       parameters:
         - name: contestId
@@ -733,6 +791,10 @@ paths:
             `updatedAt` 和 `updatedBy` 键值对
           schema:
             type: boolean
+        - name: isTeacher
+          in: query
+          schema:
+            type: boolean
       responses:
         200:
           description: Successful operation
@@ -753,7 +815,7 @@ paths:
       tags:
         - users
       summary: 新建用户
-      description: '新增用户的默认用户组为 "student", 角色为 "reader"'
+      description: '新增用户的默认用户组为 `student`, 角色为 `reader`'
       operationId: addUser
       requestBody:
         $ref: "#/components/requestBodies/addUser"
@@ -772,6 +834,65 @@ paths:
         500:
           description: Server error
 
+  "/v1/users/details":
+    post:
+      tags:
+        - users
+      summary: 返回匹配查询的用户
+      description: 需要已登录用户，可以通过 query 进行筛选
+      operationId: getUsersDetails
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: query
+          schema:
+            type: string
+        - name: department
+          in: query
+          schema:
+            type: string
+        - name: class
+          in: query
+          schema:
+            type: string
+        - name: begin
+          in: query
+          description: 按创建时间降序排列，起始用户的位置
+          schema:
+            type: number
+        - name: end
+          in: query
+          description: 按创建时间降序排列，结束用户的位置
+          schema:
+            type: number
+        - name: detailInfo
+          in: query
+          description: >-
+            设置是否需要获取用户具体信息。若设置为 `false`, 则响应中仅包含 `id`, `createdAt`, `createdBy`,
+            `updatedAt` 和 `updatedBy` 键值对
+          schema:
+            type: boolean
+        - name: isTeacher
+          in: query
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+
   "/v1/users/login":
     post:
       tags:
@@ -784,10 +905,13 @@ paths:
             schema:
               type: object
               required:
-                - username
                 - password
               properties:
                 username:
+                  type: string
+                id:
+                  type: number
+                email:
                   type: string
                 password:
                   type: string
@@ -821,6 +945,70 @@ paths:
       responses:
         404:
           description: Operation not implemented yet
+
+  "/v1/users/reset":
+    post:
+      tags:
+        - users
+      summary: 重设密码
+      operationId: resetPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                username:
+                  type: string
+                id:
+                  type: number
+                email:
+                  type: string
+                password:
+                  type: string
+                token:
+                  type: string
+      responses:
+        201:
+          description: Successful operation
+        204:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Missing token / Wrong token
+        404:
+          description: "Not Found: User does not exist / User does not have an email"
+        422:
+          description: "Unprocessable Entity: Missing essential information"
+        500:
+          description: Server error
+
+  "/v1/users/reset/{token}":
+    post:
+      tags:
+        - users
+      summary: 检查重设密码的token
+      operationId: checkResetToken
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Wrong token
+        500:
+          description: Server error
 
   "/v1/users/{userId}":
     get:
@@ -1353,6 +1541,32 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         404:
           description: "Not Found: Announcement does not exist"
+
+  "/v1/emails":
+    post:
+      tags:
+        - emails
+      summary: 发送邮件
+      # TODO: Complete requestBody
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      operationId: sendEmails
+      responses:
+        200:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Wrong secret
+        404:
+          description: "Not Found: Sender does not exist / Receiver does not exist / Teacher does not exist / Student does not exist"
+        422:
+          description: Missing receiver email / Missing student email / Missing teacher email
+        500:
+          description: Server error
 
 components:
   schemas:
