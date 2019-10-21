@@ -30,7 +30,7 @@ router.get("/", async (req, res, next) => {
   const begin = parseInt(req.query.begin, 10) || 0;
   const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
   const select =
-    "-_id -__v" + (req.query.noContent === "true" ? " -content" : "");
+    "-_id -__v" + (req.query.noContent === true ? " -content" : "");
 
   try {
     const articles = await Article.find(query, select, {
