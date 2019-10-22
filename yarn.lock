@@ -2622,10 +2622,10 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@2.8.0:
-  version "2.8.0"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-2.8.0.tgz#8fa60547612e06b32061a1ac6afc931386cdc47b"
-  integrity sha512-XotqzPlcTDfv1f40OPxOfy4JauE8S4hrZ+xOS3xcKl4sGnygWZRrr3GWGJujpLl96X+wiA+uHZkLYjO+AN14iQ==
+express-openapi-validator@2.8.1:
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-2.8.1.tgz#9ebefa74bcb65097c8ccaa6ec5280680d76d6e6c"
+  integrity sha512-V4eZHrpSA9WVTFziFRc4kFL+yR9Ow9GT5offUfrxLgdNSGgHVE5Xcr37iRosfpgU4LKvmKfoBosvus/nk1G/lw==
   dependencies:
     ajv "^6.10.2"
     js-yaml "^3.13.1"
