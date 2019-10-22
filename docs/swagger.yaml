@@ -989,7 +989,7 @@ paths:
           description: Server error
 
   "/v1/users/reset/{token}":
-    post:
+    get:
       tags:
         - users
       summary: 检查重设密码的token
