@@ -8,6 +8,7 @@ import serverConfig from "../configs/server";
 import authenticate from "../middlewares/authenticate";
 import isImage from "is-image";
 import cwebp from "cwebp-bin";
+import utf8 from "utf8";
 import { execFile } from "child_process";
 
 const router = express.Router();
@@ -19,7 +20,16 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const dotIndex = file.originalname.lastIndexOf(".");
     const extention = file.originalname.substring(dotIndex);
-    const newFilename = uuid() + extention;
+    const fullPath = path.join(
+      serverConfig.staticFilePath,
+      req.params.category!,
+      utf8.encode(file.originalname)
+    );
+    const name = file.originalname.substring(0, dotIndex);
+    const newFilename = utf8.encode(
+      name + (fs.existsSync(fullPath) ? "_" + uuid() : "") + extention
+    );
+
     req.file = {
       ...req.file,
       filename: newFilename

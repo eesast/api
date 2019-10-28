@@ -110,10 +110,13 @@ paths:
             type: string
       requestBody:
         content:
-          application/octet-stream:
+          multipart/form-data:
             schema:
-              type: string
-              format: binary
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
       responses:
         201:
           description: Successful operation
