@@ -56,7 +56,7 @@
     "@types/lodash.pick": "4.4.6",
     "@types/mkdirp": "0.5.2",
     "@types/mocha": "5.2.7",
-    "@types/mongoose": "5.5.28",
+    "@types/mongoose": "5.5.29",
     "@types/morgan": "1.7.37",
     "@types/multer": "1.3.10",
     "@types/nodemailer": "6.2.2",
