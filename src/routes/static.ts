@@ -23,12 +23,11 @@ const storage = multer.diskStorage({
     const fullPath = path.join(
       serverConfig.staticFilePath,
       req.params.category!,
-      utf8.encode(file.originalname)
+      file.originalname
     );
     const name = file.originalname.substring(0, dotIndex);
-    const newFilename = utf8.encode(
-      name + (fs.existsSync(fullPath) ? "_" + uuid() : "") + extention
-    );
+    const newFilename =
+      name + (fs.existsSync(fullPath) ? "_" + uuid() : "") + extention;
 
     req.file = {
       ...req.file,
@@ -102,8 +101,13 @@ router.post(
       }
     }
 
-    res.setHeader("Location", `/static/${category}/` + filename);
-    res.status(201).send(`/static/${category}/` + filename);
+    res.setHeader(
+      "Location",
+      `/static/${category}/` + escape(utf8.encode(filename))
+    );
+    res
+      .status(201)
+      .send(`/static/${category}/` + escape(utf8.encode(filename)));
   }
 );
 
