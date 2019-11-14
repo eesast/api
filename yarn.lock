@@ -2629,10 +2629,10 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@2.14.5:
-  version "2.14.5"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-2.14.5.tgz#654e0b08696cf4a16832fc9d3b250869876badc0"
-  integrity sha512-Mt5Zsmlws/nhcIqPyIQBniS87LyRdE6uz8rKCw0mK/GFXMcmMM+8WZjWGl8eUz4VXleq/ZIhwiDRvZL5J0Ivww==
+express-openapi-validator@2.15.0:
+  version "2.15.0"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-2.15.0.tgz#a9a9b6c63f93aa0cde972c833574ea4621afb64d"
+  integrity sha512-U1j8qEP46vlZLFm8Iys9yNzDAO7mjvBXLkEzdTju/1EQyHWE3Pxd2MwUjZd3UwamjLzFZHHswkZyBJPnMEwXrA==
   dependencies:
     ajv "^6.10.2"
     js-yaml "^3.13.1"
@@ -2640,7 +2640,7 @@ express-openapi-validator@2.14.5:
     lodash.merge "^4.6.2"
     multer "^1.4.2"
     ono "^5.0.1"
-    path-to-regexp "^3.0.0"
+    path-to-regexp "^5.0.0"
     ts-log "^2.1.4"
 
 express@4.17.1:
@@ -5111,10 +5111,10 @@ path-to-regexp@0.1.7:
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.7.tgz#df604178005f522f15eb4490e7247a1bfaa67f8c"
   integrity sha1-32BBeABfUi8V60SQ5yR6G/qmf4w=
 
-path-to-regexp@^3.0.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-3.1.0.tgz#f45a9cc4dc6331ae8f131e0ce4fde8607f802367"
-  integrity sha512-PtHLisEvUOepjc+sStXxJ/pDV/s5UBTOKWJY2SOz3e6E/iN/jLknY9WL72kTwRrwXDUbZTEAtSnJbz2fF127DA==
+path-to-regexp@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-5.0.0.tgz#e56dd58778b9dc06e76f0f3e39e741bbddc0bd26"
+  integrity sha512-VOQVA+0mivusQfaveeWlrW7ddXKuStHMTdovn/1epf7cEpUL4dpzGl7eq8ho96H9w90/q66yJLsqn84jSCfkmQ==
 
 path-type@^1.0.0:
   version "1.1.0"
