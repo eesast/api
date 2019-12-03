@@ -2628,13 +2628,12 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@2.18.0:
-  version "2.18.0"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-2.18.0.tgz#1e3b9f9567919086e5b8e7d76fbeda1d9b956fc6"
-  integrity sha512-A1pgH4pDxTbJLPh9LxO1uQPA3dFRvloK2lkQrcntQI2Zir3Nhcr5cqrp75334uHgxajjE1Vu5LUR4jx9IQWoIA==
+express-openapi-validator@3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.0.0.tgz#e5f5cf887cb76af54731573dc62900ba0bc86641"
+  integrity sha512-IUmtilI/PhA2nwqDROM9+QSMge7m/1BO0GVwQw4b5kxcUbnHjy0XcxJGokqzqfKAZtf7Zd6HOZ1107MzpqPLDg==
   dependencies:
     ajv "^6.10.2"
-    deasync "^0.1.16"
     js-yaml "^3.13.1"
     json-schema-ref-parser "^7.1.2"
     lodash "^4.17.15"
@@ -2642,6 +2641,8 @@ express-openapi-validator@2.18.0:
     multer "^1.4.2"
     ono "^5.0.1"
     path-to-regexp "^6.0.0"
+  optionalDependencies:
+    deasync "^0.1.16"
 
 express@4.17.1:
   version "4.17.1"
