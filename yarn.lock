@@ -978,10 +978,10 @@
     "@types/bson" "*"
     "@types/node" "*"
 
-"@types/mongoose@5.5.34":
-  version "5.5.34"
-  resolved "https://registry.yarnpkg.com/@types/mongoose/-/mongoose-5.5.34.tgz#b77fdd8f5a80d1315c47a53d9166c6ff95f63898"
-  integrity sha512-XSXKMIZimxx8q17RGQArawrTVI8021PPbP21WEq71YTUMpVuaJaN9yFQll5KtEif5Jw1cphxEFkNwrDmuG+NFA==
+"@types/mongoose@5.5.35":
+  version "5.5.35"
+  resolved "https://registry.yarnpkg.com/@types/mongoose/-/mongoose-5.5.35.tgz#b753884db72d67c856b733307f90f8010d6ae10f"
+  integrity sha512-M/C2wc1WPOKyq6ZPaSO/IFeX6kBRqxSnoILhlDnkN4oi2WJ0bfFRfLu37bVeILDt/03gpY1UGWf6SYPixIHIcQ==
   dependencies:
     "@types/mongodb" "*"
     "@types/node" "*"
