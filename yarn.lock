@@ -2675,10 +2675,10 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@3.3.0:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.3.0.tgz#4a237b9a39e4569c034c93622396c2be8a8e27c3"
-  integrity sha512-EW34Kcz7b91LCf8yJ6cptLP5G6xL3CgtkLMwMSX/eKAw5j5Aoq2+rKLmey2CJFiYuD1tPM5M30Njzp9kN20bNQ==
+express-openapi-validator@3.3.1:
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.3.1.tgz#70ddec625f6f43d8a385eb2a71ee2cfb2a020614"
+  integrity sha512-GLeuRErGtf++eEQHKGl0sJjJt1tMDNswDN7Bcdexi53r+xJ5pSQLfKKTeJMq59wU6UMLIblsfRu/FYJKTMzL1g==
   dependencies:
     ajv "^6.10.2"
     content-type "^1.0.4"
@@ -2688,7 +2688,7 @@ express-openapi-validator@3.3.0:
     lodash.merge "^4.6.2"
     media-typer "^1.1.0"
     multer "^1.4.2"
-    ono "^5.0.1"
+    ono "^6.0.0"
     path-to-regexp "^6.0.0"
   optionalDependencies:
     deasync "^0.1.16"
@@ -4957,10 +4957,15 @@ onetime@^5.1.0:
   dependencies:
     mimic-fn "^2.1.0"
 
-ono@^5.0.1, ono@^5.1.0:
+ono@^5.1.0:
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/ono/-/ono-5.1.0.tgz#8cafa7e56afa2211ad63dd2eb798427e64f1a070"
   integrity sha512-GgqRIUWErLX4l9Up0khRtbrlH8Fyj59A0nKv8V6pWEto38aUgnOGOOF7UmgFFLzFnDSc8REzaTXOc0hqEe7yIw==
+
+ono@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/ono/-/ono-6.0.0.tgz#c0c51b61f6ee56fccd56421620f351de7e8e3200"
+  integrity sha512-vhx50giT0dDBLYYXwKU/tuNsT6CwPzGZmd6yypPsXrkq+ujT0lX0q4tvMQ/5jxM6HKntk7p3N51Ts0fD8qL5dA==
 
 opencollective-postinstall@^2.0.2:
   version "2.0.2"
