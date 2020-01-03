@@ -2630,17 +2630,18 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@3.3.1:
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.3.1.tgz#70ddec625f6f43d8a385eb2a71ee2cfb2a020614"
-  integrity sha512-GLeuRErGtf++eEQHKGl0sJjJt1tMDNswDN7Bcdexi53r+xJ5pSQLfKKTeJMq59wU6UMLIblsfRu/FYJKTMzL1g==
+express-openapi-validator@3.6.0:
+  version "3.6.0"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.6.0.tgz#d1fa36c08a77be979db8bb4ac7057350847dadec"
+  integrity sha512-v+dPcLsmMnX2Wig2IUMoACK/7ffuQdVaMgSmgMTpFcNqJY6QRwLAeGD0EGMZXZD3CkNOp5wUW1tBPhXiFZkVSA==
   dependencies:
     ajv "^6.10.2"
     content-type "^1.0.4"
     js-yaml "^3.13.1"
     json-schema-ref-parser "^7.1.2"
-    lodash "^4.17.15"
     lodash.merge "^4.6.2"
+    lodash.uniq "^4.5.0"
+    lodash.zipobject "^4.1.3"
     media-typer "^1.1.0"
     multer "^1.4.2"
     ono "^6.0.0"
@@ -4185,6 +4186,16 @@ lodash.unescape@4.0.1:
   resolved "https://registry.yarnpkg.com/lodash.unescape/-/lodash.unescape-4.0.1.tgz#bf2249886ce514cda112fae9218cdc065211fc9c"
   integrity sha1-vyJJiGzlFM2hEvrpIYzcBlIR/Jw=
 
+lodash.uniq@^4.5.0:
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
+  integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
+
+lodash.zipobject@^4.1.3:
+  version "4.1.3"
+  resolved "https://registry.yarnpkg.com/lodash.zipobject/-/lodash.zipobject-4.1.3.tgz#b399f5aba8ff62a746f6979bf20b214f964dbef8"
+  integrity sha1-s5n1q6j/YqdG9peb8gshT5ZNvvg=
+
 lodash@^4.17.11, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15:
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
@@ -4659,22 +4670,6 @@ node-modules-regexp@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/node-modules-regexp/-/node-modules-regexp-1.0.0.tgz#8d9dbe28964a4ac5712e9131642107c71e90ec40"
   integrity sha1-jZ2+KJZKSsVxLpExZCEHxx6Q7EA=
-
-node-pre-gyp@*:
-  version "0.14.0"
-  resolved "https://registry.yarnpkg.com/node-pre-gyp/-/node-pre-gyp-0.14.0.tgz#9a0596533b877289bcad4e143982ca3d904ddc83"
-  integrity sha512-+CvDC7ZttU/sSt9rFjix/P05iS43qHCOOGzcr3Ry99bXG7VX953+vFyEuph/tfqoYu8dttBkE86JSKBO2OzcxA==
-  dependencies:
-    detect-libc "^1.0.2"
-    mkdirp "^0.5.1"
-    needle "^2.2.1"
-    nopt "^4.0.1"
-    npm-packlist "^1.1.6"
-    npmlog "^4.0.2"
-    rc "^1.2.7"
-    rimraf "^2.6.1"
-    semver "^5.3.0"
-    tar "^4.4.2"
 
 node-pre-gyp@0.13.0:
   version "0.13.0"
@@ -6284,7 +6279,7 @@ tar-stream@^1.5.2:
     to-buffer "^1.1.1"
     xtend "^4.0.0"
 
-tar@^4, tar@^4.4.2:
+tar@^4:
   version "4.4.13"
   resolved "https://registry.yarnpkg.com/tar/-/tar-4.4.13.tgz#43b364bc52888d555298637b10d60790254ab525"
   integrity sha512-w2VwSrBoHa5BsSyH+KxEqeQBAllHhccyMFVHtGtdMpF4W7IRWfZjFiQceJPChOeTsSDVUpER2T8FA93pr0L+QA==
