@@ -31,7 +31,7 @@ router.get("/", checkToken, async (req, res, next) => {
   let teams: TeamModel[] = [];
   let teamSelf: TeamModel[] = [];
   try {
-    if (req.query.self !== true) {
+    if (req.query.self !== "true") {
       teams = await Team.find(
         { ...query, members: { $nin: req.auth.id } },
         select
