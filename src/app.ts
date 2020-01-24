@@ -13,6 +13,7 @@ import staticRouter from "./routes/static";
 import teamRouter from "./routes/teams";
 import userRouter from "./routes/users";
 import emailRouter from "./routes/emails";
+import roomRouter from "./routes/rooms";
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use("/v1/users", userRouter);
 app.use("/v1/teams", teamRouter);
 app.use("/v1/announcements", announcementRouter);
 app.use("/v1/emails", emailRouter);
+app.use("/v1/rooms", roomRouter);
 
 app.use(errorHandler);
 
