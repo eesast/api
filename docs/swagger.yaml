@@ -36,6 +36,8 @@ tags:
     description: 公告
   - name: emails
     description: 邮件
+  - name: rooms
+    description: 房间
 
 paths:
   "/static/files/:filename":
@@ -1123,7 +1125,7 @@ paths:
           in: query
           description: 比赛ID
           schema:
-            type: string
+            type: number
         - name: available
           in: query
           description: 队伍是否仍具有参赛资格
@@ -1405,22 +1407,22 @@ paths:
         - name: contestId
           in: query
           schema:
-            type: string
+            type: number
           description: 比赛ID
         - name: priority
           in: query
           schema:
-            type: string
+            type: number
           description: 公告显示优先级
         - name: begin
           in: query
           schema:
-            type: string
+            type: number
           description: 按时间降序排列，起始公告的位置
         - name: end
           in: query
           schema:
-            type: string
+            type: number
           description: 按时间降序排列，结束公告的位置
       responses:
         200:
@@ -1568,6 +1570,153 @@ paths:
           description: "Not Found: Sender does not exist / Receiver does not exist / Teacher does not exist / Student does not exist"
         422:
           description: Missing receiver email / Missing student email / Missing teacher email
+        500:
+          description: Server error
+
+  "/v1/rooms":
+    get:
+      tags:
+        - rooms
+      summary: 返回匹配查询的房间
+      description: 可以通过 query 进行筛选
+      operationId: findRooms
+      parameters:
+        - name: contestId
+          in: query
+          schema:
+            type: number
+          description: 比赛ID
+        - name: begin
+          in: query
+          schema:
+            type: number
+          description: 按时间降序排列，起始房间的位置
+        - name: end
+          in: query
+          schema:
+            type: number
+          description: 按时间降序排列，结束房间的位置
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+
+    post:
+      tags:
+        - rooms
+      summary: 开启一个新房间
+      description: 需要 `root` 或 `organizer` 角色，或请求者自身所在队伍为房间队伍之一
+      operationId: addRoom
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addRoom"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新开启房间的 URL
+              schema:
+                type: string
+        400:
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description:
+            "TODO: Solve status code conflict. --- Contest not available / User not in any team of the room"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+
+  "/v1/rooms/{roomId}":
+    get:
+      tags:
+        - rooms
+      summary: 根据 ID 获取房间
+      operationId: getRoomById
+      parameters:
+        - name: roomId
+          in: path
+          description: 房间 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+
+    put:
+      tags:
+        - rooms
+      summary: 更新已存在的房间
+      description: 需要 `root` 或 `organizer` 角色
+      operationId: updateRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          description: 待更新房间的 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateRoom"
+      responses:
+        204:
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新比赛的 URL
+              schema:
+                type: string
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Room does not exist"
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - rooms
+      summary: 删除一个房间
+      description: 需要 `root` 或 `organizer` 角色
+      operationId: deleteRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          description: 要删除房间的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Room does not exist"
         500:
           description: Server error
 
@@ -1851,6 +2000,45 @@ components:
           type: number
           default: 1
           description: 公告显示优先级
+        createdAt:
+          $ref: "#/components/schemas/Date"
+        createdBy:
+          type: number
+        updatedAt:
+          $ref: "#/components/schemas/Date"
+        updatedBy:
+          type: number
+
+    Room:
+      type: object
+      required:
+        - id
+        - contestId
+        - teams
+        - ip
+        - port
+      properties:
+        id:
+          type: number
+          description: 自增值
+        contestId:
+          type: number
+          description: 房间ID
+        available:
+          type: boolean
+          default: true
+          description: 房间是否可用
+        teams:
+          type: array
+          items:
+            type: number
+            description: 队伍ID(机器人可用-1表示)
+        ip:
+          type: string
+          description: ip地址
+        port:
+          type: number
+          description: 端口
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:
@@ -2185,6 +2373,57 @@ components:
               priority:
                 type: number
                 description: 优先级，用于排序
+      description: 更新公告的提交格式
+      required: true
+
+    addRoom:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - contestId
+              - teams
+              - ip
+              - port
+            properties:
+              contestId:
+                type: number
+                description: 比赛ID
+              teams:
+                type: array
+                items:
+                  type: number
+                  description: 队伍ID(机器人可用-1表示)
+              ip:
+                type: string
+                description: ip地址
+              port:
+                type: number
+                description: 端口
+      description: 发布公告的提交格式
+      required: true
+
+    updateRoom:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              contestId:
+                type: number
+                description: 比赛ID
+              teams:
+                type: array
+                items:
+                  type: number
+                  description: 队伍ID(机器人可用-1表示)
+              ip:
+                type: string
+                description: ip地址
+              port:
+                type: number
+                description: 端口
       description: 更新公告的提交格式
       required: true
 
