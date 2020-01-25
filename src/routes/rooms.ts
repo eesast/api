@@ -37,7 +37,7 @@ router.get("/", checkToken, async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   try {
     const room = await Room.findOne(
-      { contestId: req.params.contestId, available: true },
+      { id: req.params.id },
       "-_id -__v -available -contestId"
     );
 
