@@ -9,6 +9,11 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     auth: {
       user: process.env.NO_REPLY_EMAIL,
       pass: process.env.NO_REPLY_PASS
+    },
+    dkim: {
+      domainName: "eesast.com",
+      keySelector: "mail",
+      privateKey: process.env.DKIM_KEY!
     }
   });
 
