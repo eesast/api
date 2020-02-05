@@ -5,7 +5,7 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
   const transporter = nodemailer.createTransport({
     host: "mail.eesast.com",
     port: 587,
-    secure: false,
+    secure: false, // will actually use TLS
     auth: {
       user: process.env.NO_REPLY_EMAIL,
       pass: process.env.NO_REPLY_PASS
