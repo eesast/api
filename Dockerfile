@@ -18,7 +18,7 @@ RUN yarn build
 
 # Runner stage
 
-FROM node:13-alpine
+FROM node:13-slim
 ENV NODE_ENV=production
 WORKDIR /home/node/app
 
