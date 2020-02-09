@@ -10,6 +10,7 @@ import isImage from "is-image";
 import cwebp from "cwebp-bin";
 import utf8 from "utf8";
 import { execFile } from "child_process";
+import { publicKey } from "../configs/keypair";
 
 const router = express.Router();
 const storage = multer.diskStorage({
@@ -146,5 +147,13 @@ router.delete(
     });
   }
 );
+
+/**
+ * GET Verifiy a signature studentID
+ * @returns {string} signature' pub key
+ */
+router.get("/publicKey", (req, res) => {
+  return res.status(200).send(publicKey);
+});
 
 export default router;

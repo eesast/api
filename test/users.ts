@@ -16,7 +16,8 @@ describe("Users", () => {
         name: "test",
         phone: 0,
         department: "string",
-        class: "string"
+        class: "string",
+        track: "track",
       })
       .expect(201));
 
@@ -25,10 +26,10 @@ describe("Users", () => {
       .post("/v1/users/login")
       .send({
         username: variables.admin.username,
-        password: variables.admin.password
+        password: variables.admin.password,
       })
       .expect("Content-Type", /json/)
-      .then(r => {
+      .then((r) => {
         expect(r.body)
           .to.be.an("object")
           .that.has.property("token");
@@ -40,7 +41,7 @@ describe("Users", () => {
       .get("/v1/users")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
-      .then(r => {
+      .then((r) => {
         expect(r.body)
           .to.be.an("array")
           .of.length(2);
@@ -51,21 +52,61 @@ describe("Users", () => {
       .put("/v1/users/2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
-        name: "new name"
+        name: "new name",
       })
       .expect(204)
-      .then(r =>
+      .then((r) =>
         request(Server)
           .get(r.header.location)
           .set("Authorization", "bearer " + variables.admin.token)
           .expect("Content-Type", /json/)
-          .then(r => {
+          .then((r) => {
             expect(r.body)
               .to.be.an("object")
               .that.has.property("name")
               .equal("new name");
-          })
+          }),
       ));
+
+  it("Get Token of id 2017000000", () => {
+    request(Server)
+      .get("/v1/users/2017000000/token")
+      .set("Authorization", "bearer " + variables.admin.token)
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .then((r) => {
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("token");
+        variables.publicToken = r.body.token;
+      });
+  });
+
+  it("Get publicKey", () => {
+    request(Server)
+      .get("/static/publicKey")
+      .expect(200);
+  });
+
+  it("check token", () => {
+    request(Server)
+      .get(`/v1/users/login/${variables.publicToken}`)
+      .expect(200)
+      .then((r) => {
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("token");
+      });
+  });
+
+  it("check invalid token", () => {
+    request(Server)
+      .get(`/v1/users/verification/some_other_string`)
+      .expect(200)
+      .then((r) => {
+        expect(r.body).to.be.not.equal("false");
+      });
+  });
 
   it("Delete the user with id 2017000000", () =>
     request(Server)
@@ -76,6 +117,6 @@ describe("Users", () => {
         request(Server)
           .get("/v1/users/2017000000")
           .set("Authorization", "bearer " + variables.admin.token)
-          .expect(404)
+          .expect(404),
       ));
 });

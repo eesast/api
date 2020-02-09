@@ -8,6 +8,7 @@ import User from "../models/user";
 import pick from "lodash.pick";
 import { sendEmail } from "../helpers";
 import { resetPasswordTemplate } from "../helpers/htmlTemplates";
+import { publicKey, privateKey } from "../configs/keypair";
 
 const router = express.Router();
 
@@ -237,6 +238,56 @@ router.post("/login", async (req, res, next) => {
 });
 
 /**
+ * GET login token from pub token
+ * @returns {string} token
+ */
+router.get("/login/:token", async (req, res, next) => {
+  const decode: any = jwt.verify(req.params.token, publicKey);
+  if (!decode || !decode.id) return res.status(404).send("Invalid Token");
+  const id = decode.id;
+  try {
+    const user = await User.findOne({ id });
+    if (!user) {
+      return res.status(404).send("404 Not Found: User does not exist");
+    }
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        group: user.group,
+        role: user.role,
+        department: user.department,
+        class: user.class,
+        "https://hasura.io/jwt/claims": {
+          "x-hasura-allowed-roles": [
+            "root",
+            "editor",
+            "keeper",
+            "organizer",
+            "counselor",
+            "student",
+            "writer",
+            "teacher"
+          ],
+          "x-hasura-default-role": user.role,
+          "x-hasura-user-id": user.id.toString()
+        }
+      },
+      secret,
+      {
+        expiresIn: "12h"
+      }
+    );
+    res.json({ token });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * POST reset password
  * @returns No Content or Not Found
  */
@@ -384,6 +435,46 @@ router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
     res.status(204).end();
   } catch (err) {
     next(err);
+  }
+});
+
+/**
+ * GET a user's signature token with track
+ * @param {number} id - deleting user's id
+ * @returns {string} signed token
+ */
+router.get(
+  "/:id/token",
+  authenticate(["root", "self"]),
+  async (req, res, next) => {
+    try {
+      const user = await User.findOne(
+        { id: req.params.id },
+        { _id: 0, id: 1, name: 1 }
+      );
+      const token = jwt.sign(JSON.stringify(user), privateKey, {
+        algorithm: "RS256",
+        expiresIn: "15min"
+      }); //time length to be discuss
+      return res.json({ token });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * GET Verifiy a signature studentID
+ * @param {signature} signature to be verified
+ * @returns {bool} signature is valid or not
+ */
+router.get("/verification/:token", (req, res) => {
+  try {
+    const decode = jwt.verify(req.params.token, publicKey);
+    if (decode) return res.status(200).send(decode);
+    else return res.status(200).send(false);
+  } catch {
+    return res.status(200).send(false);
   }
 });
 

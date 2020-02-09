@@ -15,6 +15,7 @@ export interface UserModel extends mongoose.Document {
   createdBy: number;
   updatedAt: Date;
   updatedBy: number;
+  track: string;
 }
 
 const userSchema = new mongoose.Schema<UserModel>(

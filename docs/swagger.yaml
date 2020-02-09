@@ -166,6 +166,16 @@ paths:
         500:
           description: Server error
 
+  "/static/publicKey":
+    get:
+      tags:
+        - static
+      summary: 返回验证签名用公钥
+      description: 返回验证签名用公钥
+      responses:
+        200:
+          description: Successful operation
+
   "/v1/articles":
     get:
       tags:
@@ -941,6 +951,57 @@ paths:
         500:
           description: Server error
 
+  "/v1/users/login/{publicToken}":
+    get:
+      tags:
+        - users
+      summary: 用户登录
+      operationId: loginUserByPubToken
+      parameters:
+        - name: publicToken
+          in: path
+          description: 签发的公开令牌
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: >-
+                      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwidXNlcm5hbWUiOiJhZG1pbiIsImdyb3VwIjoiYWRtaW4iLCJyb2xlIjoicm9vdCIsImlhdCI6MTU0OTE2MTI5NiwiZXhwIjoxNTQ5MjA0NDk2fQ.1__SnI_vAeMrIZe6D0mXv4_umQEg53_iUHNeGJOQSoU
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Invalid password supplied
+        404:
+          description: "Not Found: User does not exist"
+        500:
+          description: Server error
+
+  "/v1/users/validation/{publicToken}":
+    get:
+      tags:
+        - users
+      summary: 公用令牌验证
+      operationId: publicTokenValidation
+      parameters:
+        - name: publicToken
+          in: path
+          description: 签发的公开令牌
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: return false if invalid and token decoded
+
   "/v1/users/forgot":
     get:
       tags:
@@ -1043,6 +1104,98 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: User does not exist"
+        500:
+          description: Server error
+
+    put:
+      tags:
+        - users
+      summary: 更新已存在的用户
+      description: 需要 `root` 角色，或待更新用户为请求者自身
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateUser"
+      responses:
+        204:
+          description: Successful operation
+          headers:
+            Location:
+              description: 更新用户的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: User does not exist"
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - users
+      summary: 删除一个用户
+      description: 需要 `root` 角色
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        204:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: User does not exist"
+        500:
+          description: Server error
+  
+  "/v1/users/{userId}/token":
+    get:
+      tags:
+        - users
+      summary: 根据 ID 获得签名，需要本人或管理员
+      operationId: getPublicTokenById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                properties:
+                  token:
+                    type: string
+                
         400:
           $ref: "#/components/responses/BadRequest"
         401:
