@@ -1,6 +1,8 @@
 # Builder stage
 
-FROM node:13 AS builder
+FROM node:13-alpine AS builder
+
+RUN apk add python3 make gcc g++
 
 # Create app directory
 WORKDIR /home/node/app
