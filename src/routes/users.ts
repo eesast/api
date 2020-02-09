@@ -186,7 +186,7 @@ router.post("/login", async (req, res, next) => {
   try {
     let user = await User.findOne({ username });
 
-    if (!user) {
+    if (!user && email) {
       user = await User.findOne({ email });
     }
 
