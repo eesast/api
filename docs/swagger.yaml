@@ -1614,7 +1614,7 @@ paths:
       tags:
         - rooms
       summary: 开启一个新房间
-      description: 需要 `root` 或 `organizer` 角色，或请求者自身所在队伍为房间队伍之一
+      description: 需要 `root` 或 `organizer` 角色
       operationId: addRoom
       security:
         - bearerAuth: []
@@ -1632,7 +1632,7 @@ paths:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
           description:
-            "TODO: Solve status code conflict. --- Contest not available / User not in any team of the room"
+            "TODO: Solve status code conflict. --- Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         500:
@@ -1713,6 +1713,82 @@ paths:
       responses:
         204:
           description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Room does not exist"
+        500:
+          description: Server error
+
+  "/v1/rooms/{roomId}/join":
+    get:
+      tags:
+        - rooms
+      summary: 加入房间
+      description: 需要已登录用户，返回更新后队伍数组
+      operationId: joinRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          description: 加入房间的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: number
+        400:
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description:
+            "TODO: Solve status code conflict. --- User not in team"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Room does not exist"
+        409:
+          description: Team already in room
+        500:
+          description: Server error
+
+  "/v1/rooms/{roomId}/leave":
+    get:
+      tags:
+        - rooms
+      summary: 退出房间
+      description: 需要已登录用户，返回剩余队伍数组
+      operationId: leaveRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          description: 退出房间的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: number
+        400:
+          # TODO: Solve status code conflict
+          # $ref: "#/components/responses/BadRequest"
+          description:
+            "TODO: Solve status code conflict. --- User not in team"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
