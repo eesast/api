@@ -27,7 +27,7 @@ const authenticate: (
           .send("401 Unauthorized: Token expired or invalid");
       }
       let id = 0;
-      if ((decoded as UserPublicToken).thirdParty) {
+      if ((decoded as UserPublicToken).public) {
         if (!publicTokenAcceptable)
           return res
             .status(401)

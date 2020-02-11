@@ -1117,7 +1117,7 @@ paths:
       tags:
         - users
       summary: 获得第三方令牌
-      operationId: getThirdPartyToken
+      operationId: getPublicToken
       parameters:
         - name: id
           in: query
@@ -1144,7 +1144,7 @@ paths:
       tags:
         - users
       summary: 校验第三方令牌
-      operationId: validateThirdPartyToken
+      operationId: validatePublicToken
       parameters:
         - name: token
           in: query
@@ -1166,7 +1166,7 @@ paths:
                     description: increase-only Counter
                   track:
                     type: string
-                  thirdParty:
+                  public:
                     type: boolean
                     default: true
         400:

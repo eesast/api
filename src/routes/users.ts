@@ -397,7 +397,7 @@ router.get(
           {
             id,
             track: "WIP Track",
-            thirdParty: true
+            public: true
           },
           secret,
           {

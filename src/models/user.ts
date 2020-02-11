@@ -19,7 +19,7 @@ export interface UserModel extends mongoose.Document {
 export interface UserPublicToken {
   id: number;
   track: string;
-  thirdParty: boolean;
+  public: boolean;
 }
 
 const userSchema = new mongoose.Schema<UserModel>(
