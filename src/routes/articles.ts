@@ -2,13 +2,15 @@ import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Article from "../models/article";
 import pick from "lodash.pick";
+import User from "../models/user";
 
 const router = express.Router();
 
 /**
  * GET articles with queries
  * @param {string} title - Title will be partial matched
- * @param {string} author
+ * @param {number} authorId
+ * @param {number} createdBy
  * @param {string} alias
  * @param {string} tag
  * @param {number} likedBy - liker's Id
@@ -20,7 +22,14 @@ const router = express.Router();
  */
 router.get("/", async (req, res, next) => {
   const query = {
-    ...pick(req.query, ["author", "alias", "tag", "likedBy"]),
+    ...pick(req.query, [
+      "author", // TODO: 实现这个字段的正常查询
+      "authorId",
+      "createdBy",
+      "alias",
+      "tag",
+      "likedBy"
+    ]),
     ...(req.query.title && {
       title: { $regex: req.query.title, $options: "i" }
     }),
