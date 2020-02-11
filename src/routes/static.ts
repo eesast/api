@@ -1,6 +1,5 @@
 import express from "express";
 import fs from "fs";
-import mkdirp from "mkdirp";
 import multer from "multer";
 import path from "path";
 import { v1 as uuid } from "uuid";
@@ -15,7 +14,7 @@ const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.resolve(serverConfig.staticFilePath, req.params.category!);
-    mkdirp(dir, err => cb(err, dir));
+    fs.mkdir(dir, { recursive: true }, err => cb(err, dir));
   },
   filename: (req, file, cb) => {
     const dotIndex = file.originalname.lastIndexOf(".");
