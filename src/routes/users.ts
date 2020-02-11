@@ -379,7 +379,6 @@ router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
 
 /**
  * GET personal's token
- * @param {number} id - deleting user's id
  * @returns  {Object} token:token
  */
 router.get(
@@ -415,7 +414,6 @@ router.get(
 );
 /**
  * Get Validation of a token
- * @param {number} id - deleting user's id
  * @returns {Object|string} decoded if success "Invalid Token" if not
  */
 router.get("/token/validation", (req, res) => {
