@@ -7,7 +7,6 @@ import User from "../models/user";
 import pick from "lodash.pick";
 import { sendEmail } from "../helpers";
 import { resetPasswordTemplate } from "../helpers/htmlTemplates";
-import Counter from "../models/counter";
 
 const router = express.Router();
 
@@ -384,26 +383,19 @@ router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
  * @returns  {Object} token:token
  */
 router.get(
-  "/thirdparty/token/:id",
+  "/token/application",
   authenticate(["root", "self"], true),
   async (req, res, next) => {
-    const id = req.params.id;
+    const id = req.query.id || -1;
     if (req.auth.selfCheckRequired) {
       if (parseFloat(id) !== req.auth.id) {
-        return res.status(401).send("401 Unauthorized: Permission denied");
+        return res.status(401).json(req.auth); //send("401 Unauthorized: Permission denied");
       }
     }
     try {
-      const count = Counter.findByIdAndUpdate(
-        `user${id}`,
-        { $inc: { count: 1 } },
-        { new: true, upsert: true }
-      ).count;
-
       return res.status(200).send({
         token: jwt.sign(
           {
-            count,
             id,
             track: "WIP Track",
             thirdParty: true
@@ -426,20 +418,18 @@ router.get(
  * @param {number} id - deleting user's id
  * @returns {Object|string} decoded if success "Invalid Token" if not
  */
-router.get("/validation/:token", (req, res, next) => {
-  jwt.verify(req.params.token, secret, async (err, decode: any) => {
-    if (err) {
-      return res.status(401).send("Invalid or Expired ");
+router.get("/token/validation", (req, res) => {
+  const token = req.query.token;
+  jwt.verify(
+    token,
+    secret,
+    (err: jwt.VerifyErrors, decoded: object | string) => {
+      if (err) {
+        return res.status(401).send("Invalid or Expired ");
+      }
+      return res.json(decoded as object);
     }
-    try {
-      const count = (await Counter.findById(`user${decode.id}`))?.count;
-      if (count != decode.count)
-        return res.status(401).send("Invalid or Expired Token");
-      return res.json(decode);
-    } catch (err) {
-      return next(err);
-    }
-  });
+  );
 
   //WIP:Track
 });

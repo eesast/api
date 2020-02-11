@@ -37,8 +37,20 @@ describe("Users", () => {
 
   it("Get Token", () =>
     request(Server)
-      .get("/v1/users/thirdparty/token/2017000000")
+      .get("/v1/users/token/application?id=2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
+      .expect("Content-Type", /json/)
+      .then((r) => {
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("token");
+        variables.thirdPartyToken = r.body.token;
+      }));
+
+  it("Get Token again", () =>
+    request(Server)
+      .get("/v1/users/token/application?id=2017000000")
+      .set("Authorization", "bearer " + variables.thirdPartyToken)
       .expect("Content-Type", /json/)
       .then((r) => {
         expect(r.body)
@@ -49,7 +61,7 @@ describe("Users", () => {
 
   it("Validate Token", () =>
     request(Server)
-      .get(`/v1/users/validation/${variables.thirdPartyToken}`)
+      .get(`/v1/users/token/validation?token=${variables.thirdPartyToken}`)
       .expect(200)
       .expect("Content-Type", /json/)
       .then((r) => {
@@ -58,6 +70,17 @@ describe("Users", () => {
           .that.has.property("id");
         expect(r.body).has.property("thirdParty");
         expect(r.body.thirdParty).equals(true);
+      }));
+
+  it("Get all users", () =>
+    request(Server)
+      .get("/v1/users")
+      .set("Authorization", "bearer " + variables.admin.token)
+      .expect("Content-Type", /json/)
+      .then((r) => {
+        expect(r.body)
+          .to.be.an("array")
+          .of.length(2);
       }));
 
   it("get the user with id 2017000000", () =>
@@ -69,7 +92,7 @@ describe("Users", () => {
         expect(r.body)
           .to.be.an("object")
           .has.property("id");
-          expect(r.body.id).to.be.equals(2017000000);
+        expect(r.body.id).to.be.equals(2017000000);
       }));
 
   it("Update and get the user with id 2017000000", () =>

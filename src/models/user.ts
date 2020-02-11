@@ -17,7 +17,6 @@ export interface UserModel extends mongoose.Document {
   updatedBy: number;
 }
 export interface UserPublicToken {
-  count: number;
   id: number;
   track: string;
   thirdParty: boolean;

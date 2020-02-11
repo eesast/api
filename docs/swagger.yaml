@@ -1112,12 +1112,17 @@ paths:
         500:
           description: Server error
   
-  "/v1/users/thirdparty/token/{userId}":
+  "/v1/users/token/application":
     get:
       tags:
         - users
       summary: 获得第三方令牌
       operationId: getThirdPartyToken
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: number
       responses:
         200:
           description: successful operation
@@ -1134,12 +1139,17 @@ paths:
           description: Not Logged In/Premission Denied
         500:
           description: Server error
-  "/v1/users/validation/{token}":
+  "/v1/users/token/validation":
     get:
       tags:
         - users
       summary: 校验第三方令牌
       operationId: validateThirdPartyToken
+      parameters:
+        - name: token
+          in: query
+          schema:
+            type: string
       responses:
         200:
           description: good Token
