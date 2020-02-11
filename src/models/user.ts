@@ -18,7 +18,6 @@ export interface UserModel extends mongoose.Document {
 }
 export interface UserPublicToken {
   id: number;
-  track: string;
   public: boolean;
 }
 

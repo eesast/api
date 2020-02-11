@@ -396,7 +396,6 @@ router.get(
         token: jwt.sign(
           {
             id,
-            track: "WIP Track",
             public: true
           },
           secret,
