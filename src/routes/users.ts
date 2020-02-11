@@ -3,11 +3,11 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import secret from "../configs/secret";
 import authenticate from "../middlewares/authenticate";
-import checkToken from "../middlewares/checkToken";
 import User from "../models/user";
 import pick from "lodash.pick";
 import { sendEmail } from "../helpers";
 import { resetPasswordTemplate } from "../helpers/htmlTemplates";
+import Counter from "../models/counter";
 
 const router = express.Router();
 
@@ -22,7 +22,7 @@ const router = express.Router();
  * @param {boolean} isTeacher
  * @returns certain users
  */
-router.get("/", authenticate([]), async (req, res, next) => {
+router.get("/", authenticate([], true), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
     ...(req.query.isTeacher && { group: "teacher" })
@@ -67,7 +67,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
  * @param {boolean} isTeacher
  * @returns certain users
  */
-router.post("/details", authenticate([]), async (req, res, next) => {
+router.post("/details", authenticate([], true), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
     ...(req.query.isTeacher && { group: "teacher" }),
@@ -108,7 +108,7 @@ router.post("/details", authenticate([]), async (req, res, next) => {
  * @param {boolean} detailInfo
  * @returns {Object} user with id
  */
-router.get("/:id", checkToken, async (req, res, next) => {
+router.get("/:id", authenticate([], true), async (req, res, next) => {
   let select = "-_id -__v -password";
   let hasDetailInfo = false;
   if (
@@ -170,7 +170,7 @@ router.post("/", async (req, res, next) => {
 
 /**
  * POST login form
- * @returns {string} token
+ * @returns {Object} token:token
  */
 router.post("/login", async (req, res, next) => {
   const id = req.body.id;
@@ -376,6 +376,72 @@ router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+/**
+ * GET personal's token
+ * @param {number} id - deleting user's id
+ * @returns  {Object} token:token
+ */
+router.get(
+  "/thirdparty/token/:id",
+  authenticate(["root", "self"], true),
+  async (req, res, next) => {
+    const id = req.params.id;
+    if (req.auth.selfCheckRequired) {
+      if (parseFloat(id) !== req.auth.id) {
+        return res.status(401).send("401 Unauthorized: Permission denied");
+      }
+    }
+    try {
+      const count = Counter.findByIdAndUpdate(
+        `user${id}`,
+        { $inc: { count: 1 } },
+        { new: true, upsert: true }
+      ).count;
+
+      return res.status(200).send({
+        token: jwt.sign(
+          {
+            count,
+            id,
+            track: "WIP Track",
+            thirdParty: true
+          },
+          secret,
+          {
+            expiresIn: "12h"
+          }
+        )
+      });
+    } catch (err) {
+      next(err);
+    }
+
+    //WIP:Track
+  }
+);
+/**
+ * Get Validation of a token
+ * @param {number} id - deleting user's id
+ * @returns {Object|string} decoded if success "Invalid Token" if not
+ */
+router.get("/validation/:token", (req, res, next) => {
+  jwt.verify(req.params.token, secret, async (err, decode: any) => {
+    if (err) {
+      return res.status(401).send("Invalid or Expired ");
+    }
+    try {
+      const count = (await Counter.findById(`user${decode.id}`))?.count;
+      if (count != decode.count)
+        return res.status(401).send("Invalid or Expired Token");
+      return res.json(decode);
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  //WIP:Track
 });
 
 export default router;

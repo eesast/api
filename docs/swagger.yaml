@@ -762,7 +762,7 @@ paths:
       tags:
         - users
       summary: 返回匹配查询的用户
-      description: 需要已登录用户，可以通过 query 进行筛选
+      description: 需要已登录用户或第三方令牌，可以通过 query 进行筛选
       operationId: getUsers
       security:
         - bearerAuth: []
@@ -844,7 +844,7 @@ paths:
       tags:
         - users
       summary: 返回匹配查询的用户
-      description: 需要已登录用户，可以通过 query 进行筛选
+      description: 需要已登录用户或第三方令牌，可以通过 query 进行筛选
       operationId: getUsersDetails
       security:
         - bearerAuth: []
@@ -1020,6 +1020,7 @@ paths:
       tags:
         - users
       summary: 根据 ID 获取用户
+      description: 需要已登录用户或第三方令牌
       operationId: getUserById
       security:
         - bearerAuth: []
@@ -1108,6 +1109,60 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         404:
           description: "Not Found: User does not exist"
+        500:
+          description: Server error
+  
+  "/v1/users/thirdparty/token/{userId}":
+    get:
+      tags:
+        - users
+      summary: 获得第三方令牌
+      operationId: getThirdPartyToken
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Not Logged In/Premission Denied
+        500:
+          description: Server error
+  "/v1/users/validation/{token}":
+    get:
+      tags:
+        - users
+      summary: 校验第三方令牌
+      operationId: validateThirdPartyToken
+      responses:
+        200:
+          description: good Token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                    description: userId
+                  count:
+                    type: number
+                    description: increase-only Counter
+                  track:
+                    type: string
+                  thirdParty:
+                    type: boolean
+                    default: true
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Invalid/Expired Token
         500:
           description: Server error
 

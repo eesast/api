@@ -1,18 +1,18 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import secret from "../configs/secret";
-import User, { UserModel } from "../models/user";
+import User, { UserModel, UserPublicToken } from "../models/user";
 
 /**
  * Middleware: validate user authorizations; reject if necessary
  */
 const authenticate: (
-  acceptableRoles: string[] | undefined
-) => (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => Response | void = acceptableRoles => {
+  acceptableRoles?: string[],
+  publicTokenAcceptable?: boolean
+) => (req: Request, res: Response, next: NextFunction) => Response | void = (
+  acceptableRoles,
+  publicTokenAcceptable
+) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.get("Authorization");
     if (!authHeader) {
@@ -21,36 +21,32 @@ const authenticate: (
 
     const token = authHeader.substring(7);
     return jwt.verify(token, secret, (err, decoded) => {
-      const userInfo = decoded as UserModel;
-
       if (err) {
         return res
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
+      let id = 0;
+      if ((decoded as UserPublicToken).thirdParty) {
+        if (!publicTokenAcceptable)
+          return res
+            .status(401)
+            .send("401 Unauthorized: Token should not be 3rdparties'");
+        else id = (decoded as UserPublicToken).id;
+      } else id = (decoded as UserModel).id;
 
-      req.auth = { tokenValid: true, ...userInfo };
-
-      // use authenticate() to accept all registered users
-      if (!acceptableRoles || acceptableRoles.length === 0) {
-        return next();
-      }
-
-      const query = {
-        id: userInfo.id,
-        username: userInfo.username,
-        name: userInfo.name,
-        email: userInfo.email
-      };
-
-      User.findOne(query, (error, user) => {
+      User.findOne({ id }, { _id: 0, __v: 0, password: 0 }, (error, user) => {
         if (error) {
           return res.status(500).end();
         }
         if (!user) {
           return res.status(401).send("401 Unauthorized: Permission denied");
         }
-
+        req.auth = { tokenValid: true, ...user };
+        // use authenticate() to accept all registered users
+        if (!acceptableRoles || acceptableRoles.length === 0) {
+          return next();
+        }
         if (!acceptableRoles.includes(user.role)) {
           // leave it to next() to see if it indeed accesses `self`
           if (acceptableRoles.includes("self")) {
