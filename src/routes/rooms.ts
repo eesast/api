@@ -1,4 +1,6 @@
 import express from "express";
+import jwt from "jsonwebtoken";
+import secret from "../configs/secret";
 import authenticate from "../middlewares/authenticate";
 import checkToken from "../middlewares/checkToken";
 import Contest from "../models/contest";
@@ -22,7 +24,7 @@ router.get("/", checkToken, async (req, res, next) => {
   };
 
   try {
-    const rooms = await Room.find(query, "-_id -__v -available -contestId");
+    const rooms = await Room.find(query, "-_id -__v");
     res.json(rooms);
   } catch (err) {
     next(err);
@@ -36,10 +38,7 @@ router.get("/", checkToken, async (req, res, next) => {
  */
 router.get("/:id", async (req, res, next) => {
   try {
-    const room = await Room.findOne(
-      { id: req.params.id },
-      "-_id -__v -available -contestId"
-    );
+    const room = await Room.findOne({ id: req.params.id }, "-_id -__v");
 
     if (!room) {
       return res.status(404).send("404 Not Found: Room does not exist");
@@ -143,10 +142,43 @@ router.post("/", authenticate([]), async (req, res, next) => {
       updatedBy: req.auth.id
     }).save();
 
+    // TODO: run docker, and send token into container
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const token = jwt.sign({ roomId: room.id }, secret, {
+      expiresIn: "15m"
+    });
+    console.log(token);
+
     res.setHeader("Location", "/v1/rooms/" + room.id);
     res.status(201).end();
   } catch (err) {
     next(err);
+  }
+});
+
+/**
+ * POST check token for starting server
+ * @param {string} token
+ * @returns 204 or 401
+ */
+router.post("/:token", async (req, res) => {
+  try {
+    console.log(req.params.token);
+
+    const payload = jwt.verify(req.params.token, secret) as { roomId: number };
+    const room = await Room.findOne({ id: payload.roomId });
+    if (!room) {
+      return res.status(401).send("401 Unauthorized: Wrong token");
+    }
+
+    await room.updateOne({
+      available: true,
+      updatedAt: new Date()
+    });
+
+    res.status(204).end();
+  } catch (err) {
+    res.status(401).send("401 Unauthorized: Wrong token");
   }
 });
 
