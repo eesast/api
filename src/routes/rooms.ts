@@ -13,14 +13,14 @@ const router = express.Router();
 /**
  * GET rooms with queries
  * @param {number} contestId
+ * @param {boolean} available
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} rooms of given contest available
  */
 router.get("/", checkToken, async (req, res, next) => {
   const query = {
-    ...pick(req.query, ["contestId"]),
-    ...{ available: true }
+    ...pick(req.query, ["contestId", "available"])
   };
 
   try {
