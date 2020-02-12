@@ -80,7 +80,7 @@
     }
   },
   "lint-staged": {
-    "{src/**/*,test/**/*}.{js,jsx,ts,tsx,json,css,scss,md}": [
+    "{{src/**/*,test/**/*}.{js,jsx,ts,tsx,json,css,scss,md},docs/swagger.yaml}": [
       "prettier --write"
     ]
   },
