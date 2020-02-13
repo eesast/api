@@ -17,6 +17,7 @@ const router = express.Router();
  * @param {number} end
  * @param {boolean} noContent
  * @param {boolean} invisible
+ * @param {boolean} count
  * @returns {Object[]} certain articles
  */
 router.get("/", async (req, res, next) => {
@@ -41,6 +42,24 @@ router.get("/", async (req, res, next) => {
     "-_id -__v" + (req.query.noContent === true ? " -content" : "");
 
   try {
+    if (req.query.count) {
+      if (query.authorId) {
+        const num = await Article.count({
+          authorId: query.authorId,
+          visible: query.visible
+        });
+        return res.send(num);
+        // return res.json({ totalArticles: num });
+      }
+      if (query.createdBy) {
+        const num = await Article.count({
+          createdBy: query.createdBy,
+          visible: query.visible
+        });
+        return res.json({ totalArticles: num });
+      }
+    }
+
     const articles = await Article.find(query, select, {
       skip: begin,
       limit: end - begin + 1,
@@ -129,6 +148,15 @@ router.get("/:id/unlike", authenticate([]), async (req, res, next) => {
  */
 router.post("/", authenticate(["root", "writer"]), async (req, res, next) => {
   try {
+    if (await Article.findOne({ alias: req.body.alias })) {
+      res.setHeader("Location", "/articles");
+      return res.status(409).send("409 Conflict: Alias already exists");
+    }
+
+    if (req.body.content === "") {
+      return res.status(422).send("422 UnProcessable Entity: Missing contents");
+    }
+
     const article = await new Article({
       ...req.body,
       createdBy: req.auth.id,
@@ -161,6 +189,13 @@ router.put(
       if (req.auth.selfCheckRequired) {
         if (article.authorId !== req.auth.id) {
           return res.status(401).send("401 Unauthorized: Permission denied");
+        }
+      }
+
+      if (req.body.visible === true) {
+        const article = await Article.findOne({ id: req.params.id });
+        if (article?.tags.includes("underReview")) {
+          return res.status(403).send("403 Forbidden: Article is under review");
         }
       }
 
