@@ -39,7 +39,7 @@ app.use("/v1", express.static(path.resolve(__dirname, "../docs")));
 const apiSpec = path.resolve(__dirname, "../docs/swagger.yaml");
 new OpenApiValidator({
   apiSpec
-}).install(app);
+}).installSync(app);
 
 app.use("/v1/articles", articleRouter);
 app.use("/v1/comments", commentRouter);
