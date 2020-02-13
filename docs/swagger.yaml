@@ -229,6 +229,11 @@ paths:
           description: 设置是否查看隐藏的文章
           schema:
             type: boolean
+        - name: count
+          in: query
+          description: 设置是否查看对应authorId或createdBy文章的数量
+          schema:
+            type: boolean
       responses:
         200:
           description: Successful operation
@@ -265,6 +270,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        409:
+          $ref: "#/components/responses/Conflict"
+        422:
+          $ref: "#/components/responses/UnProcessable Entity"
         500:
           description: Server error
 
@@ -324,6 +333,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        403:
+          $ref: "#/components/responses/Forbidden"
         404:
           description: "Not Found: Article does not exist"
         500:
