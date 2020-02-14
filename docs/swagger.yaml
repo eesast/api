@@ -1636,6 +1636,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
+        503:
+          description: Failed to start docker container
 
   "/v1/rooms/{roomId}":
     get:
@@ -1732,7 +1734,7 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        204:
           description: Successful operation
         400:
           $ref: "#/components/responses/BadRequest"

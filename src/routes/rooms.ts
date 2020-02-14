@@ -1,6 +1,8 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import Docker from "dockerode";
 import secret from "../configs/secret";
+import image from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
 import checkToken from "../middlewares/checkToken";
 import Contest from "../models/contest";
@@ -142,15 +144,30 @@ router.post("/", authenticate([]), async (req, res, next) => {
       updatedBy: req.auth.id
     }).save();
 
-    // TODO: run docker, and send token into container
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const token = jwt.sign({ roomId: room.id }, secret, {
       expiresIn: "15m"
     });
-    console.log(token);
 
-    res.setHeader("Location", "/v1/rooms/" + room.id);
-    res.status(201).end();
+    const docker = new Docker();
+    try {
+      const container = await docker.createContainer({
+        Image: image,
+        Cmd: [`bash -c "echo ${token}"`],
+        AttachStdin: false,
+        AttachStdout: false,
+        AttachStderr: false,
+        Tty: true,
+        OpenStdin: false,
+        StdinOnce: false
+      });
+      await container.start();
+      res.setHeader("Location", "/v1/rooms/" + room.id);
+      res.status(201).end();
+    } catch {
+      return res
+        .status(503)
+        .send("503 Service Unavailable: Failed to start docker container");
+    }
   } catch (err) {
     next(err);
   }
@@ -163,8 +180,6 @@ router.post("/", authenticate([]), async (req, res, next) => {
  */
 router.post("/:token", async (req, res) => {
   try {
-    console.log(req.params.token);
-
     const payload = jwt.verify(req.params.token, secret) as { roomId: number };
     const room = await Room.findOne({ id: payload.roomId });
     if (!room) {
