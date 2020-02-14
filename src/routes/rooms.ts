@@ -148,25 +148,30 @@ router.post("/", authenticate([]), async (req, res, next) => {
       expiresIn: "15m"
     });
 
-    const docker = new Docker();
-    try {
-      const container = await docker.createContainer({
-        Image: image,
-        Cmd: [`bash -c "echo ${token}"`],
-        AttachStdin: false,
-        AttachStdout: false,
-        AttachStderr: false,
-        Tty: true,
-        OpenStdin: false,
-        StdinOnce: false
-      });
-      await container.start();
+    if (process.env.NODE_ENV === "production") {
+      const docker = new Docker();
+      try {
+        const container = await docker.createContainer({
+          Image: image,
+          Cmd: [`bash -c "echo ${token}"`],
+          AttachStdin: false,
+          AttachStdout: false,
+          AttachStderr: false,
+          Tty: true,
+          OpenStdin: false,
+          StdinOnce: false
+        });
+        await container.start();
+        res.setHeader("Location", "/v1/rooms/" + room.id);
+        res.status(201).end();
+      } catch {
+        return res
+          .status(503)
+          .send("503 Service Unavailable: Failed to start docker container");
+      }
+    } else {
       res.setHeader("Location", "/v1/rooms/" + room.id);
       res.status(201).end();
-    } catch {
-      return res
-        .status(503)
-        .send("503 Service Unavailable: Failed to start docker container");
     }
   } catch (err) {
     next(err);
