@@ -2,6 +2,7 @@ import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Article from "../models/article";
 import pick from "lodash.pick";
+import checkToken from "../middlewares/checkToken";
 
 const router = express.Router();
 
@@ -20,19 +21,22 @@ const router = express.Router();
  * @param {boolean} count
  * @returns {Object[]} certain articles
  */
-router.get("/", async (req, res, next) => {
+router.get("/", checkToken, async (req, res, next) => {
   const query = {
     ...pick(req.query, [
       "author", // TODO: 实现这个字段的正常查询
       "authorId",
       "createdBy",
+      // "tag",
       "alias",
-      "tag",
       "likedBy"
     ]),
     ...(req.query.title && {
       title: { $regex: req.query.title, $options: "i" }
     }),
+    // ...(req.query.tag && {
+    //   tags: { $in: req.query.tag }
+    // }),
     visible: !req.query.invisible
   };
 
@@ -42,22 +46,61 @@ router.get("/", async (req, res, next) => {
     "-_id -__v" + (req.query.noContent === true ? " -content" : "");
 
   try {
+    if (
+      !query.visible &&
+      ((req.auth.role !== "root" && req.auth.role !== "editor") ||
+        ((query.authorId || query.createdBy) &&
+          req.auth.id !== (query.authorId || query.createdBy)))
+    ) {
+      return res
+        .status(403)
+        .send(
+          "403 Forbidden: You are not allow to view others' private article"
+        );
+    }
+
     if (req.query.count) {
       if (query.authorId) {
         const num = await Article.count({
           authorId: query.authorId,
           visible: query.visible
         });
-        return res.send(num);
-        // return res.json({ totalArticles: num });
+        return res.json({ num: num });
       }
       if (query.createdBy) {
         const num = await Article.count({
           createdBy: query.createdBy,
           visible: query.visible
         });
-        return res.json({ totalArticles: num });
+        return res.json({ num: num });
       }
+      if (
+        !query.visible &&
+        (req.auth.role === "root" || req.auth.role === "editor")
+      ) {
+        const num = await Article.count({
+          visible: query.visible,
+          tags: { $in: ["underReview"] }
+        });
+        return res.json({ num: num });
+      } else return res.status(403).send("403 Forbidden: Forbidden behavior");
+    }
+
+    if (
+      !query.visible &&
+      (req.auth.role === "root" || req.auth.role === "editor") &&
+      req.query.tag === "underReview"
+    ) {
+      const articles = await Article.find(
+        { ...query, tags: { $in: [req.query.tag] } },
+        select,
+        {
+          skip: begin,
+          limit: end - begin + 1,
+          sort: "-createdAt"
+        }
+      );
+      res.json(articles);
     }
 
     const articles = await Article.find(query, select, {
@@ -195,7 +238,28 @@ router.put(
       if (req.body.visible === true) {
         const article = await Article.findOne({ id: req.params.id });
         if (article?.tags.includes("underReview")) {
-          return res.status(403).send("403 Forbidden: Article is under review");
+          if (req.auth.role !== "root" && req.auth.role !== "editor")
+            return res
+              .status(403)
+              .send("403 Forbidden: Article is under review");
+          else {
+            const update = {
+              ...req.body,
+              tags: req.body.tags
+                ? req.body.tags.splice(req.body.tags.indexOf("underReview"), 1)
+                : article.tags.splice(article.tags.indexOf("underReview"), 1),
+              updatedAt: new Date(),
+              updatedBy: req.auth.id
+            };
+
+            const newArticle = await Article.findOneAndUpdate(
+              { id: req.params.id },
+              update
+            );
+
+            res.setHeader("Location", "/v1/articles/" + newArticle!.id);
+            return res.status(204).end();
+          }
         }
       }
 
