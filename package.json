@@ -9,7 +9,7 @@
     "test:debug": "yarn test --inspect-brk",
     "build": "babel src -d build -x \".ts\" --source-maps",
     "serve": "cross-env NODE_ENV=production node build/index.js",
-    "lint": "eslint --ext .js,.ts src/",
+    "lint": "eslint --ext .js,.ts src/ test/",
     "typecheck": "tsc --noUnusedLocals"
   },
   "dependencies": {
