@@ -762,7 +762,7 @@ paths:
       tags:
         - users
       summary: 返回匹配查询的用户
-      description: 需要已登录用户，可以通过 query 进行筛选
+      description: 需要已登录用户或第三方令牌，可以通过 query 进行筛选
       operationId: getUsers
       security:
         - bearerAuth: []
@@ -844,7 +844,7 @@ paths:
       tags:
         - users
       summary: 返回匹配查询的用户
-      description: 需要已登录用户，可以通过 query 进行筛选
+      description: 需要已登录用户或第三方令牌，可以通过 query 进行筛选
       operationId: getUsersDetails
       security:
         - bearerAuth: []
@@ -1020,6 +1020,7 @@ paths:
       tags:
         - users
       summary: 根据 ID 获取用户
+      description: 需要已登录用户或第三方令牌
       operationId: getUserById
       security:
         - bearerAuth: []
@@ -1108,6 +1109,69 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         404:
           description: "Not Found: User does not exist"
+        500:
+          description: Server error
+
+  "/v1/users/token/applicate":
+    post:
+      tags:
+        - users
+      summary: 获得第三方令牌
+      operationId: getPublicToken
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: number
+            description: 用户 ID
+      requestBody:
+        $ref: "#/components/requestBodies/getPublicToken"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        403:
+          description: Permission denied
+        500:
+          description: Server error
+
+  "/v1/users/token/validate":
+    get:
+      tags:
+        - users
+      summary: 校验第三方令牌
+      operationId: validatePublicToken
+      parameters:
+        - name: token
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: good Token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                    description: userId
+                  allowedEndpoints:
+                    $ref: "#/components/schemas/allowedEndpoints"
+
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Invalid/Expired Token
         500:
           description: Server error
 
@@ -2124,6 +2188,22 @@ components:
         updatedBy:
           type: number
 
+    allowedEndpoints:
+      type: array
+      items:
+        type: object
+        properties:
+          path:
+            type: string
+            description: 节点路径
+            example: "/v1/users/"
+          methods:
+            type: array
+            items:
+              type: string
+              description: 请求方法
+              example: "GET"
+
   requestBodies:
     addArticle:
       content:
@@ -2343,6 +2423,16 @@ components:
               class:
                 type: string
       description: 更新用户的提交格式
+      required: true
+
+    getPublicToken:
+      content:
+        application/json:
+          schema:
+            properties:
+              allowedEndpoints:
+                $ref: "#/components/schemas/allowedEndpoints"
+      description: 请求使用的节点
       required: true
 
     addTeam:

@@ -35,6 +35,63 @@ describe("Users", () => {
         variables.admin.token = r.body.token;
       }));
 
+  const allowedEndpoints = [
+    {
+      path: "/v1/users/",
+      methods: ["GET"]
+    },
+    {
+      path: "/v1/users/:id",
+      methods: ["GET"]
+    },
+    {
+      path: "/v1/users/details",
+      methods: ["POST"]
+    },
+    {
+      path: "/v1/users/token/applicate",
+      methods: ["POST"]
+    }
+  ];
+
+  it("Get Public Token", () =>
+    request(Server)
+      .post("/v1/users/token/applicate?id=2017000000")
+      .set("Authorization", "bearer " + variables.admin.token)
+      .send({ allowedEndpoints })
+      .expect("Content-Type", /json/)
+      .then(r => {
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("token");
+        variables.publicToken = r.body.token;
+      }));
+
+  it("Get Public Token again", () =>
+    request(Server)
+      .post("/v1/users/token/applicate?id=2017000000")
+      .set("Authorization", "bearer " + variables.publicToken)
+      .send({ allowedEndpoints })
+      .expect("Content-Type", /json/)
+      .then(r => {
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("token");
+        variables.publicToken = r.body.token;
+      }));
+
+  it("Validate Token", () =>
+    request(Server)
+      .get(`/v1/users/token/validate?token=${variables.publicToken}`)
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .then(r => {
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("id");
+        expect(r.body).has.property("allowedEndpoints");
+      }));
+
   it("Get all users", () =>
     request(Server)
       .get("/v1/users")
@@ -44,6 +101,18 @@ describe("Users", () => {
         expect(r.body)
           .to.be.an("array")
           .of.length(2);
+      }));
+
+  it("get the user with id 2017000000", () =>
+    request(Server)
+      .get("/v1/users/2017000000")
+      .set("Authorization", "bearer " + variables.publicToken)
+      .expect("Content-Type", /json/)
+      .then(r => {
+        expect(r.body)
+          .to.be.an("object")
+          .has.property("id");
+        expect(r.body.id).to.be.equals(2017000000);
       }));
 
   it("Update and get the user with id 2017000000", () =>

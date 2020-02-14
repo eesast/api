@@ -4,5 +4,6 @@ export default {
     username: "admin",
     password: "password",
     token: ""
-  }
+  },
+  publicToken:""
 };
