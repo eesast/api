@@ -9,7 +9,7 @@
     "test:debug": "yarn test --inspect-brk",
     "build": "babel src -d build -x \".ts\" --source-maps",
     "serve": "cross-env NODE_ENV=production node build/index.js",
-    "lint": "eslint --ext .js,.ts src/",
+    "lint": "eslint --ext .js,.ts src/ test/",
     "typecheck": "tsc --noUnusedLocals"
   },
   "dependencies": {
@@ -25,7 +25,6 @@
     "is-image": "3.0.0",
     "jsonwebtoken": "8.5.1",
     "lodash.pick": "4.4.0",
-    "mkdirp": "1.0.3",
     "mongoose": "5.8.11",
     "morgan": "1.9.1",
     "multer": "1.4.2",
@@ -81,9 +80,8 @@
     }
   },
   "lint-staged": {
-    "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
-      "prettier --write",
-      "git add"
+    "{src,test}/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+      "prettier --write"
     ]
   },
   "nodemonConfig": {

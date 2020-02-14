@@ -31,7 +31,7 @@ router.get("/", checkToken, async (req, res, next) => {
   let teams: TeamModel[] = [];
   let teamSelf: TeamModel[] = [];
   try {
-    if (req.query.self !== "true") {
+    if (req.query.self !== true) {
       teams = await Team.find(
         { ...query, members: { $nin: req.auth.id } },
         select
@@ -151,8 +151,6 @@ router.post(
   "/:id/members/",
   authenticate(["root", "self", "organizer"]),
   async (req, res, next) => {
-    let members: number[];
-    let update: { updatedAt: Date; members: number[] };
     try {
       const team = await Team.findOne({ id: req.params.id });
       if (!team) {
@@ -198,13 +196,8 @@ router.post(
         return res.status(400).send("400 Bad Request: Member does not exist");
       }
 
-      members = team.members.concat([req.body.id]);
-      update = { updatedAt: new Date(), members };
-    } catch (err) {
-      return next(err);
-    }
-
-    try {
+      const members = team.members.concat([req.body.id]);
+      const update = { updatedAt: new Date(), updatedBy: req.auth.id, members };
       const newTeam = await Team.findOneAndUpdate(
         { id: req.params.id },
         update
@@ -374,7 +367,6 @@ router.delete(
   "/:id/members/:memberId",
   authenticate(["root", "self", "organizer"]),
   async (req, res, next) => {
-    let update: { updatedAt: Date; members: number[] };
     try {
       const team = await Team.findOne({ id: req.params.id });
       if (!team) {
@@ -403,12 +395,11 @@ router.delete(
       }
 
       team.members.splice(index, 1);
-      update = { updatedAt: new Date(), members: team.members };
-    } catch (err) {
-      return next(err);
-    }
-
-    try {
+      const update = {
+        updatedAt: new Date(),
+        updatedBy: req.auth.id,
+        members: team.members
+      };
       const newTeam = await Team.findOneAndUpdate(
         { id: req.params.id },
         update
