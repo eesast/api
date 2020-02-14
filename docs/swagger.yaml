@@ -1111,9 +1111,9 @@ paths:
           description: "Not Found: User does not exist"
         500:
           description: Server error
-  
-  "/v1/users/token/application":
-    get:
+
+  "/v1/users/token/applicate":
+    post:
       tags:
         - users
       summary: 获得第三方令牌
@@ -1123,6 +1123,9 @@ paths:
           in: query
           schema:
             type: number
+            description: 用户 ID
+      requestBody:
+        $ref: "#/components/requestBodies/getPublicToken"
       responses:
         200:
           description: successful operation
@@ -1135,11 +1138,12 @@ paths:
                     type: string
         400:
           $ref: "#/components/responses/BadRequest"
-        401:
-          description: Not Logged In/Premission Denied
+        403:
+          description: Permission denied
         500:
           description: Server error
-  "/v1/users/token/validation":
+
+  "/v1/users/token/validate":
     get:
       tags:
         - users
@@ -1161,14 +1165,9 @@ paths:
                   id:
                     type: number
                     description: userId
-                  count:
-                    type: number
-                    description: increase-only Counter
-                  track:
-                    type: string
-                  public:
-                    type: boolean
-                    default: true
+                  allowedEndpoints:
+                    $ref: "#/components/schemas/allowedEndpoints"
+
         400:
           $ref: "#/components/responses/BadRequest"
         401:
@@ -2189,6 +2188,22 @@ components:
         updatedBy:
           type: number
 
+    allowedEndpoints:
+      type: array
+      items:
+        type: object
+        properties:
+          path:
+            type: string
+            description: 节点路径
+            example: "/v1/users/"
+          methods:
+            type: array
+            items:
+              type: string
+              description: 请求方法
+              example: "GET"
+
   requestBodies:
     addArticle:
       content:
@@ -2408,6 +2423,16 @@ components:
               class:
                 type: string
       description: 更新用户的提交格式
+      required: true
+
+    getPublicToken:
+      content:
+        application/json:
+          schema:
+            properties:
+              allowedEndpoints:
+                $ref: "#/components/schemas/allowedEndpoints"
+      description: 请求使用的节点
       required: true
 
     addTeam:

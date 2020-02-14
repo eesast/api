@@ -35,10 +35,30 @@ describe("Users", () => {
         variables.admin.token = r.body.token;
       }));
 
-  it("Get Token", () =>
+  const allowedEndpoints = [
+    {
+      path: "/v1/users/",
+      methods: ["GET"]
+    },
+    {
+      path: "/v1/users/:id",
+      methods: ["GET"]
+    },
+    {
+      path: "/v1/users/details",
+      methods: ["POST"]
+    },
+    {
+      path: "/v1/users/token/applicate",
+      methods: ["POST"]
+    }
+  ];
+
+  it("Get Public Token", () =>
     request(Server)
-      .get("/v1/users/token/application?id=2017000000")
+      .post("/v1/users/token/applicate?id=2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
+      .send({ allowedEndpoints })
       .expect("Content-Type", /json/)
       .then(r => {
         expect(r.body)
@@ -47,10 +67,11 @@ describe("Users", () => {
         variables.publicToken = r.body.token;
       }));
 
-  it("Get Token again", () =>
+  it("Get Public Token again", () =>
     request(Server)
-      .get("/v1/users/token/application?id=2017000000")
+      .post("/v1/users/token/applicate?id=2017000000")
       .set("Authorization", "bearer " + variables.publicToken)
+      .send({ allowedEndpoints })
       .expect("Content-Type", /json/)
       .then(r => {
         expect(r.body)
@@ -61,15 +82,14 @@ describe("Users", () => {
 
   it("Validate Token", () =>
     request(Server)
-      .get(`/v1/users/token/validation?token=${variables.publicToken}`)
+      .get(`/v1/users/token/validate?token=${variables.publicToken}`)
       .expect(200)
       .expect("Content-Type", /json/)
       .then(r => {
         expect(r.body)
           .to.be.an("object")
           .that.has.property("id");
-        expect(r.body).has.property("public");
-        expect(r.body.public).equals(true);
+        expect(r.body).has.property("allowedEndpoints");
       }));
 
   it("Get all users", () =>

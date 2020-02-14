@@ -7,12 +7,12 @@ import User, { UserModel, UserPublicToken } from "../models/user";
  * Middleware: validate user authorizations; reject if necessary
  */
 const authenticate: (
-  acceptableRoles?: string[],
-  publicTokenAcceptable?: boolean
-) => (req: Request, res: Response, next: NextFunction) => Response | void = (
-  acceptableRoles,
-  publicTokenAcceptable
-) => {
+  acceptableRoles?: string[]
+) => (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Response | void = acceptableRoles => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.get("Authorization");
     if (!authHeader) {
@@ -26,14 +26,26 @@ const authenticate: (
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
+
       let id = 0;
-      if ((decoded as UserPublicToken).public) {
-        if (!publicTokenAcceptable)
+      const publicToken = decoded as UserPublicToken;
+      const allowedEndpoints = publicToken.allowedEndpoints;
+      if (allowedEndpoints) {
+        const reqPath = req.baseUrl + req.route.path;
+        const isValid = allowedEndpoints.reduce(
+          (prev, cur) =>
+            prev || (cur.path === reqPath && cur.methods.includes(req.method)),
+          false
+        );
+        if (!isValid) {
           return res
-            .status(401)
-            .send("401 Unauthorized: Token should not be 3rdparties'");
-        else id = (decoded as UserPublicToken).id;
-      } else id = (decoded as UserModel).id;
+            .status(403)
+            .send("403 Forbidden: Public token is not allowed");
+        }
+        id = publicToken.id;
+      } else {
+        id = (decoded as UserModel).id;
+      }
 
       User.findOne({ id }, { _id: 0, __v: 0, password: 0 }, (error, user) => {
         if (error) {

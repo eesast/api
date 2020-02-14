@@ -16,9 +16,10 @@ export interface UserModel extends mongoose.Document {
   updatedAt: Date;
   updatedBy: number;
 }
+
 export interface UserPublicToken {
   id: number;
-  public: boolean;
+  allowedEndpoints: { path: string; methods: string[] }[];
 }
 
 const userSchema = new mongoose.Schema<UserModel>(

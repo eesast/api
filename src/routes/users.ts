@@ -21,7 +21,7 @@ const router = express.Router();
  * @param {boolean} isTeacher
  * @returns certain users
  */
-router.get("/", authenticate([], true), async (req, res, next) => {
+router.get("/", authenticate([]), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
     ...(req.query.isTeacher && { group: "teacher" })
@@ -66,7 +66,7 @@ router.get("/", authenticate([], true), async (req, res, next) => {
  * @param {boolean} isTeacher
  * @returns certain users
  */
-router.post("/details", authenticate([], true), async (req, res, next) => {
+router.post("/details", authenticate([]), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
     ...(req.query.isTeacher && { group: "teacher" }),
@@ -107,7 +107,7 @@ router.post("/details", authenticate([], true), async (req, res, next) => {
  * @param {boolean} detailInfo
  * @returns {Object} user with id
  */
-router.get("/:id", authenticate([], true), async (req, res, next) => {
+router.get("/:id", authenticate([]), async (req, res, next) => {
   let select = "-_id -__v -password";
   let hasDetailInfo = false;
   if (
@@ -378,25 +378,54 @@ router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
 });
 
 /**
- * GET personal's token
+ * Apply public token
  * @returns  {Object} token:token
  */
-router.get(
-  "/token/application",
-  authenticate(["root", "self"], true),
+router.post(
+  "/token/applicate",
+  authenticate(["root", "self"]),
   async (req, res, next) => {
-    const id = req.query.id || -1;
+    const id = req.query.id;
+    if (!id || !req.body.allowedEndpoints) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing essential information");
+    }
+
     if (req.auth.selfCheckRequired) {
       if (parseFloat(id) !== req.auth.id) {
-        return res.status(401).json(req.auth); //send("401 Unauthorized: Permission denied");
+        return res.status(403).send("403 Forbidden: Permission denied");
       }
     }
+
+    // 这里写死了，实际上应当去根据某种（现在还不存在）的权限规则去检查
+    // req.body.allowedEndpoints 的值是否合法，生成相应的 allowedEndpoints
+    // 这个东西可以单独提出来写
+    const allowedEndpoints = [
+      {
+        path: "/v1/users/",
+        methods: ["GET"]
+      },
+      {
+        path: "/v1/users/:id",
+        methods: ["GET"]
+      },
+      {
+        path: "/v1/users/details",
+        methods: ["POST"]
+      },
+      {
+        path: "/v1/users/token/applicate",
+        methods: ["POST"]
+      }
+    ];
+
     try {
       return res.status(200).send({
         token: jwt.sign(
           {
             id,
-            public: true
+            allowedEndpoints
           },
           secret,
           {
@@ -407,28 +436,27 @@ router.get(
     } catch (err) {
       next(err);
     }
-
-    //WIP:Track
   }
 );
+
 /**
  * Get Validation of a token
  * @returns {Object|string} decoded if success "Invalid Token" if not
  */
-router.get("/token/validation", (req, res) => {
+router.get("/token/validate", (req, res) => {
   const token = req.query.token;
   jwt.verify(
     token,
     secret,
     (err: jwt.VerifyErrors, decoded: object | string) => {
       if (err) {
-        return res.status(401).send("Invalid or Expired ");
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
       }
       return res.json(decoded as object);
     }
   );
-
-  //WIP:Track
 });
 
 export default router;
