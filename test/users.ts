@@ -16,7 +16,7 @@ describe("Users", () => {
         name: "test",
         phone: 0,
         department: "string",
-        class: "string",
+        class: "string"
       })
       .expect(201));
 
@@ -25,10 +25,10 @@ describe("Users", () => {
       .post("/v1/users/login")
       .send({
         username: variables.admin.username,
-        password: variables.admin.password,
+        password: variables.admin.password
       })
       .expect("Content-Type", /json/)
-      .then((r) => {
+      .then(r => {
         expect(r.body)
           .to.be.an("object")
           .that.has.property("token");
@@ -40,7 +40,7 @@ describe("Users", () => {
       .get("/v1/users/token/application?id=2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
-      .then((r) => {
+      .then(r => {
         expect(r.body)
           .to.be.an("object")
           .that.has.property("token");
@@ -52,7 +52,7 @@ describe("Users", () => {
       .get("/v1/users/token/application?id=2017000000")
       .set("Authorization", "bearer " + variables.publicToken)
       .expect("Content-Type", /json/)
-      .then((r) => {
+      .then(r => {
         expect(r.body)
           .to.be.an("object")
           .that.has.property("token");
@@ -64,7 +64,7 @@ describe("Users", () => {
       .get(`/v1/users/token/validation?token=${variables.publicToken}`)
       .expect(200)
       .expect("Content-Type", /json/)
-      .then((r) => {
+      .then(r => {
         expect(r.body)
           .to.be.an("object")
           .that.has.property("id");
@@ -77,7 +77,7 @@ describe("Users", () => {
       .get("/v1/users")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
-      .then((r) => {
+      .then(r => {
         expect(r.body)
           .to.be.an("array")
           .of.length(2);
@@ -88,7 +88,7 @@ describe("Users", () => {
       .get("/v1/users/2017000000")
       .set("Authorization", "bearer " + variables.publicToken)
       .expect("Content-Type", /json/)
-      .then((r) => {
+      .then(r => {
         expect(r.body)
           .to.be.an("object")
           .has.property("id");
@@ -100,20 +100,20 @@ describe("Users", () => {
       .put("/v1/users/2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
-        name: "new name",
+        name: "new name"
       })
       .expect(204)
-      .then((r) =>
+      .then(r =>
         request(Server)
           .get(r.header.location)
           .set("Authorization", "bearer " + variables.admin.token)
           .expect("Content-Type", /json/)
-          .then((r) => {
+          .then(r => {
             expect(r.body)
               .to.be.an("object")
               .that.has.property("name")
               .equal("new name");
-          }),
+          })
       ));
 
   it("Delete the user with id 2017000000", () =>
@@ -125,6 +125,6 @@ describe("Users", () => {
         request(Server)
           .get("/v1/users/2017000000")
           .set("Authorization", "bearer " + variables.admin.token)
-          .expect(404),
+          .expect(404)
       ));
 });
