@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-undef
+/* eslint-disable */
 require("@babel/register")({
   extensions: [".ts"],
   configFile: "./.babelrc"
