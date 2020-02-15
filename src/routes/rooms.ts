@@ -4,7 +4,6 @@ import Docker from "dockerode";
 import secret from "../configs/secret";
 import image from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
-import checkToken from "../middlewares/checkToken";
 import Contest from "../models/contest";
 import Room from "../models/room";
 import Team from "../models/team";
@@ -20,7 +19,7 @@ const router = express.Router();
  * @param {number} end
  * @returns {Object[]} rooms of given contest available
  */
-router.get("/", checkToken, async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   const query = {
     ...pick(req.query, ["contestId", "available"])
   };
