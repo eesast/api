@@ -5,5 +5,5 @@ export default {
     password: "password",
     token: ""
   },
-  publicToken:""
+  publicToken: ""
 };

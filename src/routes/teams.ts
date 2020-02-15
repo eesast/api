@@ -72,6 +72,8 @@ router.get("/:id", checkToken, async (req, res, next) => {
         team.set("inviteCode", undefined);
       }
     }
+
+    res.json(team);
   } catch (err) {
     next(err);
   }

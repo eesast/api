@@ -18,6 +18,7 @@
     "cors": "2.8.5",
     "cwebp-bin": "5.1.0",
     "debug": "4.1.1",
+    "dockerode": "^3.1.0",
     "dotenv": "8.2.0",
     "express": "4.17.1",
     "express-openapi-validator": "3.6.7",
@@ -47,11 +48,11 @@
     "@types/chai": "4.2.9",
     "@types/cors": "2.8.6",
     "@types/debug": "4.1.5",
+    "@types/dockerode": "^2.5.22",
     "@types/express": "4.17.2",
     "@types/html-to-text": "1.4.31",
     "@types/jsonwebtoken": "8.3.7",
     "@types/lodash.pick": "4.4.6",
-    "@types/mkdirp": "1.0.0",
     "@types/mocha": "7.0.1",
     "@types/mongoose": "5.7.1",
     "@types/morgan": "1.7.37",
@@ -80,7 +81,7 @@
     }
   },
   "lint-staged": {
-    "{src,test}/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+    "{{src/**/*,test/**/*}.{js,jsx,ts,tsx,json,css,scss,md},docs/swagger.yaml}": [
       "prettier --write"
     ]
   },

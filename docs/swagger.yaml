@@ -820,7 +820,7 @@ paths:
       tags:
         - users
       summary: 新建用户
-      description: '新增用户的默认用户组为 `student`, 角色为 `reader`'
+      description: "新增用户的默认用户组为 `student`, 角色为 `reader`"
       operationId: addUser
       requestBody:
         $ref: "#/components/requestBodies/addUser"
@@ -1250,8 +1250,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- Contest not available"
+          description: "TODO: Solve status code conflict. --- Contest not available"
         409:
           description: Team name already exists / User is already in a team
         500:
@@ -1315,8 +1314,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team / Contest not available"
+          description: "TODO: Solve status code conflict. --- Invalid members / Captain is not a member of the team / Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1347,8 +1345,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- Contest not available"
+          description: "TODO: Solve status code conflict. --- Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1413,8 +1410,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- Member does not exist / Contest not available"
+          description: "TODO: Solve status code conflict. --- Member does not exist / Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         403:
@@ -1456,8 +1452,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- Leader cannot be deleted / Contest not available"
+          description: "TODO: Solve status code conflict. --- Leader cannot be deleted / Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1655,6 +1650,11 @@ paths:
           schema:
             type: number
           description: 比赛ID
+        - name: available
+          in: query
+          schema:
+            type: boolean
+          description: 房间是否开启
         - name: begin
           in: query
           schema:
@@ -1700,12 +1700,13 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- Contest not available"
+          description: "TODO: Solve status code conflict. --- Contest not available"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
+        503:
+          description: Failed to start docker container
 
   "/v1/rooms/{roomId}":
     get:
@@ -1789,6 +1790,28 @@ paths:
         500:
           description: Server error
 
+  "/v1/rooms/{token}":
+    post:
+      tags:
+        - rooms
+      summary: 验证服务器启动的token
+      operationId: checkRoomToken
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Wrong token
+        500:
+          description: Server error
+
   "/v1/rooms/{roomId}/join":
     get:
       tags:
@@ -1817,8 +1840,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- User not in team"
+          description: "TODO: Solve status code conflict. --- User not in team"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -1856,8 +1878,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description:
-            "TODO: Solve status code conflict. --- User not in team"
+          description: "TODO: Solve status code conflict. --- User not in team"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
@@ -2171,7 +2192,7 @@ components:
           description: 房间ID
         available:
           type: boolean
-          default: true
+          default: false
           description: 房间是否可用
         teams:
           type: array

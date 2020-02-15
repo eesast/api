@@ -1,6 +1,9 @@
 import express from "express";
+import jwt from "jsonwebtoken";
+import Docker from "dockerode";
+import secret from "../configs/secret";
+import image from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
-import checkToken from "../middlewares/checkToken";
 import Contest from "../models/contest";
 import Room from "../models/room";
 import Team from "../models/team";
@@ -11,18 +14,18 @@ const router = express.Router();
 /**
  * GET rooms with queries
  * @param {number} contestId
+ * @param {boolean} available
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} rooms of given contest available
  */
-router.get("/", checkToken, async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   const query = {
-    ...pick(req.query, ["contestId"]),
-    ...{ available: true }
+    ...pick(req.query, ["contestId", "available"])
   };
 
   try {
-    const rooms = await Room.find(query, "-_id -__v -available -contestId");
+    const rooms = await Room.find(query, "-_id -__v");
     res.json(rooms);
   } catch (err) {
     next(err);
@@ -36,10 +39,7 @@ router.get("/", checkToken, async (req, res, next) => {
  */
 router.get("/:id", async (req, res, next) => {
   try {
-    const room = await Room.findOne(
-      { id: req.params.id },
-      "-_id -__v -available -contestId"
-    );
+    const room = await Room.findOne({ id: req.params.id }, "-_id -__v");
 
     if (!room) {
       return res.status(404).send("404 Not Found: Room does not exist");
@@ -143,10 +143,61 @@ router.post("/", authenticate([]), async (req, res, next) => {
       updatedBy: req.auth.id
     }).save();
 
-    res.setHeader("Location", "/v1/rooms/" + room.id);
-    res.status(201).end();
+    const token = jwt.sign({ roomId: room.id }, secret, {
+      expiresIn: "15m"
+    });
+
+    if (process.env.NODE_ENV === "production") {
+      const docker = new Docker();
+      try {
+        const container = await docker.createContainer({
+          Image: image,
+          Cmd: [`bash -c "echo ${token}"`],
+          AttachStdin: false,
+          AttachStdout: false,
+          AttachStderr: false,
+          Tty: true,
+          OpenStdin: false,
+          StdinOnce: false
+        });
+        await container.start();
+        res.setHeader("Location", "/v1/rooms/" + room.id);
+        res.status(201).end();
+      } catch {
+        return res
+          .status(503)
+          .send("503 Service Unavailable: Failed to start docker container");
+      }
+    } else {
+      res.setHeader("Location", "/v1/rooms/" + room.id);
+      res.status(201).end();
+    }
   } catch (err) {
     next(err);
+  }
+});
+
+/**
+ * POST check token for starting server
+ * @param {string} token
+ * @returns 204 or 401
+ */
+router.post("/:token", async (req, res) => {
+  try {
+    const payload = jwt.verify(req.params.token, secret) as { roomId: number };
+    const room = await Room.findOne({ id: payload.roomId });
+    if (!room) {
+      return res.status(401).send("401 Unauthorized: Wrong token");
+    }
+
+    await room.updateOne({
+      available: true,
+      updatedAt: new Date()
+    });
+
+    res.status(204).end();
+  } catch (err) {
+    res.status(401).send("401 Unauthorized: Wrong token");
   }
 });
 
