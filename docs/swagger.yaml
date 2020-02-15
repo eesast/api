@@ -1118,6 +1118,8 @@ paths:
         - users
       summary: 获得第三方令牌
       operationId: getPublicToken
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: query
