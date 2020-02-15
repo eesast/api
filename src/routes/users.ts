@@ -3,7 +3,6 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import secret from "../configs/secret";
 import authenticate from "../middlewares/authenticate";
-import checkToken from "../middlewares/checkToken";
 import User from "../models/user";
 import pick from "lodash.pick";
 import { sendEmail } from "../helpers";
@@ -108,7 +107,7 @@ router.post("/details", authenticate([]), async (req, res, next) => {
  * @param {boolean} detailInfo
  * @returns {Object} user with id
  */
-router.get("/:id", checkToken, async (req, res, next) => {
+router.get("/:id", authenticate([]), async (req, res, next) => {
   let select = "-_id -__v -password";
   let hasDetailInfo = false;
   if (
@@ -170,7 +169,7 @@ router.post("/", async (req, res, next) => {
 
 /**
  * POST login form
- * @returns {string} token
+ * @returns {Object} token:token
  */
 router.post("/login", async (req, res, next) => {
   const id = req.body.id;
@@ -376,6 +375,88 @@ router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+/**
+ * Apply public token
+ * @returns  {Object} token:token
+ */
+router.post(
+  "/token/applicate",
+  authenticate(["root", "self"]),
+  async (req, res, next) => {
+    const id = req.query.id;
+    if (!id || !req.body.allowedEndpoints) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing essential information");
+    }
+
+    if (req.auth.selfCheckRequired) {
+      if (parseFloat(id) !== req.auth.id) {
+        return res.status(403).send("403 Forbidden: Permission denied");
+      }
+    }
+
+    // 这里写死了，实际上应当去根据某种（现在还不存在）的权限规则去检查
+    // req.body.allowedEndpoints 的值是否合法，生成相应的 allowedEndpoints
+    // 这个东西可以单独提出来写
+    const allowedEndpoints = [
+      {
+        path: "/v1/users/",
+        methods: ["GET"]
+      },
+      {
+        path: "/v1/users/:id",
+        methods: ["GET"]
+      },
+      {
+        path: "/v1/users/details",
+        methods: ["POST"]
+      },
+      {
+        path: "/v1/users/token/applicate",
+        methods: ["POST"]
+      }
+    ];
+
+    try {
+      return res.status(200).send({
+        token: jwt.sign(
+          {
+            id,
+            allowedEndpoints
+          },
+          secret,
+          {
+            expiresIn: "12h"
+          }
+        )
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * Get Validation of a token
+ * @returns {Object|string} decoded if success "Invalid Token" if not
+ */
+router.get("/token/validate", (req, res) => {
+  const token = req.query.token;
+  jwt.verify(
+    token,
+    secret,
+    (err: jwt.VerifyErrors, decoded: object | string) => {
+      if (err) {
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
+      }
+      return res.json(decoded as object);
+    }
+  );
 });
 
 export default router;
