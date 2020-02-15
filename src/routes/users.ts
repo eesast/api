@@ -382,7 +382,7 @@ router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
  * @returns  {Object} token:token
  */
 router.post(
-  "/token/applicate",
+  "/token/apply",
   authenticate(["root", "self"]),
   async (req, res, next) => {
     const id = req.query.id;
@@ -415,7 +415,7 @@ router.post(
         methods: ["POST"]
       },
       {
-        path: "/v1/users/token/applicate",
+        path: "/v1/users/token/apply",
         methods: ["POST"]
       }
     ];
@@ -440,11 +440,11 @@ router.post(
 );
 
 /**
- * Get Validation of a token
+ * Validate a public token
  * @returns {Object|string} decoded if success "Invalid Token" if not
  */
-router.get("/token/validate", (req, res) => {
-  const token = req.query.token;
+router.post("/token/validate", (req, res) => {
+  const token = req.body.token;
   jwt.verify(
     token,
     secret,

@@ -54,9 +54,9 @@ describe("Users", () => {
     }
   ];
 
-  it("Get Public Token", () =>
+  it("Apply Public Token", () =>
     request(Server)
-      .post("/v1/users/token/applicate?id=2017000000")
+      .post("/v1/users/token/apply?id=2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
       .send({ allowedEndpoints })
       .expect("Content-Type", /json/)
@@ -67,9 +67,9 @@ describe("Users", () => {
         variables.publicToken = r.body.token;
       }));
 
-  it("Get Public Token again", () =>
+  it("Apply Public Token again", () =>
     request(Server)
-      .post("/v1/users/token/applicate?id=2017000000")
+      .post("/v1/users/token/apply?id=2017000000")
       .set("Authorization", "bearer " + variables.publicToken)
       .send({ allowedEndpoints })
       .expect("Content-Type", /json/)
@@ -82,7 +82,8 @@ describe("Users", () => {
 
   it("Validate Token", () =>
     request(Server)
-      .get(`/v1/users/token/validate?token=${variables.publicToken}`)
+      .post("/v1/users/token/validate")
+      .send({ token: variables.publicToken })
       .expect(200)
       .expect("Content-Type", /json/)
       .then(r => {
