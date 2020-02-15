@@ -171,7 +171,7 @@ paths:
       tags:
         - articles
       summary: 返回匹配查询的文章
-      description: 可以通过 query 进行筛选
+      description: 可以通过 query 进行筛选 查看隐藏文章需要是作者、发布者、`root`或`editor`角色
       operationId: findArticles
       parameters:
         - name: title
@@ -184,6 +184,16 @@ paths:
           description: 作者
           schema:
             type: string
+        - name: authorId
+          in: query
+          description: 作者的用户id
+          schema:
+            type: number
+        - name: createdBy
+          in: query
+          description: 发布文章的用户的id
+          schema:
+            type: number
         - name: alias
           in: query
           description: 别名，通常是文章的 URL
@@ -217,6 +227,11 @@ paths:
         - name: invisible
           in: query
           description: 设置是否查看隐藏的文章
+          schema:
+            type: boolean
+        - name: count
+          in: query
+          description: 设置是否查看对应authorId或createdBy文章的数量
           schema:
             type: boolean
       responses:
@@ -255,6 +270,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        409:
+          description: "Conflict: Alias already exists"
+        422:
+          description: "UnProcessable Entity: Missing contents"
         500:
           description: Server error
 
@@ -314,6 +333,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Article is under review"
         404:
           description: "Not Found: Article does not exist"
         500:
