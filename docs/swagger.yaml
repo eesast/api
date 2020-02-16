@@ -1201,6 +1201,35 @@ paths:
         500:
           description: Server error
 
+  "/v1/users/username/{userId}":
+    summary: 返回`userId`对应的用户名
+    get:
+      tags:
+        - users
+      summary: 返回`userId`对应的用户名
+      description: 对外显示的用户名，不需要权限
+      operationId: getUsername
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+        404:
+          description: "Not Found: User does not exist"
+        500:
+          description: Server error
+
   "/v1/teams":
     get:
       tags:
