@@ -459,4 +459,25 @@ router.post("/token/validate", (req, res) => {
   );
 });
 
+/**
+ * GET the username of a user
+ * @param {number} id
+ * @returns {Object} of Not Found
+ */
+router.get("/username/:id", async (req, res, next) => {
+  const select =
+    "-_id -__v -role -group -email -password -name -phone -class -department";
+  try {
+    const user = await User.findOne({ id: req.params.id }, select);
+
+    if (!user) {
+      return res.status(404).send("404 Not Found: User does not exist");
+    }
+
+    res.send({ username: user.username });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
