@@ -1733,7 +1733,7 @@ paths:
       tags:
         - rooms
       summary: 开启一个新房间
-      description: 需要 `root` 或 `organizer` 角色
+      description: 需要已登录用户
       operationId: addRoom
       security:
         - bearerAuth: []
@@ -2643,7 +2643,7 @@ components:
               port:
                 type: number
                 description: 端口
-      description: 发布公告的提交格式
+      description: 新建房间的提交格式
       required: true
 
     updateRoom:
@@ -2666,7 +2666,7 @@ components:
               port:
                 type: number
                 description: 端口
-      description: 更新公告的提交格式
+      description: 更新房间的提交格式
       required: true
 
   responses:
