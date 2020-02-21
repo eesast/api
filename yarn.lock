@@ -891,10 +891,10 @@
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.5.tgz#b14efa8852b7768d898906613c23f688713e02cd"
   integrity sha512-Q1y515GcOdTHgagaVFhHnIFQ38ygs/kmxdNpvpou+raI9UO3YZcHDngBSYKQklcKlvA7iuQlmIKbzvmxcOE9CQ==
 
-"@types/dockerode@2.5.22":
-  version "2.5.22"
-  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-2.5.22.tgz#356e90491bf532556d9fbe4863690a0dfb8ec127"
-  integrity sha512-YIHpziPXJ3Gowv5pnaWRv1zzTxaF32Jf9vy/h4OT9WH7xvnxX6kvM0utLzf8dI4Urx/f7SOHJnmPJqr2S7bbSw==
+"@types/dockerode@2.5.23":
+  version "2.5.23"
+  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-2.5.23.tgz#bc67175e68b766fdee3c9f123dc1d486314dd3f2"
+  integrity sha512-Q9t0uUs8zaGwiVi1hUCwLDe9X47m+nhX2P22gS7Z2HyoVjK3BE9j2YcKNPLNM/ehjVCv85jPA8trBUjiTjpJfw==
   dependencies:
     "@types/node" "*"
 
