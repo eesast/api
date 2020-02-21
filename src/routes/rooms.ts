@@ -4,9 +4,11 @@ import Docker from "dockerode";
 import secret from "../configs/secret";
 import image from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
+import checkServer from "../middlewares/checkServer";
 import Contest from "../models/contest";
-import Room from "../models/room";
+import Room, { ServerToken } from "../models/room";
 import Team from "../models/team";
+import User from "../models/user";
 import pick from "lodash.pick";
 
 const router = express.Router();
@@ -52,20 +54,36 @@ router.get("/:id", async (req, res, next) => {
 });
 
 /**
- * GET join room of Id
+ * POST join room of Id
  * @param {number} id
  * @returns {Object} teams in room with id
  */
-router.get("/:id/join", authenticate([]), async (req, res, next) => {
+router.post("/:id/join", checkServer, async (req, res, next) => {
   try {
     const room = await Room.findOne({ id: req.params.id });
     if (!room) {
       return res.status(404).send("404 Not Found: Room does not exist");
     }
 
+    let userId = 0;
+    try {
+      const decoded = jwt.verify(req.body.token, secret) as { id: number };
+      User.findOne({ id: decoded.id }, (error, user) => {
+        if (error) {
+          return res.status(500).end();
+        }
+        if (!user || !decoded.id) {
+          return res.status(404).send("404 Not Found: User does not exist");
+        }
+      });
+      userId = decoded.id;
+    } catch {
+      return res.status(401).send("401 Unauthorized: Wrong token");
+    }
+
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: req.auth.id }
+      members: { $in: userId }
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
@@ -82,25 +100,41 @@ router.get("/:id/join", authenticate([]), async (req, res, next) => {
 
     res.json(teams);
   } catch (err) {
-    return next(err);
+    next(err);
   }
 });
 
 /**
- * GET leave room of Id
+ * POST leave room of Id
  * @param {number} id
  * @returns teams in room with id
  */
-router.get("/:id/leave", authenticate([]), async (req, res, next) => {
+router.post("/:id/leave", checkServer, async (req, res, next) => {
   try {
     const room = await Room.findOne({ id: req.params.id });
     if (!room) {
       return res.status(404).send("404 Not Found: Room does not exist");
     }
 
+    let userId = 0;
+    try {
+      const decoded = jwt.verify(req.body.token, secret) as { id: number };
+      User.findOne({ id: decoded.id }, (error, user) => {
+        if (error) {
+          return res.status(500).end();
+        }
+        if (!user || !decoded.id) {
+          return res.status(404).send("404 Not Found: User does not exist");
+        }
+      });
+      userId = decoded.id;
+    } catch {
+      return res.status(401).send("401 Unauthorized: Wrong token");
+    }
+
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: req.auth.id }
+      members: { $in: userId }
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
@@ -122,7 +156,7 @@ router.get("/:id/leave", authenticate([]), async (req, res, next) => {
 
     res.json(room.teams);
   } catch (err) {
-    return next(err);
+    next(err);
   }
 });
 
@@ -143,8 +177,8 @@ router.post("/", authenticate([]), async (req, res, next) => {
       updatedBy: req.auth.id
     }).save();
 
-    const token = jwt.sign({ roomId: room.id }, secret, {
-      expiresIn: "15m"
+    const token = jwt.sign({ roomId: room.id, server: "THUAI" }, secret, {
+      expiresIn: "12h"
     });
 
     if (process.env.NODE_ENV === "production") {
@@ -184,7 +218,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
  */
 router.post("/:token", async (req, res) => {
   try {
-    const payload = jwt.verify(req.params.token, secret) as { roomId: number };
+    const payload = jwt.verify(req.params.token, secret) as ServerToken;
     const room = await Room.findOne({ id: payload.roomId });
     if (!room) {
       return res.status(401).send("401 Unauthorized: Wrong token");
