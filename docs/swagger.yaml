@@ -171,7 +171,7 @@ paths:
       tags:
         - articles
       summary: 返回匹配查询的文章
-      description: 可以通过 query 进行筛选
+      description: 可以通过 query 进行筛选 查看隐藏文章需要是作者、发布者、`root`或`editor`角色
       operationId: findArticles
       parameters:
         - name: title
@@ -184,6 +184,16 @@ paths:
           description: 作者
           schema:
             type: string
+        - name: authorId
+          in: query
+          description: 作者的用户id
+          schema:
+            type: number
+        - name: createdBy
+          in: query
+          description: 发布文章的用户的id
+          schema:
+            type: number
         - name: alias
           in: query
           description: 别名，通常是文章的 URL
@@ -217,6 +227,11 @@ paths:
         - name: invisible
           in: query
           description: 设置是否查看隐藏的文章
+          schema:
+            type: boolean
+        - name: count
+          in: query
+          description: 设置是否查看对应authorId或createdBy文章的数量
           schema:
             type: boolean
       responses:
@@ -255,6 +270,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        409:
+          description: "Conflict: Alias already exists"
+        422:
+          description: "UnProcessable Entity: Missing contents"
         500:
           description: Server error
 
@@ -314,6 +333,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Article is under review"
         404:
           description: "Not Found: Article does not exist"
         500:
@@ -762,7 +783,7 @@ paths:
       tags:
         - users
       summary: 返回匹配查询的用户
-      description: 需要已登录用户，可以通过 query 进行筛选
+      description: 需要已登录用户或第三方令牌，可以通过 query 进行筛选
       operationId: getUsers
       security:
         - bearerAuth: []
@@ -844,7 +865,7 @@ paths:
       tags:
         - users
       summary: 返回匹配查询的用户
-      description: 需要已登录用户，可以通过 query 进行筛选
+      description: 需要已登录用户或第三方令牌，可以通过 query 进行筛选
       operationId: getUsersDetails
       security:
         - bearerAuth: []
@@ -1021,6 +1042,7 @@ paths:
         - users
       summary: 根据 ID 获取用户
       operationId: getUserById
+      description: 需要已登录用户或第三方令牌
       security:
         - bearerAuth: []
       parameters:
@@ -1106,6 +1128,103 @@ paths:
           $ref: "#/components/responses/BadRequest"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: User does not exist"
+        500:
+          description: Server error
+
+  "/v1/users/token/apply":
+    post:
+      tags:
+        - users
+      summary: 获得第三方令牌
+      operationId: getPublicToken
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: number
+            description: 用户 ID
+      requestBody:
+        $ref: "#/components/requestBodies/getPublicToken"
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        403:
+          description: Permission denied
+        500:
+          description: Server error
+
+  "/v1/users/token/validate":
+    post:
+      tags:
+        - users
+      summary: 校验第三方令牌
+      operationId: validatePublicToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        200:
+          description: good Token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                    description: userId
+                  allowedEndpoints:
+                    $ref: "#/components/schemas/allowedEndpoints"
+
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          description: Invalid/Expired Token
+        500:
+          description: Server error
+
+  "/v1/users/username/{userId}":
+    summary: 返回`userId`对应的用户名
+    get:
+      tags:
+        - users
+      summary: 返回`userId`对应的用户名
+      description: 对外显示的用户名，不需要权限
+      operationId: getUsername
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
         404:
           description: "Not Found: User does not exist"
         500:
@@ -1637,6 +1756,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         500:
           description: Server error
+        503:
+          description: Failed to start docker container
 
   "/v1/rooms/{roomId}":
     get:
@@ -2153,6 +2274,22 @@ components:
         updatedBy:
           type: number
 
+    allowedEndpoints:
+      type: array
+      items:
+        type: object
+        properties:
+          path:
+            type: string
+            description: 节点路径
+            example: "/v1/users/"
+          methods:
+            type: array
+            items:
+              type: string
+              description: 请求方法
+              example: "GET"
+
   requestBodies:
     addArticle:
       content:
@@ -2374,6 +2511,16 @@ components:
       description: 更新用户的提交格式
       required: true
 
+    getPublicToken:
+      content:
+        application/json:
+          schema:
+            properties:
+              allowedEndpoints:
+                $ref: "#/components/schemas/allowedEndpoints"
+      description: 请求使用的节点
+      required: true
+
     addTeam:
       content:
         application/json:
@@ -2506,7 +2653,7 @@ components:
               port:
                 type: number
                 description: 端口
-      description: 发布房间的提交格式
+      description: 新建房间的提交格式
       required: true
 
     updateRoom:
