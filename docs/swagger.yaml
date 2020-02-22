@@ -1837,9 +1837,13 @@ paths:
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
-          description: "Not Found: Room does not exist"
+          description: "Not Found: Room does not exist / Docker container does not exist"
+        422:
+          description: "Unprocessable Entity: Missing form data"
         500:
           description: Server error
+        503:
+          description: "Service Unavailable: Failed to stop or remove docker container"
 
   "/v1/rooms/check/{token}":
     post:
@@ -1944,6 +1948,50 @@ paths:
           description: "Not Found: Room does not exist"
         500:
           description: Server error
+
+  "/v1/rooms/{roomId}/status":
+    put:
+      tags:
+        - rooms
+      summary: 更新房间状态
+      operationId: updateRoomStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          description: 房间 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        description: 更好
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: number
+                  enum: [0, 1, 2]
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Permission denied"
+        404:
+          description: "Not Found: Room does not exist / Docker container does not exist"
+        422:
+          description: "Unprocessable Entity: Missing form data"
+        500:
+          description: Server error
+        503:
+          description: "Service Unavailable: Failed to stop or remove docker container"
 
 components:
   schemas:

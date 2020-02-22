@@ -18,6 +18,7 @@ const checkServer = (req: Request, res: Response, next: NextFunction) => {
     if (decoded.server !== "THUAI") {
       return res.status(403).send("403 Forbidden: Permission denied");
     }
+    req.auth = { id: 0 };
     next();
   } catch (err) {
     return res.status(401).send("401 Unauthorized: Wrong token");

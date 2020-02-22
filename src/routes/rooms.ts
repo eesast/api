@@ -22,9 +22,7 @@ const router = express.Router();
  * @returns {Object[]} rooms of given contest with given status
  */
 router.get("/", async (req, res, next) => {
-  const query = {
-    ...pick(req.query, ["contestId", "status"])
-  };
+  const query = pick(req.query, ["contestId", "status"]);
 
   try {
     const rooms = await Room.find(query, "-_id -__v");
@@ -92,7 +90,7 @@ router.post("/:id/join", checkServer, async (req, res, next) => {
       return res.status(409).send("409 Conflict: Team already in room");
     }
     const teams = room.teams.concat([team.id]);
-    const update = { updatedAt: new Date(), updatedBy: 0, teams };
+    const update = { updatedAt: new Date(), updatedBy: req.auth.id, teams };
     const newRoom = await Room.findOneAndUpdate({ id: req.params.id }, update);
     if (!newRoom) {
       return res.status(404).send("404 Not Found: Room does not exist");
@@ -146,7 +144,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
     room.teams.splice(index, 1);
     const update = {
       updatedAt: new Date(),
-      updatedBy: 0,
+      updatedBy: req.auth.id,
       teams: room.teams
     };
     const newRoom = await Room.findOneAndUpdate({ id: req.params.id }, update);
@@ -165,16 +163,16 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
  * @returns {String} Location header
  */
 router.post("/", authenticate([]), async (req, res, next) => {
+  const body = pick(req.body, ["contestId", "team", "ip", "port"]);
+
   try {
     const contest = await Contest.findOne({ id: req.body.contestId });
     if (!contest) {
       return res.status(400).send("400 Bad Request: Contest not available");
     }
 
-    delete req.body.status;
-
     const room = await new Room({
-      ...req.body,
+      ...body,
       createdBy: req.auth.id,
       updatedBy: req.auth.id
     }).save();
@@ -192,22 +190,20 @@ router.post("/", authenticate([]), async (req, res, next) => {
           AttachStdin: false,
           AttachStdout: false,
           AttachStderr: false,
-          Tty: true,
+          Tty: false,
           OpenStdin: false,
-          StdinOnce: false
+          StdinOnce: false,
+          name: `THUAI-Room${room.id}`
         });
         await container.start();
-        res.setHeader("Location", "/v1/rooms/" + room.id);
-        res.status(201).end();
       } catch {
         return res
           .status(503)
           .send("503 Service Unavailable: Failed to start docker container");
       }
-    } else {
-      res.setHeader("Location", "/v1/rooms/" + room.id);
-      res.status(201).end();
     }
+    res.setHeader("Location", "/v1/rooms/" + room.id);
+    res.status(201).end();
   } catch (err) {
     next(err);
   }
@@ -273,6 +269,65 @@ router.put(
 );
 
 /**
+ * PUT existing Room status
+ * @param {Number} id - updating Room's id
+ * @returns {String} Location header or Not Found
+ */
+router.put("/:id/status", checkServer, async (req, res, next) => {
+  try {
+    const room = await Room.findOne({ id: req.params.id });
+
+    if (!room) {
+      return res.status(404).send("404 Not Found: Room does not exist");
+    }
+
+    if (!req.body.status) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing form data");
+    }
+
+    if (process.env.NODE_ENV === "production") {
+      if (req.body.status === 2) {
+        try {
+          const docker = new Docker();
+          const container = docker.getContainer(`THUAI-Room${room.id}`);
+          if (!container) {
+            return res
+              .status(404)
+              .send("404 Not Found: Docker container does not exist");
+          }
+          const info = await container.inspect();
+          if (info.State.Running) {
+            await container.stop();
+          }
+          await container.remove();
+        } catch {
+          return res
+            .status(503)
+            .send(
+              "503 Service Unavailable: Failed to stop or remove docker container"
+            );
+        }
+      }
+    }
+
+    const update = {
+      ...{ status: req.body.status },
+      updatedAt: new Date(),
+      updatedBy: req.auth.id
+    };
+
+    const newRoom = await Room.findOneAndUpdate({ id: req.params.id }, update);
+
+    res.setHeader("Location", "/v1/rooms/" + newRoom!.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * DELETE an Room of id
  * @param {Number} id
  * @returns No Room or Not Found
@@ -282,6 +337,35 @@ router.delete(
   authenticate(["root", "organizer"]),
   async (req, res, next) => {
     try {
+      const room = await Room.findOne({ id: req.params.id });
+
+      if (!room) {
+        return res.status(404).send("404 Not Found: Room does not exist");
+      }
+
+      if (process.env.NODE_ENV === "production") {
+        try {
+          const docker = new Docker();
+          const container = docker.getContainer(`THUAI-Room${room.id}`);
+          if (!container) {
+            return res
+              .status(404)
+              .send("404 Not Found: Docker container does not exist");
+          }
+          const info = await container.inspect();
+          if (info.State.Running) {
+            await container.stop();
+          }
+          await container.remove();
+        } catch {
+          return res
+            .status(503)
+            .send(
+              "503 Service Unavailable: Failed to stop or remove docker container"
+            );
+        }
+      }
+
       const deleteRoom = await Room.findOneAndDelete({
         id: req.params.id
       });
