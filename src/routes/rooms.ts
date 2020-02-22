@@ -16,14 +16,14 @@ const router = express.Router();
 /**
  * GET rooms with queries
  * @param {number} contestId
- * @param {boolean} available
+ * @param {number} status
  * @param {number} begin
  * @param {number} end
- * @returns {Object[]} rooms of given contest available
+ * @returns {Object[]} rooms of given contest with given status
  */
 router.get("/", async (req, res, next) => {
   const query = {
-    ...pick(req.query, ["contestId", "available"])
+    ...pick(req.query, ["contestId", "status"])
   };
 
   try {
@@ -92,7 +92,7 @@ router.post("/:id/join", checkServer, async (req, res, next) => {
       return res.status(409).send("409 Conflict: Team already in room");
     }
     const teams = room.teams.concat([team.id]);
-    const update = { updatedAt: new Date(), updatedBy: req.auth.id, teams };
+    const update = { updatedAt: new Date(), updatedBy: 0, teams };
     const newRoom = await Room.findOneAndUpdate({ id: req.params.id }, update);
     if (!newRoom) {
       return res.status(404).send("404 Not Found: Room does not exist");
@@ -146,7 +146,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
     room.teams.splice(index, 1);
     const update = {
       updatedAt: new Date(),
-      updatedBy: req.auth.id,
+      updatedBy: 0,
       teams: room.teams
     };
     const newRoom = await Room.findOneAndUpdate({ id: req.params.id }, update);
@@ -170,6 +170,8 @@ router.post("/", authenticate([]), async (req, res, next) => {
     if (!contest) {
       return res.status(400).send("400 Bad Request: Contest not available");
     }
+
+    delete req.body.status;
 
     const room = await new Room({
       ...req.body,
@@ -216,7 +218,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
  * @param {string} token
  * @returns 204 or 401
  */
-router.post("/:token", async (req, res) => {
+router.post("/check/:token", async (req, res) => {
   try {
     const payload = jwt.verify(req.params.token, secret) as ServerToken;
     const room = await Room.findOne({ id: payload.roomId });
@@ -225,7 +227,7 @@ router.post("/:token", async (req, res) => {
     }
 
     await room.updateOne({
-      available: true,
+      status: 1,
       updatedAt: new Date()
     });
 
