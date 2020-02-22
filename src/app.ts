@@ -14,6 +14,7 @@ import teamRouter from "./routes/teams";
 import userRouter from "./routes/users";
 import emailRouter from "./routes/emails";
 import roomRouter from "./routes/rooms";
+import trackRouter from "./routes/tracks";
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use("/v1/teams", teamRouter);
 app.use("/v1/announcements", announcementRouter);
 app.use("/v1/emails", emailRouter);
 app.use("/v1/rooms", roomRouter);
+app.use("/v1/tracks", trackRouter);
 
 app.use(errorHandler);
 

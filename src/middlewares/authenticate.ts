@@ -46,7 +46,6 @@ const authenticate: (
       } else {
         id = (decoded as UserModel).id;
       }
-
       User.findOne({ id }, { _id: 0, __v: 0, password: 0 }, (error, user) => {
         if (error) {
           return res.status(500).end();
@@ -65,7 +64,6 @@ const authenticate: (
             req.auth.selfCheckRequired = true;
             return next();
           }
-
           return res.status(401).send("401 Unauthorized: Permission denied");
         }
 

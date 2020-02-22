@@ -5,5 +5,11 @@ export default {
     password: "password",
     token: ""
   },
-  publicToken: ""
+  user: {
+    username: "testusername",
+    password: "testpassword",
+    token: ""
+  },
+  publicToken: "",
+  trackId: 0
 };
