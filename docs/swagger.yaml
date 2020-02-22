@@ -1041,8 +1041,8 @@ paths:
       tags:
         - users
       summary: 根据 ID 获取用户
-      operationId: getUserById
       description: 需要已登录用户或第三方令牌
+      operationId: getUserById
       security:
         - bearerAuth: []
       parameters:
@@ -1872,7 +1872,7 @@ paths:
       tags:
         - rooms
       summary: 加入房间
-      description: 需要已登录用户，返回更新后队伍数组，header中为server token
+      description: 由server发起，返回更新后队伍数组，header中为server token
       operationId: joinRoom
       security:
         - bearerAuth: []
@@ -1914,7 +1914,7 @@ paths:
       tags:
         - rooms
       summary: 退出房间
-      description: 需要已登录用户，返回剩余队伍数组，header中为server token
+      description: 由server发起，返回剩余队伍数组，header中为server token
       operationId: leaveRoom
       security:
         - bearerAuth: []
@@ -1954,6 +1954,7 @@ paths:
       tags:
         - rooms
       summary: 更新房间状态
+      description: 由server发起
       operationId: updateRoomStatus
       security:
         - bearerAuth: []
@@ -2301,7 +2302,7 @@ components:
           type: number
           enum: [0, 1, 2]
           default: 0
-          description: 房间状态
+          description: 房间状态，0表示未开启，1表示已开启，2表示已关闭
         teams:
           type: array
           items:
