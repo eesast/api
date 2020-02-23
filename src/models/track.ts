@@ -27,6 +27,7 @@ const trackSchema = new mongoose.Schema<TrackModel>(
     collection: "tracks"
   }
 );
+
 trackSchema.pre<TrackModel>("save", function(next) {
   Counter.findByIdAndUpdate(
     "track",

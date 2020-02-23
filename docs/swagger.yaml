@@ -2002,8 +2002,10 @@ paths:
     get:
       tags:
         - tracks
-      summary: 需要登录，根据 ID 获取房间
-      operationId: getRoomById
+      summary: 需要登录，根据 ID 获取赛道
+      operationId: getTrackById
+      security:
+        - bearerAuth: []
       parameters:
         - name: trackId
           in: path
@@ -2092,6 +2094,13 @@ paths:
       operationId: addPlayerToTrack
       security:
         - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          description: 要加入的赛道的 ID
+          required: true
+          schema:
+            type: number
       requestBody:
         content:
           application/json:
@@ -2100,10 +2109,9 @@ paths:
               required:
                 - userId
               properties:
-                UserId:
+                userId:
                   type: number
                   description: 选手ID
-
       responses:
         204:
           description: Successful operation
@@ -2117,25 +2125,28 @@ paths:
           description: "Conflict: One could not join 2 tracks."
         500:
           description: Server error
+
+  "/v1/tracks/{trackId}/registration/{userId}":
     delete:
       tags:
         - tracks
       description: 选手退赛，需要管理员权限（无视赛道开放）或本人
-      operationId: removePlayerToTrack
+      operationId: removePlayerFromTrack
       security:
         - bearerAuth: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-              properties:
-                UserId:
-                  type: number
-                  description: 选手ID
-
+      parameters:
+        - name: trackId
+          in: path
+          description: 要退出的赛道的 ID
+          required: true
+          schema:
+            type: number
+        - name: userId
+          in: path
+          description: 要退出的选手的 ID
+          required: true
+          schema:
+            type: number
       responses:
         204:
           description: Successful operation
@@ -2512,16 +2523,17 @@ components:
           type: string
           description: 赛道简介
         year:
-          type: string
+          type: number
           description: 赛道年份
         open:
           type: boolean
           default: false
-          description: 赛道开放报名
+          description: 赛道是否开放报名
         player:
           type: array
           description: 赛道选手ID
-
+          items:
+            type: number
   requestBodies:
     addArticle:
       content:
@@ -2927,7 +2939,7 @@ components:
                 type: string
                 description: 赛道简介
               year:
-                type: string
+                type: number
                 description: 赛道年份
               open:
                 type: boolean
@@ -2946,11 +2958,11 @@ components:
                 type: string
                 description: 赛道简介
               year:
-                type: string
+                type: number
                 description: 赛道年份
               open:
                 type: boolean
-                description: 赛道开放报名
+                description: 赛道是否开放报名
 
   responses:
     BadRequest:

@@ -58,6 +58,7 @@ describe("Tracks", () => {
         userId: 2018000000
       })
       .expect(204));
+
   it("Check player", () =>
     request(Server)
       .get(`/v1/tracks/${variables.trackId}?playerInfo=true`)
@@ -83,11 +84,8 @@ describe("Tracks", () => {
 
   it("Exit a track and success", () =>
     request(Server)
-      .delete(`/v1/tracks/${variables.trackId}/registration`)
+      .delete(`/v1/tracks/${variables.trackId}/registration/2018000000`)
       .set("Authorization", "bearer " + variables.user.token)
-      .send({
-        userId: 2018000000
-      })
       .expect(204));
 
   it("Delete the track", () =>

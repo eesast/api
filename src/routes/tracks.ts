@@ -20,7 +20,6 @@ router.get("/", authenticate([]), async (req, res, next) => {
   if (query.player) query.player = parseFloat(query.year);
   try {
     const tracks = await Track.find(query, "-_id -__v -player");
-    console.log(tracks);
     res.json(tracks);
   } catch (e) {
     next(e);
@@ -100,13 +99,13 @@ router.post(
         return res.status(404).send("404 Not Found: Track not found.");
 
       if (!track.open && req.auth.selfCheckRequired)
-        return res.status(403).send("403 Forbidden: Track not Opened.");
+        return res.status(403).send("403 Forbidden: Track not opened.");
 
       const old = await Track.findOne({ player: userId, year: track.year });
       if (old)
         return res
           .status(409)
-          .send("409 Conflict: You should not join multiple Tracks.");
+          .send("409 Conflict: You should not join multiple tracks.");
 
       await Track.findOneAndUpdate(
         { id: trackId },
@@ -126,10 +125,10 @@ router.post(
  * @returns status
  */
 router.delete(
-  "/:id/registration",
+  "/:id/registration/:userId",
   authenticate(["root", "admin", "self"]),
   async (req, res, next) => {
-    const userId = req.body.userId;
+    const userId = req.params.userId;
     const trackId = req.params.id;
     if (req.auth.selfCheckRequired) {
       if (parseFloat(userId) !== req.auth.id) {

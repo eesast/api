@@ -19,6 +19,7 @@ describe("Users", () => {
         class: "string"
       })
       .expect(201));
+
   it("Log in Normal User", () =>
     request(Server)
       .post("/v1/users/login")
