@@ -1702,10 +1702,11 @@ paths:
           schema:
             type: number
           description: 比赛ID
-        - name: available
+        - name: status
           in: query
           schema:
-            type: boolean
+            type: number
+            enum: [0, 1, 2]
           description: 房间是否开启
         - name: begin
           in: query
@@ -1838,11 +1839,15 @@ paths:
         401:
           $ref: "#/components/responses/UnauthorizedError"
         404:
-          description: "Not Found: Room does not exist"
+          description: "Not Found: Room does not exist / Docker container does not exist"
+        422:
+          description: "Unprocessable Entity: Missing form data"
         500:
           description: Server error
+        503:
+          description: "Service Unavailable: Failed to stop or remove docker container"
 
-  "/v1/rooms/{token}":
+  "/v1/rooms/check/{token}":
     post:
       tags:
         - rooms
@@ -1865,11 +1870,11 @@ paths:
           description: Server error
 
   "/v1/rooms/{roomId}/join":
-    get:
+    post:
       tags:
         - rooms
       summary: 加入房间
-      description: 需要已登录用户，返回更新后队伍数组
+      description: 由server发起，返回更新后队伍数组，header中为server token
       operationId: joinRoom
       security:
         - bearerAuth: []
@@ -1880,6 +1885,8 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/changeRoomTeam"
       responses:
         200:
           description: Successful operation
@@ -1895,6 +1902,8 @@ paths:
           description: "TODO: Solve status code conflict. --- User not in team"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Permission denied"
         404:
           description: "Not Found: Room does not exist"
         409:
@@ -1903,11 +1912,11 @@ paths:
           description: Server error
 
   "/v1/rooms/{roomId}/leave":
-    get:
+    post:
       tags:
         - rooms
       summary: 退出房间
-      description: 需要已登录用户，返回剩余队伍数组
+      description: 由server发起，返回剩余队伍数组，header中为server token
       operationId: leaveRoom
       security:
         - bearerAuth: []
@@ -1918,6 +1927,8 @@ paths:
           required: true
           schema:
             type: number
+      requestBody:
+        $ref: "#/components/requestBodies/changeRoomTeam"
       responses:
         200:
           description: Successful operation
@@ -1933,10 +1944,54 @@ paths:
           description: "TODO: Solve status code conflict. --- User not in team"
         401:
           $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Permission denied"
         404:
           description: "Not Found: Room does not exist"
         500:
           description: Server error
+
+  "/v1/rooms/{roomId}/status":
+    put:
+      tags:
+        - rooms
+      summary: 更新房间状态
+      description: 由server发起
+      operationId: updateRoomStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          description: 房间 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: number
+                  enum: [0, 1, 2]
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Permission denied"
+        404:
+          description: "Not Found: Room does not exist / Docker container does not exist"
+        422:
+          description: "Unprocessable Entity: Missing form data"
+        500:
+          description: Server error
+        503:
+          description: "Service Unavailable: Failed to stop or remove docker container"
 
   "/v1/tracks":
     get:
@@ -2463,10 +2518,11 @@ components:
         contestId:
           type: number
           description: 房间ID
-        available:
-          type: boolean
-          default: false
-          description: 房间是否可用
+        status:
+          type: number
+          enum: [0, 1, 2]
+          default: 0
+          description: 房间状态，0表示未开启，1表示已开启，2表示已关闭
         teams:
           type: array
           items:
@@ -2534,6 +2590,7 @@ components:
           description: 赛道选手ID
           items:
             type: number
+
   requestBodies:
     addArticle:
       content:
@@ -2921,6 +2978,20 @@ components:
                 type: number
                 description: 端口
       description: 更新房间的提交格式
+      required: true
+
+    changeRoomTeam:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - token
+            properties:
+              token:
+                type: string
+                description: 用户token
+      description: 更改房间中队伍的提交格式
       required: true
 
     addTrack:
