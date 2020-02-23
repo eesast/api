@@ -20,6 +20,21 @@ describe("Users", () => {
       })
       .expect(201));
 
+  it("Log in Normal User", () =>
+    request(Server)
+      .post("/v1/users/login")
+      .send({
+        username: variables.user.username,
+        password: variables.user.password
+      })
+      .expect("Content-Type", /json/)
+      .then(r => {
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("token");
+        variables.user.token = r.body.token;
+      }));
+
   it("Log in", () =>
     request(Server)
       .post("/v1/users/login")
@@ -101,7 +116,7 @@ describe("Users", () => {
       .then(r => {
         expect(r.body)
           .to.be.an("array")
-          .of.length(2);
+          .of.length(3);
       }));
 
   it("get the user with id 2017000000", () =>

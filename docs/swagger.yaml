@@ -38,6 +38,8 @@ tags:
     description: 邮件
   - name: rooms
     description: 房间
+  - name: tracks
+    description: 赛道
 
 paths:
   "/static/files/:filename":
@@ -1966,7 +1968,6 @@ paths:
           schema:
             type: number
       requestBody:
-        description: 更好
         required: true
         content:
           application/json:
@@ -1979,8 +1980,6 @@ paths:
                   type: number
                   enum: [0, 1, 2]
       responses:
-        204:
-          description: Successful operation
         401:
           $ref: "#/components/responses/UnauthorizedError"
         403:
@@ -1993,6 +1992,227 @@ paths:
           description: Server error
         503:
           description: "Service Unavailable: Failed to stop or remove docker container"
+
+  "/v1/tracks":
+    get:
+      tags:
+        - tracks
+      description: 需要已登录用户，返回不带有参赛选手的赛道名单，可用query限定
+      operationId: getTracks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          description: 赛道名称
+          required: false
+          schema:
+            type: string
+        - name: year
+          in: query
+          description: 赛道年份
+          required: false
+          schema:
+            type: number
+        - name: open
+          in: query
+          description: 赛道开放状态
+          required: false
+          schema:
+            type: boolean
+        - name: player
+          in: query
+          description: 参赛选手ID
+          schema:
+            type: number
+
+      responses:
+        200:
+          description: OK
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        500:
+          description: Server error
+
+    post:
+      tags:
+        - tracks
+      description: 添加赛道，需要管理员权限
+      operationId: createATrack
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addTrack"
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Room does not exist"
+        500:
+          description: Server error
+
+  "/v1/tracks/{trackId}":
+    get:
+      tags:
+        - tracks
+      summary: 需要登录，根据 ID 获取赛道
+      operationId: getTrackById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          description: 赛道 ID
+          required: true
+          schema:
+            type: number
+        - name: playerInfo
+          in: query
+          description: 是否显示参赛选手ID
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Track"
+        404:
+          description: "Not Found: Track does not exist"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        500:
+          description: Server error
+
+    put:
+      tags:
+        - tracks
+      summary: 更新已存在的赛道
+      description: 需要 `root` 或 `admin` 角色
+      operationId: updateTrack
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          description: 待更新赛道的 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateTrack"
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Track does not exist"
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - tracks
+      summary: 删除一个赛道
+      description: 需要 `root` 或 `admin` 角色
+      operationId: deleteTrack
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          description: 要删除赛道的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Track does not exist"
+        500:
+          description: Server error
+
+  "/v1/tracks/{trackId}/registration":
+    post:
+      tags:
+        - tracks
+      description: 添加选手，需要管理员权限（无视赛道开放）或本人
+      operationId: addPlayerToTrack
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          description: 要加入的赛道的 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: number
+                  description: 选手ID
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Track is not open"
+        404:
+          description: "Not Found: Track does not exist"
+        409:
+          description: "Conflict: One could not join 2 tracks."
+        500:
+          description: Server error
+
+  "/v1/tracks/{trackId}/registration/{userId}":
+    delete:
+      tags:
+        - tracks
+      description: 选手退赛，需要管理员权限（无视赛道开放）或本人
+      operationId: removePlayerFromTrack
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          description: 要退出的赛道的 ID
+          required: true
+          schema:
+            type: number
+        - name: userId
+          in: path
+          description: 要退出的选手的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Track is not open"
+        404:
+          description: "Not Found: Track does not exist"
+        500:
+          description: Server error
 
 components:
   schemas:
@@ -2338,6 +2558,38 @@ components:
               type: string
               description: 请求方法
               example: "GET"
+
+    Track:
+      type: object
+      required:
+        - id
+        - name
+        - player
+        - year
+        - open
+        - description
+      properties:
+        id:
+          type: number
+          description: 自增值
+        name:
+          type: string
+          description: 赛道名称
+        description:
+          type: string
+          description: 赛道简介
+        year:
+          type: number
+          description: 赛道年份
+        open:
+          type: boolean
+          default: false
+          description: 赛道是否开放报名
+        player:
+          type: array
+          description: 赛道选手ID
+          items:
+            type: number
 
   requestBodies:
     addArticle:
@@ -2741,6 +2993,47 @@ components:
                 description: 用户token
       description: 更改房间中队伍的提交格式
       required: true
+
+    addTrack:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - year
+            properties:
+              name:
+                type: string
+                description: 赛道名称
+              description:
+                type: string
+                description: 赛道简介
+              year:
+                type: number
+                description: 赛道年份
+              open:
+                type: boolean
+                description: 赛道开放报名
+
+    updateTrack:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                description: 赛道名称
+              description:
+                type: string
+                description: 赛道简介
+              year:
+                type: number
+                description: 赛道年份
+              open:
+                type: boolean
+                description: 赛道是否开放报名
 
   responses:
     BadRequest:
