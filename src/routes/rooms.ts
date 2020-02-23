@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import Docker from "dockerode";
 import secret from "../configs/secret";
-import image from "../configs/docker";
+import { image, server } from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
 import checkServer from "../middlewares/checkServer";
 import Contest from "../models/contest";
@@ -177,7 +177,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
       updatedBy: req.auth.id
     }).save();
 
-    const token = jwt.sign({ roomId: room.id, server: "THUAI" }, secret, {
+    const token = jwt.sign({ roomId: room.id, server }, secret, {
       expiresIn: "12h"
     });
 

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import secret from "../configs/secret";
+import { server } from "../configs/docker";
 import { ServerToken } from "../models/room";
 
 /**
@@ -15,7 +16,7 @@ const checkServer = (req: Request, res: Response, next: NextFunction) => {
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, secret) as ServerToken;
-    if (decoded.server !== "THUAI") {
+    if (decoded.server !== server) {
       return res.status(403).send("403 Forbidden: Permission denied");
     }
     req.auth = { id: 0 };
