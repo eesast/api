@@ -2198,7 +2198,7 @@ paths:
     get:
       tags:
         - tracks
-      description: 选手退赛，需要管理员权限（无视赛道开放）或本人
+      description: 检验指定选手是否在指定赛道中
       operationId: checkPlayerInTrack
       security:
         - bearerAuth: []
