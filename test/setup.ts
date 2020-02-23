@@ -53,6 +53,18 @@ before("Create admin user", async function() {
     group: "admin",
     role: "root"
   });
+  const testuser = new User({
+    id: 2018000000,
+    username: variables.user.username,
+    password: await bcrypt.hash(variables.user.password, variables.saltRounds),
+    email: "user@eesast.com",
+    name: "user",
+    phone: 13000000000,
+    department: "电子工程系",
+    class: "无80",
+    group: "admin",
+    role: "student"
+  });
 
-  return Promise.resolve(admin.save());
+  return Promise.all([admin.save(), testuser.save()]);
 });
