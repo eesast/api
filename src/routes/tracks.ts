@@ -10,16 +10,18 @@ const router = express.Router();
  * @param {string} name name of the track
  * @param {number} year year of the track
  * @param {boolean} open track open to join
- * @param {number} player track one have joined
+ * @param {number} playerId track one have joined
  * @returns {Object[]} certain tracks without players
  */
 router.get("/", authenticate([]), async (req, res, next) => {
-  const query: any = pick(req.query, ["name", "year", "open", "player"]);
+  const query: any = pick(req.query, ["name", "year", "open", "playerId"]);
   if (query.open) query.open = query.open == "true";
   if (query.year) query.year = parseFloat(query.year);
-  if (query.player) query.player = parseFloat(query.year);
+  if (query.playerId) query.players = parseFloat(query.playerId);
+  delete query.playerId;
+
   try {
-    const tracks = await Track.find(query, "-_id -__v -player");
+    const tracks = await Track.find(query, "-_id -__v -players");
     res.json(tracks);
   } catch (e) {
     next(e);
@@ -46,7 +48,7 @@ router.post("/", authenticate(["root", "admin"]), async (req, res, next) => {
       year,
       description,
       open,
-      player: []
+      players: []
     });
     const result = await newTrack.save();
     res.setHeader("Location", `/v1/tracks/${result.id}`);
@@ -68,7 +70,6 @@ router.put("/:id", authenticate(["root", "admin"]), async (req, res, next) => {
   const id = req.params.id;
   const query = pick(req.body, ["name", "year", "description", "open"]);
   try {
-    console.log(query);
     await Track.updateOne({ id }, { $set: query });
     res.status(204).end();
   } catch (err) {
@@ -77,19 +78,19 @@ router.put("/:id", authenticate(["root", "admin"]), async (req, res, next) => {
 });
 
 /**
- * POST registration of a track
+ * POST join a track
  * @param {number} id track to join
- * @param {number} userId user to join
+ * @param {number} playerId user to join
  * @returns status
  */
 router.post(
-  "/:id/registration",
+  "/:id/players",
   authenticate(["root", "admin", "self"]),
   async (req, res, next) => {
-    const userId = req.body.userId;
+    const playerId = req.body.playerId;
     const trackId = req.params.id;
     if (req.auth.selfCheckRequired) {
-      if (parseFloat(userId) !== req.auth.id) {
+      if (parseFloat(playerId) !== req.auth.id) {
         return res.status(401).send("401 Unauthorized: Permission denied");
       }
     }
@@ -101,7 +102,7 @@ router.post(
       if (!track.open && req.auth.selfCheckRequired)
         return res.status(403).send("403 Forbidden: Track not opened.");
 
-      const old = await Track.findOne({ player: userId, year: track.year });
+      const old = await Track.findOne({ players: playerId, year: track.year });
       if (old)
         return res
           .status(409)
@@ -109,7 +110,7 @@ router.post(
 
       await Track.findOneAndUpdate(
         { id: trackId },
-        { $push: { player: userId } }
+        { $push: { players: playerId } }
       );
       return res.status(204).end();
     } catch (err) {
@@ -119,33 +120,49 @@ router.post(
 );
 
 /**
- * DELETE registration of a track
+ * Check whether a player joins a track
+ * @param {number} id trackId
+ * @param {number} playerId
+ * @returns status
+ */
+router.get("/:id/players/:playerId", authenticate([]), async (req, res) => {
+  const playerId = req.params.playerId;
+  const trackId = req.params.id;
+  const track = await Track.findOne({ id: trackId, players: playerId });
+  if (track) return res.status(200).end();
+  return res
+    .status(404)
+    .send("404 Not Found: Track not found or player is not in");
+});
+
+/**
+ * DELETE leave a track
  * @param {number} id track to leave
- * @param {number} userId user to leave
+ * @param {number} playerId user to leave
  * @returns status
  */
 router.delete(
-  "/:id/registration/:userId",
+  "/:id/players/:playerId",
   authenticate(["root", "admin", "self"]),
   async (req, res, next) => {
-    const userId = req.params.userId;
+    const playerId = req.params.playerId;
     const trackId = req.params.id;
     if (req.auth.selfCheckRequired) {
-      if (parseFloat(userId) !== req.auth.id) {
+      if (parseFloat(playerId) !== req.auth.id) {
         return res.status(401).send("401 Unauthorized: Permission denied");
       }
     }
     try {
-      const track = await Track.findOne({ id: trackId, player: userId });
+      const track = await Track.findOne({ id: trackId, players: playerId });
       if (!track)
         return res.status(404).send("404 Not Found: Track not existed");
 
       if (!track.open && req.auth.selfCheckRequired)
-        return res.status(403).send("403 Forbidden: Track not Opened.");
+        return res.status(403).send("403 Forbidden: Track not opened.");
 
       await Track.findOneAndUpdate(
         { id: trackId },
-        { $pull: { player: userId } }
+        { $pull: { players: playerId } }
       );
       return res.status(204).end();
     } catch (err) {
@@ -165,7 +182,7 @@ router.get("/:id", authenticate([]), async (req, res, next) => {
   const playerInfo = req.query.playerInfo || false;
   try {
     let query = "-_id -__v";
-    if (!playerInfo) query += " -player";
+    if (!playerInfo) query += " -players";
     const result = await Track.findOne({ id }, query);
     if (!result) return res.status(404).send("404 Not Found: Track not found.");
     return res.json(result);
