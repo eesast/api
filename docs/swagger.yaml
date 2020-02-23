@@ -1860,7 +1860,7 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        204:
           description: Successful operation
         400:
           $ref: "#/components/responses/BadRequest"
