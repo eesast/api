@@ -2020,7 +2020,7 @@ paths:
           required: false
           schema:
             type: boolean
-        - name: player
+        - name: playerId
           in: query
           description: 参赛选手ID
           schema:
@@ -2141,7 +2141,7 @@ paths:
         500:
           description: Server error
 
-  "/v1/tracks/{trackId}/registration":
+  "/v1/tracks/{trackId}/players":
     post:
       tags:
         - tracks
@@ -2162,9 +2162,9 @@ paths:
             schema:
               type: object
               required:
-                - userId
+                - playerId
               properties:
-                userId:
+                playerId:
                   type: number
                   description: 选手ID
       responses:
@@ -2181,7 +2181,35 @@ paths:
         500:
           description: Server error
 
-  "/v1/tracks/{trackId}/registration/{userId}":
+  "/v1/tracks/{trackId}/players/{playerId}":
+    parameters:
+      - name: trackId
+        in: path
+        description: 赛道 ID
+        required: true
+        schema:
+          type: number
+      - name: playerId
+        in: path
+        description: 选手 ID
+        required: true
+        schema:
+          type: number
+    get:
+      tags:
+        - tracks
+      description: 选手退赛，需要管理员权限（无视赛道开放）或本人
+      operationId: checkPlayerInTrack
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: 选手在该赛道中
+        404:
+          description: "Not Found: Track not found or player is not in"
+        500:
+          description: Server error
+
     delete:
       tags:
         - tracks
@@ -2189,19 +2217,6 @@ paths:
       operationId: removePlayerFromTrack
       security:
         - bearerAuth: []
-      parameters:
-        - name: trackId
-          in: path
-          description: 要退出的赛道的 ID
-          required: true
-          schema:
-            type: number
-        - name: userId
-          in: path
-          description: 要退出的选手的 ID
-          required: true
-          schema:
-            type: number
       responses:
         204:
           description: Successful operation
@@ -2564,7 +2579,7 @@ components:
       required:
         - id
         - name
-        - player
+        - players
         - year
         - open
         - description
@@ -2585,9 +2600,9 @@ components:
           type: boolean
           default: false
           description: 赛道是否开放报名
-        player:
+        players:
           type: array
-          description: 赛道选手ID
+          description: 赛道选手 ID 数组
           items:
             type: number
 

@@ -82,18 +82,18 @@ describe("Users", () => {
         variables.publicToken = r.body.token;
       }));
 
-  it("Apply Public Token again", () =>
-    request(Server)
-      .post("/v1/users/token/apply?id=2017000000")
-      .set("Authorization", "bearer " + variables.publicToken)
-      .send({ allowedEndpoints })
-      .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("object")
-          .that.has.property("token");
-        variables.publicToken = r.body.token;
-      }));
+  // it("Apply Public Token again", () =>
+  //   request(Server)
+  //     .post("/v1/users/token/apply?id=2017000000")
+  //     .set("Authorization", "bearer " + variables.publicToken)
+  //     .send({ allowedEndpoints })
+  //     .expect("Content-Type", /json/)
+  //     .then(r => {
+  //       expect(r.body)
+  //         .to.be.an("object")
+  //         .that.has.property("token");
+  //       variables.publicToken = r.body.token;
+  //     }));
 
   it("Validate Token", () =>
     request(Server)

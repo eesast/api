@@ -34,12 +34,18 @@ describe("Tracks", () => {
 
   it("Join a track but failed", () =>
     request(Server)
-      .post(`/v1/tracks/${variables.trackId}/registration`)
+      .post(`/v1/tracks/${variables.trackId}/players`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        userId: 2018000000
+        playerId: 2018000000
       })
       .expect(403));
+
+  it("Check if a player is in a track and fail", () =>
+    request(Server)
+      .get(`/v1/tracks/${variables.trackId}/players/2018000000`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .expect(404));
 
   it("Update track", () =>
     request(Server)
@@ -52,14 +58,20 @@ describe("Tracks", () => {
 
   it("Join a track and success", () =>
     request(Server)
-      .post(`/v1/tracks/${variables.trackId}/registration`)
+      .post(`/v1/tracks/${variables.trackId}/players`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        userId: 2018000000
+        playerId: 2018000000
       })
       .expect(204));
 
-  it("Check player", () =>
+  it("Check if a player is in a track and success", () =>
+    request(Server)
+      .get(`/v1/tracks/${variables.trackId}/players/2018000000`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .expect(200));
+
+  it("Check players", () =>
     request(Server)
       .get(`/v1/tracks/${variables.trackId}?playerInfo=true`)
       .set("Authorization", "bearer " + variables.admin.token)
@@ -67,24 +79,24 @@ describe("Tracks", () => {
       .then(r => {
         expect(r.body)
           .to.be.an("object")
-          .that.has.property("player");
-        expect(r.body.player)
+          .that.has.property("players");
+        expect(r.body.players)
           .to.be.a("array")
           .of.length(1);
       }));
 
   it("Join a track and failed by rejoin", () =>
     request(Server)
-      .post(`/v1/tracks/${variables.trackId}/registration`)
+      .post(`/v1/tracks/${variables.trackId}/players`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        userId: 2018000000
+        playerId: 2018000000
       })
       .expect(409));
 
   it("Exit a track and success", () =>
     request(Server)
-      .delete(`/v1/tracks/${variables.trackId}/registration/2018000000`)
+      .delete(`/v1/tracks/${variables.trackId}/players/2018000000`)
       .set("Authorization", "bearer " + variables.user.token)
       .expect(204));
 

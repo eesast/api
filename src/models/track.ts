@@ -5,7 +5,7 @@ export interface TrackModel extends mongoose.Document {
   id: number;
   name: string;
   year: number;
-  player: [number];
+  players: [number];
   description: string;
   open: boolean;
 }
@@ -15,7 +15,7 @@ const trackSchema = new mongoose.Schema<TrackModel>(
     id: { type: Number, unique: true },
     name: { type: String },
     year: { type: Number },
-    player: {
+    players: {
       type: [{ type: Number, index: true }],
       index: true,
       default: []

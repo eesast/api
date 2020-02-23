@@ -403,10 +403,6 @@ router.post(
     // 这个东西可以单独提出来写
     const allowedEndpoints = [
       {
-        path: "/v1/users/",
-        methods: ["GET"]
-      },
-      {
         path: "/v1/users/:id",
         methods: ["GET"]
       },
@@ -415,8 +411,12 @@ router.post(
         methods: ["POST"]
       },
       {
-        path: "/v1/users/token/apply",
+        path: "/v1/users/token/verify",
         methods: ["POST"]
+      },
+      {
+        path: "/v1/tracks/:id/players/:playerId",
+        methods: ["GET"]
       }
     ];
 
