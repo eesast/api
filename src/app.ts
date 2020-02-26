@@ -18,10 +18,24 @@ import trackRouter from "./routes/tracks";
 
 const app = express();
 
-// enable header access in client
+const whitelist =
+  process.env.NODE_ENV === "production"
+    ? [
+        "https://eesast.com",
+        "https://api.eesast.com",
+        "https://graphql.eesast.com",
+        "https://info.eesast.com"
+      ]
+    : ["http://localhost:28888"];
 app.use(
   cors({
-    exposedHeaders: "Location"
+    origin: function(origin, callback) {
+      if (!origin || whitelist.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    }
   })
 );
 
