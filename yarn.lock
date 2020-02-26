@@ -1358,12 +1358,12 @@ bcrypt-pbkdf@^1.0.2:
   dependencies:
     tweetnacl "^0.14.3"
 
-bcrypt@4.0.0:
-  version "4.0.0"
-  resolved "https://registry.npm.taobao.org/bcrypt/download/bcrypt-4.0.0.tgz#c973832823c45d6d5cbcd943f5f07dde546df252"
-  integrity sha1-yXODKCPEXW1cvNlD9fB93lRt8lI=
+bcrypt@3.0.8:
+  version "3.0.8"
+  resolved "https://registry.npm.taobao.org/bcrypt/download/bcrypt-3.0.8.tgz#fe437b7569faffc1105c3c3f6e7d2913e3d3bea5"
+  integrity sha1-/kN7dWn6/8EQXDw/bn0pE+PTvqU=
   dependencies:
-    node-addon-api "^2.0.0"
+    nan "2.14.0"
     node-pre-gyp "0.14.0"
 
 bin-build@^3.0.0:
@@ -4602,7 +4602,7 @@ mute-stream@0.0.8:
   resolved "https://registry.npm.taobao.org/mute-stream/download/mute-stream-0.0.8.tgz#1630c42b2251ff81e2a283de96a5497ea92e5e0d"
   integrity sha1-FjDEKyJR/4HiooPelqVJfqkuXg0=
 
-nan@^2.12.1:
+nan@2.14.0, nan@^2.12.1:
   version "2.14.0"
   resolved "https://registry.npm.taobao.org/nan/download/nan-2.14.0.tgz#7818f722027b2459a86f0295d434d1fc2336c52c"
   integrity sha1-eBj3IgJ7JFmobwKV1DTR/CM2xSw=
@@ -4652,11 +4652,6 @@ node-addon-api@^1.7.1:
   version "1.7.1"
   resolved "https://registry.npm.taobao.org/node-addon-api/download/node-addon-api-1.7.1.tgz#cf813cd69bb8d9100f6bdca6755fc268f54ac492"
   integrity sha1-z4E81pu42RAPa9ymdV/CaPVKxJI=
-
-node-addon-api@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.npm.taobao.org/node-addon-api/download/node-addon-api-2.0.0.tgz#f9afb8d777a91525244b01775ea0ddbe1125483b"
-  integrity sha1-+a+413epFSUkSwF3XqDdvhElSDs=
 
 node-environment-flags@1.0.6, node-environment-flags@^1.0.5:
   version "1.0.6"
