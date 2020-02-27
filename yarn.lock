@@ -321,9 +321,9 @@
     "@babel/helper-plugin-utils" "^7.8.3"
     "@babel/plugin-syntax-json-strings" "^7.8.0"
 
-"@babel/plugin-proposal-nullish-coalescing-operator@^7.8.3":
+"@babel/plugin-proposal-nullish-coalescing-operator@7.8.3", "@babel/plugin-proposal-nullish-coalescing-operator@^7.8.3":
   version "7.8.3"
-  resolved "https://registry.npm.taobao.org/@babel/plugin-proposal-nullish-coalescing-operator/download/@babel/plugin-proposal-nullish-coalescing-operator-7.8.3.tgz?cache=0&sync_timestamp=1578966818641&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2F%40babel%2Fplugin-proposal-nullish-coalescing-operator%2Fdownload%2F%40babel%2Fplugin-proposal-nullish-coalescing-operator-7.8.3.tgz#e4572253fdeed65cddeecfdab3f928afeb2fd5d2"
+  resolved "https://registry.npm.taobao.org/@babel/plugin-proposal-nullish-coalescing-operator/download/@babel/plugin-proposal-nullish-coalescing-operator-7.8.3.tgz?cache=0&sync_timestamp=1578952594995&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2F%40babel%2Fplugin-proposal-nullish-coalescing-operator%2Fdownload%2F%40babel%2Fplugin-proposal-nullish-coalescing-operator-7.8.3.tgz#e4572253fdeed65cddeecfdab3f928afeb2fd5d2"
   integrity sha1-5FciU/3u1lzd7s/as/kor+sv1dI=
   dependencies:
     "@babel/helper-plugin-utils" "^7.8.3"
@@ -353,7 +353,7 @@
     "@babel/helper-plugin-utils" "^7.8.3"
     "@babel/plugin-syntax-optional-catch-binding" "^7.8.0"
 
-"@babel/plugin-proposal-optional-chaining@^7.8.3":
+"@babel/plugin-proposal-optional-chaining@7.8.3", "@babel/plugin-proposal-optional-chaining@^7.8.3":
   version "7.8.3"
   resolved "https://registry.npm.taobao.org/@babel/plugin-proposal-optional-chaining/download/@babel/plugin-proposal-optional-chaining-7.8.3.tgz#ae10b3214cb25f7adb1f3bc87ba42ca10b7e2543"
   integrity sha1-rhCzIUyyX3rbHzvIe6QsoQt+JUM=
@@ -4666,7 +4666,7 @@ node-modules-regexp@^1.0.0:
   resolved "https://registry.npm.taobao.org/node-modules-regexp/download/node-modules-regexp-1.0.0.tgz#8d9dbe28964a4ac5712e9131642107c71e90ec40"
   integrity sha1-jZ2+KJZKSsVxLpExZCEHxx6Q7EA=
 
-node-pre-gyp@*, node-pre-gyp@0.14.0:
+node-pre-gyp@0.14.0:
   version "0.14.0"
   resolved "https://registry.npm.taobao.org/node-pre-gyp/download/node-pre-gyp-0.14.0.tgz#9a0596533b877289bcad4e143982ca3d904ddc83"
   integrity sha1-mgWWUzuHcom8rU4UOYLKPZBN3IM=
