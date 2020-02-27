@@ -26,6 +26,7 @@ before("Set up the database for testing", function(done) {
         useNewUrlParser: true,
         useCreateIndex: true,
         useFindAndModify: false,
+        useUnifiedTopology: true,
         user: process.env.DB_USER,
         pass: process.env.DB_PASS
       }
