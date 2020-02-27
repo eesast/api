@@ -15,6 +15,7 @@ before("Set up the database for testing", function(done) {
       useNewUrlParser: true,
       useCreateIndex: true,
       useFindAndModify: false,
+      useUnifiedTopology: true,
       user: "travis",
       pass: "test"
     });
