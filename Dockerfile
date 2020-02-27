@@ -1,6 +1,6 @@
 # Builder stage
 
-FROM node:12-alpine AS builder
+FROM node:13-alpine AS builder
 
 RUN apk add python3 make gcc g++
 
@@ -20,7 +20,7 @@ RUN yarn build
 
 # Runner stage
 
-FROM node:12-alpine
+FROM node:13-alpine
 ENV NODE_ENV=production
 WORKDIR /home/node/app
 

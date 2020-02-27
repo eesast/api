@@ -1,8 +1,10 @@
 language: node_js
+node_js: "13"
 services:
   - mongodb
-node_js: "node"
 cache: yarn
+before_install:
+  - curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
 install:
   - yarn
 before_script:
