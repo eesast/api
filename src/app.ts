@@ -18,51 +18,53 @@ import trackRouter from "./routes/tracks";
 
 const app = express();
 
-const whitelist =
-  process.env.NODE_ENV === "production"
-    ? [
-        "https://eesast.com",
-        "https://api.eesast.com",
-        "https://graphql.eesast.com",
-        "https://info.eesast.com"
-      ]
-    : ["http://localhost:28888"];
-app.use(
-  cors({
-    origin: function(origin, callback) {
-      if (!origin || whitelist.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+(async () => {
+  const whitelist =
+    process.env.NODE_ENV === "production"
+      ? [
+          "https://eesast.com",
+          "https://api.eesast.com",
+          "https://graphql.eesast.com",
+          "https://info.eesast.com"
+        ]
+      : ["http://localhost:28888"];
+  app.use(
+    cors({
+      origin: function(origin, callback) {
+        if (!origin || whitelist.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
       }
-    }
-  })
-);
+    })
+  );
 
-app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "debug"));
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "debug"));
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-app.use("/static", staticRouter);
-app.use("/static", express.static(serverConfig.staticFilePath));
-app.use("/v1", express.static(path.resolve(__dirname, "../docs")));
+  app.use("/static", staticRouter);
+  app.use("/static", express.static(serverConfig.staticFilePath));
+  app.use("/v1", express.static(path.resolve(__dirname, "../docs")));
 
-// install the Open-Api Validator
-const apiSpec = path.resolve(__dirname, "../docs/swagger.yaml");
-new OpenApiValidator({
-  apiSpec
-}).installSync(app);
+  // install the Open-Api Validator
+  const apiSpec = path.resolve(__dirname, "../docs/swagger.yaml");
+  await new OpenApiValidator({
+    apiSpec
+  }).install(app);
 
-app.use("/v1/articles", articleRouter);
-app.use("/v1/comments", commentRouter);
-app.use("/v1/contests", contestRouter);
-app.use("/v1/users", userRouter);
-app.use("/v1/teams", teamRouter);
-app.use("/v1/announcements", announcementRouter);
-app.use("/v1/emails", emailRouter);
-app.use("/v1/rooms", roomRouter);
-app.use("/v1/tracks", trackRouter);
+  app.use("/v1/articles", articleRouter);
+  app.use("/v1/comments", commentRouter);
+  app.use("/v1/contests", contestRouter);
+  app.use("/v1/users", userRouter);
+  app.use("/v1/teams", teamRouter);
+  app.use("/v1/announcements", announcementRouter);
+  app.use("/v1/emails", emailRouter);
+  app.use("/v1/rooms", roomRouter);
+  app.use("/v1/tracks", trackRouter);
 
-app.use(errorHandler);
+  app.use(errorHandler);
+})();
 
 export default app;
