@@ -29,9 +29,10 @@ router.get("/", authenticate([]), async (req, res, next) => {
   if (query.playerId) query.players = parseFloat(query.playerId);
   if (query.prePlayerId) query.prePlayers = parseFloat(query.prePlayerId);
   delete query.playerId;
+  delete query.prePlayerId;
 
   try {
-    const tracks = await Track.find(query, "-_id -__v -players");
+    const tracks = await Track.find(query, "-_id -__v -players -prePlayersId");
     res.json(tracks);
   } catch (e) {
     next(e);
@@ -60,7 +61,8 @@ router.post("/", authenticate(["root", "admin"]), async (req, res, next) => {
       description,
       open,
       preOpen,
-      players: []
+      players: [],
+      prePlayers: []
     });
     const result = await newTrack.save();
     res.setHeader("Location", `/v1/tracks/${result.id}`);
