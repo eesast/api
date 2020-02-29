@@ -8,6 +8,8 @@ export interface TrackModel extends mongoose.Document {
   players: [number];
   description: string;
   open: boolean;
+  preOpen: boolean;
+  prePlayers: [number];
 }
 
 const trackSchema = new mongoose.Schema<TrackModel>(
@@ -21,7 +23,13 @@ const trackSchema = new mongoose.Schema<TrackModel>(
       default: []
     },
     description: { type: String, default: "No description" },
-    open: { type: Boolean, default: false }
+    open: { type: Boolean, default: false },
+    preOpen: { type: Boolean, default: false },
+    prePlayers: {
+      type: [{ type: Number, index: true }],
+      index: true,
+      default: []
+    }
   },
   {
     collection: "tracks"

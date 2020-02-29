@@ -52,10 +52,29 @@ describe("Tracks", () => {
       .put(`/v1/tracks/${variables.trackId}`)
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
-        open: true
+        open: true,
+        preOpen: true
       })
       .expect(204));
 
+  it("Join a track and failed", () =>
+    request(Server)
+      .post(`/v1/tracks/${variables.trackId}/players`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .send({
+        playerId: 2018000000
+      })
+      .expect(403));
+
+  it("Join a track pre-contest and success", () =>
+    request(Server)
+      .post(`/v1/tracks/${variables.trackId}/players`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .send({
+        playerId: 2018000000,
+        pre: true
+      })
+      .expect(204));
   it("Join a track and success", () =>
     request(Server)
       .post(`/v1/tracks/${variables.trackId}/players`)
@@ -73,7 +92,7 @@ describe("Tracks", () => {
 
   it("Check players", () =>
     request(Server)
-      .get(`/v1/tracks/${variables.trackId}?playerInfo=true`)
+      .get(`/v1/tracks/${variables.trackId}?playerInfo=true&prePlayerInfo=true`)
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
       .then(r => {
@@ -81,6 +100,12 @@ describe("Tracks", () => {
           .to.be.an("object")
           .that.has.property("players");
         expect(r.body.players)
+          .to.be.a("array")
+          .of.length(1);
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("prePlayers");
+        expect(r.body.prePlayers)
           .to.be.a("array")
           .of.length(1);
       }));
