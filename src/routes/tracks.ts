@@ -201,7 +201,7 @@ router.get("/:id/players/:playerId", authenticate([]), async (req, res) => {
   if (track) return res.status(200).end();
   return res
     .status(404)
-    .send("404 Not Found: Track not found or players is not in");
+    .send("404 Not Found: Track not found or player is not in");
 });
 
 /**
@@ -218,7 +218,7 @@ router.get("/:id/prePlayers/:playerId", authenticate([]), async (req, res) => {
   return res
     .status(404)
     .send(
-      "404 Not Found: Track not found or players is not in its pre-contest"
+      "404 Not Found: Track not found or player is not in its pre-contest"
     );
 });
 
