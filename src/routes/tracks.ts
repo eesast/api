@@ -101,7 +101,6 @@ router.put("/:id", authenticate(["root", "admin"]), async (req, res, next) => {
  * POST join a track
  * @param {number} id track to join
  * @param {number} playerId user to join
- * @param {string} pre is pre default false
  * @returns status
  */
 router.post(
@@ -109,7 +108,6 @@ router.post(
   authenticate(["root", "admin", "self"]),
   async (req, res, next) => {
     const playerId = req.body.playerId;
-    const pre = req.body.pre || false;
     const trackId = req.params.id;
     if (req.auth.selfCheckRequired) {
       if (parseFloat(playerId) !== req.auth.id) {
@@ -120,44 +118,68 @@ router.post(
       const track = await Track.findOne({ id: trackId });
       if (!track)
         return res.status(404).send("404 Not Found: Track not found.");
-      if (!pre) {
-        if (!track.open && req.auth.selfCheckRequired)
-          return res.status(403).send("403 Forbidden: Track not opened.");
+      if (!track.open && req.auth.selfCheckRequired)
+        return res.status(403).send("403 Forbidden: Track not opened.");
 
-        if (
-          track.prePlayers.indexOf(playerId) == -1 &&
-          req.auth.selfCheckRequired
-        )
-          return res
-            .status(403)
-            .send(
-              "403 Forbidden: You cannot join a track without joining its pre contest"
-            );
+      if (
+        track.prePlayers.indexOf(playerId) == -1 &&
+        req.auth.selfCheckRequired
+      )
+        return res
+          .status(403)
+          .send(
+            "403 Forbidden: You cannot join a track without joining its pre contest"
+          );
 
-        const old = await Track.findOne({
-          players: playerId,
-          year: track.year
-        });
-        if (old)
-          return res
-            .status(409)
-            .send("409 Conflict: You should not join multiple tracks.");
+      const old = await Track.findOne({
+        players: playerId,
+        year: track.year
+      });
+      if (old)
+        return res
+          .status(409)
+          .send("409 Conflict: You should not join multiple tracks.");
 
-        await Track.findOneAndUpdate(
-          { id: trackId, players: { $ne: playerId } },
-          { $push: { players: playerId } }
-        );
-        return res.status(204).end();
-      } else if (pre) {
-        if (!track.preOpen && req.auth.selfCheckRequired)
-          return res.status(403).send("403 Forbidden: Track not pre-opened.");
+      await Track.findOneAndUpdate(
+        { id: trackId, players: { $ne: playerId } },
+        { $push: { players: playerId } }
+      );
+      return res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
-        await Track.findOneAndUpdate(
-          { id: trackId, players: { $ne: playerId } },
-          { $push: { prePlayers: playerId } }
-        );
-        return res.status(204).end();
+/**
+ * POST join a track's pre-contest
+ * @param {number} id track to join
+ * @param {number} playerId user to join
+ * @returns status
+ */
+router.post(
+  "/:id/prePlayers",
+  authenticate(["root", "admin", "self"]),
+  async (req, res, next) => {
+    const playerId = req.body.playerId;
+    const trackId = req.params.id;
+    if (req.auth.selfCheckRequired) {
+      if (parseFloat(playerId) !== req.auth.id) {
+        return res.status(401).send("401 Unauthorized: Permission denied");
       }
+    }
+    try {
+      const track = await Track.findOne({ id: trackId });
+      if (!track)
+        return res.status(404).send("404 Not Found: Track not found.");
+      if (!track.preOpen && req.auth.selfCheckRequired)
+        return res.status(403).send("403 Forbidden: Track not pre-opened.");
+
+      await Track.findOneAndUpdate(
+        { id: trackId, players: { $ne: playerId } },
+        { $push: { prePlayers: playerId } }
+      );
+      return res.status(204).end();
     } catch (err) {
       next(err);
     }
@@ -168,16 +190,12 @@ router.post(
  * Check whether a players joins a track
  * @param {number} id trackId
  * @param {number} playerId
- * @param {boolean} pre:query default false
  * @returns status
  */
 router.get("/:id/players/:playerId", authenticate([]), async (req, res) => {
   const playerId = req.params.playerId;
   const trackId = req.params.id;
-  const pre = req.query.pre || false;
-  const track = pre
-    ? await Track.findOne({ id: trackId, prePlayers: playerId })
-    : await Track.findOne({ id: trackId, players: playerId });
+  const track = await Track.findOne({ id: trackId, players: playerId });
   if (track) return res.status(200).end();
   return res
     .status(404)
@@ -185,10 +203,27 @@ router.get("/:id/players/:playerId", authenticate([]), async (req, res) => {
 });
 
 /**
+ * Check whether a players joins a track's Pre-contest
+ * @param {number} id trackId
+ * @param {number} playerId
+ * @returns status
+ */
+router.get("/:id/prePlayers/:playerId", authenticate([]), async (req, res) => {
+  const playerId = req.params.playerId;
+  const trackId = req.params.id;
+  const track = await Track.findOne({ id: trackId, prePlayers: playerId });
+  if (track) return res.status(200).end();
+  return res
+    .status(404)
+    .send(
+      "404 Not Found: Track not found or players is not in its pre-contest"
+    );
+});
+
+/**
  * DELETE leave a track
  * @param {number} id track to leave
  * @param {number} playerId user to leave
- * @param {string} pre:query is pre default false
  * @returns status
  */
 router.delete(
@@ -197,16 +232,47 @@ router.delete(
   async (req, res, next) => {
     const playerId = req.params.playerId;
     const trackId = req.params.id;
-    const pre = req.query.pre || false;
     if (req.auth.selfCheckRequired) {
       if (parseFloat(playerId) !== req.auth.id) {
         return res.status(401).send("401 Unauthorized: Permission denied");
       }
     }
     try {
-      const playersQuery = pre
-        ? { prePlayers: playerId }
-        : { players: playerId };
+      const playersQuery = { players: playerId };
+      const track = await Track.findOne({ id: trackId, ...playersQuery });
+      if (!track)
+        return res.status(404).send("404 Not Found: Track not existed");
+
+      if (!track.open && req.auth.selfCheckRequired)
+        return res.status(403).send("403 Forbidden: Track not opened.");
+
+      await Track.findOneAndUpdate({ id: trackId }, { $pull: playersQuery });
+      return res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * DELETE leave a track's pretest
+ * @param {number} id track to leave
+ * @param {number} playerId user to leave
+ * @returns status
+ */
+router.delete(
+  "/:id/prePlayers/:playerId",
+  authenticate(["root", "admin", "self"]),
+  async (req, res, next) => {
+    const playerId = req.params.playerId;
+    const trackId = req.params.id;
+    if (req.auth.selfCheckRequired) {
+      if (parseFloat(playerId) !== req.auth.id) {
+        return res.status(401).send("401 Unauthorized: Permission denied");
+      }
+    }
+    try {
+      const playersQuery = { prePlayers: playerId };
       const track = await Track.findOne({ id: trackId, ...playersQuery });
       if (!track)
         return res.status(404).send("404 Not Found: Track not existed");

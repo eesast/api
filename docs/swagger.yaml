@@ -2185,10 +2185,6 @@ paths:
                 playerId:
                   type: number
                   description: 选手ID
-                pre:
-                  type: boolean
-                  description: 加入正赛或者预赛
-                  default: false
       responses:
         204:
           description: Successful operation
@@ -2217,12 +2213,6 @@ paths:
         required: true
         schema:
           type: number
-      - name: pre
-        in: query
-        description: 是否为预赛
-        schema:
-          type: boolean
-          default: false
     get:
       tags:
         - tracks
@@ -2243,6 +2233,94 @@ paths:
         - tracks
       description: 选手退赛，需要管理员权限（无视赛道开放）或本人
       operationId: removePlayerFromTrack
+      security:
+        - bearerAuth: []
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Track is not open"
+        404:
+          description: "Not Found: Track does not exist"
+        500:
+          description: Server error
+
+  "/v1/tracks/{trackId}/prePlayers":
+    post:
+      tags:
+        - tracks
+      description: 添加选手，需要管理员权限（无视赛道开放）或本人
+      operationId: addPrePlayerToTrack
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          description: 要加入的赛道的 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - playerId
+              properties:
+                playerId:
+                  type: number
+                  description: 选手ID
+      responses:
+        204:
+          description: Successful operation
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Track is not open"
+        404:
+          description: "Not Found: Track does not exist"
+        409:
+          description: "Conflict: One could not join 2 tracks."
+        500:
+          description: Server error
+
+  "/v1/tracks/{trackId}/prePlayers/{playerId}":
+    parameters:
+      - name: trackId
+        in: path
+        description: 赛道 ID
+        required: true
+        schema:
+          type: number
+      - name: playerId
+        in: path
+        description: 选手 ID
+        required: true
+        schema:
+          type: number
+    get:
+      tags:
+        - tracks
+      description: 检验指定选手是否在指定赛道中
+      operationId: checkPrePlayerInTrack
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: 选手在该赛道中
+        404:
+          description: "Not Found: Track not found or player is not in"
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - tracks
+      description: 选手退赛，需要管理员权限（无视赛道开放）或本人
+      operationId: removePrePlayerFromTrack
       security:
         - bearerAuth: []
       responses:
