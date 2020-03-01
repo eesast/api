@@ -1144,11 +1144,11 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: userId
           in: query
+          description: 用户id
           schema:
             type: number
-            description: 用户 ID
       requestBody:
         $ref: "#/components/requestBodies/getPublicToken"
       responses:

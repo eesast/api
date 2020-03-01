@@ -385,7 +385,7 @@ router.post(
   "/token/apply",
   authenticate(["root", "self"]),
   async (req, res, next) => {
-    const id = req.query.id;
+    const id = req.query.userId;
     if (!id || !req.body.allowedEndpoints) {
       return res
         .status(422)
@@ -411,7 +411,7 @@ router.post(
         methods: ["POST"]
       },
       {
-        path: "/v1/users/token/verify",
+        path: "/v1/users/token/validate",
         methods: ["POST"]
       },
       {
