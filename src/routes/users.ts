@@ -415,6 +415,10 @@ router.post(
         methods: ["POST"]
       },
       {
+        path: "/v1/tracks/:id/prePlayers/:playerId",
+        methods: ["GET"]
+      },
+      {
         path: "/v1/tracks/:id/players/:playerId",
         methods: ["GET"]
       }
