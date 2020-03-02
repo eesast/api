@@ -52,10 +52,28 @@ describe("Tracks", () => {
       .put(`/v1/tracks/${variables.trackId}`)
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
-        open: true
+        open: true,
+        preOpen: true
       })
       .expect(204));
 
+  it("Join a track and failed", () =>
+    request(Server)
+      .post(`/v1/tracks/${variables.trackId}/players`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .send({
+        playerId: 2018000000
+      })
+      .expect(403));
+
+  it("Join a track pre-contest and success", () =>
+    request(Server)
+      .post(`/v1/tracks/${variables.trackId}/prePlayers`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .send({
+        playerId: 2018000000
+      })
+      .expect(204));
   it("Join a track and success", () =>
     request(Server)
       .post(`/v1/tracks/${variables.trackId}/players`)
@@ -71,9 +89,15 @@ describe("Tracks", () => {
       .set("Authorization", "bearer " + variables.user.token)
       .expect(200));
 
+  it("Check if a pre-player is in a track and success", () =>
+    request(Server)
+      .get(`/v1/tracks/${variables.trackId}/prePlayers/2018000000`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .expect(200));
+
   it("Check players", () =>
     request(Server)
-      .get(`/v1/tracks/${variables.trackId}?playerInfo=true`)
+      .get(`/v1/tracks/${variables.trackId}?playerInfo=true&prePlayerInfo=true`)
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
       .then(r => {
@@ -81,6 +105,12 @@ describe("Tracks", () => {
           .to.be.an("object")
           .that.has.property("players");
         expect(r.body.players)
+          .to.be.a("array")
+          .of.length(1);
+        expect(r.body)
+          .to.be.an("object")
+          .that.has.property("prePlayers");
+        expect(r.body.prePlayers)
           .to.be.a("array")
           .of.length(1);
       }));
@@ -93,6 +123,12 @@ describe("Tracks", () => {
         playerId: 2018000000
       })
       .expect(409));
+
+  it("Exit a track's preTest and success", () =>
+    request(Server)
+      .delete(`/v1/tracks/${variables.trackId}/prePlayers/2018000000`)
+      .set("Authorization", "bearer " + variables.user.token)
+      .expect(204));
 
   it("Exit a track and success", () =>
     request(Server)
