@@ -25,7 +25,10 @@ const app = express();
           "https://eesast.com",
           "https://api.eesast.com",
           "https://graphql.eesast.com",
-          "https://info.eesast.com"
+          "https://info.eesast.com",
+          "https://thu-ai.net",
+          "http://140.143.170.135",
+          "http://140.143.170.135:3000"
         ]
       : ["http://localhost:3000"];
   app.use(
