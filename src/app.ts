@@ -27,7 +27,7 @@ const app = express();
           "https://graphql.eesast.com",
           "https://info.eesast.com"
         ]
-      : ["http://localhost:3000"];
+      : ["https://eesast.com", "http://localhost:3000"];
   app.use(
     cors({
       origin: function(origin, callback) {
