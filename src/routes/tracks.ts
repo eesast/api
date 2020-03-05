@@ -12,7 +12,7 @@ const router = express.Router();
  * @param {boolean} open track open to join
  * @param {number} playerId track one have joined
  * @param {number} prePlayerId track preContest one have joined
- * @returns {Object[]} certain tracks without players
+ * @returns {Object[]} certain tracks without players and prePlayers
  */
 router.get("/", authenticate([]), async (req, res, next) => {
   const query: any = pick(req.query, [
@@ -32,7 +32,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
   delete query.prePlayerId;
 
   try {
-    const tracks = await Track.find(query, "-_id -__v -players -prePlayersId");
+    const tracks = await Track.find(query, "-_id -__v -players -prePlayers");
     res.json(tracks);
   } catch (e) {
     next(e);
