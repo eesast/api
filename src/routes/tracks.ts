@@ -279,7 +279,7 @@ router.delete(
       if (!track)
         return res.status(404).send("404 Not Found: Track not existed");
 
-      if (!track.open && req.auth.selfCheckRequired)
+      if (!track.preOpen && req.auth.selfCheckRequired)
         return res.status(403).send("403 Forbidden: Track not opened.");
 
       await Track.findOneAndUpdate({ id: trackId }, { $pull: playersQuery });
