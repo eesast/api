@@ -15,6 +15,7 @@ import userRouter from "./routes/users";
 import emailRouter from "./routes/emails";
 import roomRouter from "./routes/rooms";
 import trackRouter from "./routes/tracks";
+import codeRouter from "./routes/codes";
 
 const app = express();
 
@@ -72,6 +73,7 @@ const app = express();
   app.use("/v1/emails", emailRouter);
   app.use("/v1/rooms", roomRouter);
   app.use("/v1/tracks", trackRouter);
+  app.use("/v1/codes", codeRouter);
 
   app.use(errorHandler);
 })();

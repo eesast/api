@@ -40,6 +40,8 @@ tags:
     description: 房间
   - name: tracks
     description: 赛道
+  - name: codes
+    description: 代码
 
 paths:
   "/static/files/:filename":
@@ -2335,6 +2337,164 @@ paths:
         500:
           description: Server error
 
+  "/v1/codes":
+    get:
+      tags:
+        - codes
+      description: 需要已登录用户
+      operationId: getCodes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: contestId
+          description: 所属比赛
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: teamId
+          description: 队伍Id
+          required: false
+          schema:
+            type: number
+        - name: begin
+          in: query
+          description: 按时间降序排列，起始代码的位置
+          schema:
+            type: number
+        - name: end
+          in: query
+          description: 按时间降序排列，结束代码的位置
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Code"
+        403:
+          description: 403 Forbidden
+        404:
+          description: 404 Not Found
+        422:
+          description: 422 Missing contents
+        500:
+          description: Server Error
+
+    post:
+      description: 上传代码
+      tags:
+        - codes
+      operationId: addCode
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/addCode"
+      responses:
+        201:
+          description: Successful operation
+          headers:
+            Location:
+              description: 新上传代码的 URL
+              schema:
+                type: string
+        422:
+          description: 422 Missing contents
+        500:
+          description: Server Error
+
+  "/v1/codes/{codeId}":
+    get:
+      description: 通过ID获取代码
+      summary: Describe this route
+      operationId: getCodeById
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: codeId
+          required: true
+          description: 代码Id
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Code"
+        403:
+          description: Forbidden
+        500:
+          description: Server Error
+
+    put:
+      tags:
+        - codes
+      summary: 更新已存在的代码
+      description: 需要 `root` `organizer` 角色，所属队伍成员
+      operationId: updateCode
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: codeId
+          in: path
+          description: 待更新代码的 ID
+          required: true
+          schema:
+            type: number
+      requestBody:
+        $ref: "#/components/requestBodies/updateCode"
+      responses:
+        204:
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新代码的 URL
+              schema:
+                type: string
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Team / Code does not exist"
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - codes
+      summary: 删除代码
+      description: 需要 `root` 角色，所属队伍成员
+      operationId: deleteCode
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: codeId
+          in: path
+          description: 要删除代码的 ID
+          required: true
+          schema:
+            type: number
+      responses:
+        204:
+          description: Successful operation
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        404:
+          description: "Not Found: Code / Team does not exist"
+        500:
+          description: Server error
+
 components:
   schemas:
     Article:
@@ -2722,6 +2882,46 @@ components:
           description: 赛道预赛选手 ID 数组
           items:
             type: number
+    Code:
+      type: object
+      required:
+        - id
+        - contestId
+        - teamId
+        - name
+        - content
+        - language
+        - createdAt
+        - createdBy
+        - updatedAt
+        - updatedBy
+      properties:
+        id:
+          type: number
+          description: 自增值
+        contestId:
+          type: number
+          description: 对应比赛
+        teamId:
+          type: number
+          description: 归属队伍
+        name:
+          type: string
+          description: 文件名
+        content:
+          type: string
+          description: 代码内容
+        language:
+          type: string
+          description: 代码所用语言
+        createdAt:
+          $ref: "#/components/schemas/Date"
+        createdBy:
+          type: number
+        updatedAt:
+          $ref: "#/components/schemas/Date"
+        updatedBy:
+          type: number
 
   requestBodies:
     addArticle:
@@ -3172,6 +3372,52 @@ components:
               preOpen:
                 type: boolean
                 description: 赛道是否开放报名
+
+    addCode:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - teamId
+              - contestId
+              - content
+              - language
+            properties:
+              name:
+                type: string
+              contestId:
+                type: string
+              teamId:
+                type: number
+              content:
+                type: string
+                description: 代码内容
+              language:
+                type: string
+                description: 代码语言
+      description: 上传代码的提交格式
+      required: true
+
+    updateCode:
+      required: true
+      content:
+        application/json:
+          schema:
+            required:
+              - name
+              - content
+              - language
+            properties:
+              name:
+                type: string
+              content:
+                type: string
+                description: 代码内容
+              language:
+                type: string
+                description: 代码语言
 
   responses:
     BadRequest:
