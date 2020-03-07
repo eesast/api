@@ -1557,8 +1557,6 @@ paths:
           description: "Unprocessable Entity: Missing form data"
         500:
           description: Server error
-        503:
-          description: "Service Unavailable: Failed to stop or remove docker container"
 
   "/v1/announcements":
     get:
