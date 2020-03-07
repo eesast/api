@@ -10,6 +10,7 @@ export interface TeamModel extends mongoose.Document {
   members: number[];
   inviteCode: string;
   available: boolean;
+  score: number;
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
@@ -26,6 +27,7 @@ const teamSchema = new mongoose.Schema<TeamModel>(
     members: { type: [Number], required: true },
     inviteCode: { type: String, required: true },
     available: { type: Boolean, default: true },
+    score: Number,
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
