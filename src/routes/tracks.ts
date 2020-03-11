@@ -217,9 +217,7 @@ router.get("/:id/prePlayers/:playerId", authenticate([]), async (req, res) => {
   if (track) return res.status(200).end();
   return res
     .status(404)
-    .send(
-      "404 Not Found: Track not found or player is not in its pre-contest"
-    );
+    .send("404 Not Found: Track not found or player is not in its pre-contest");
 });
 
 /**

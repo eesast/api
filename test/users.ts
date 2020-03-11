@@ -141,7 +141,7 @@ describe("Users", () => {
       .expect(204)
       .then(r =>
         request(Server)
-          .get(r.header.location)
+          .get(r.header.location + "?detailInfo=true")
           .set("Authorization", "bearer " + variables.admin.token)
           .expect("Content-Type", /json/)
           .then(r => {
