@@ -27,7 +27,7 @@ const app = express();
           "https://graphql.eesast.com",
           "https://info.eesast.com"
         ]
-      : ["http://localhost:28888"];
+      : ["https://eesast.com", "http://localhost:28888"];
   app.use(
     cors({
       origin: function(origin, callback) {
@@ -40,7 +40,7 @@ const app = express();
     })
   );
 
-  app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "debug"));
+  app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "dev"));
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
