@@ -64,14 +64,14 @@ describe("Users", () => {
       methods: ["POST"]
     },
     {
-      path: "/v1/users/token/applicate",
+      path: "/v1/users/token/validate",
       methods: ["POST"]
     }
   ];
 
   it("Apply Public Token", () =>
     request(Server)
-      .post("/v1/users/token/apply?id=2017000000")
+      .post("/v1/users/token/apply?userId=2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
       .send({ allowedEndpoints })
       .expect("Content-Type", /json/)

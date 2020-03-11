@@ -5,6 +5,7 @@ import Team, { TeamModel } from "../models/team";
 import User from "../models/user";
 import pick from "lodash.pick";
 import checkToken from "../middlewares/checkToken";
+import checkServer from "../middlewares/checkServer";
 
 const router = express.Router();
 
@@ -250,6 +251,10 @@ router.put(
         }
       }
 
+      if (req.auth.role === "self") {
+        delete req.body.score;
+      }
+
       delete req.body.id;
       delete req.body.contestId;
       delete req.body.inviteCode;
@@ -416,5 +421,44 @@ router.delete(
     }
   }
 );
+
+/**
+ * PUT existing team score by server
+ * @param {Number} id - updating Team's id
+ * @return {String} Location header or Not Found
+ */
+router.put("/:id/score", checkServer, async (req, res, next) => {
+  try {
+    const team = await Team.findOne({ id: req.params.id });
+
+    if (!team) {
+      return res.status(404).send("404 Not Found: Team does not exist");
+    }
+
+    if (!req.body.score) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing form data");
+    }
+
+    const update = {
+      ...{ score: req.body.score },
+      updatedAt: new Date(),
+      updatedBy: req.auth.id
+    };
+
+    const newTeam = await Team.findOneAndUpdate(
+      {
+        id: req.params.id
+      },
+      update
+    );
+
+    res.setHeader("Location", "/v1/teams/" + newTeam!.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router;
