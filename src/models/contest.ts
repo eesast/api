@@ -7,6 +7,8 @@ export interface ContestModel extends mongoose.Document {
   name: string;
   year: number;
   enrollAvailable: boolean;
+  preOpen?: boolean;
+  track?: number;
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
@@ -20,6 +22,8 @@ const contestSchema = new mongoose.Schema<ContestModel>(
     name: { type: String, required: true }, // 清华大学电子工程系第一届软件设计大赛
     year: { type: Number, required: true },
     enrollAvailable: { type: Boolean, default: true },
+    preOpen: { type: Boolean },
+    track: { type: Number },
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },

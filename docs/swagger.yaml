@@ -1302,7 +1302,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description: "TODO: Solve status code conflict. --- Contest not available"
+          description: "TODO: Solve status code conflict. --- Contest not available / User not in track"
         409:
           description: Team name already exists / User is already in a team
         500:
@@ -1462,7 +1462,7 @@ paths:
         400:
           # TODO: Solve status code conflict
           # $ref: "#/components/responses/BadRequest"
-          description: "TODO: Solve status code conflict. --- Member does not exist / Contest not available"
+          description: "TODO: Solve status code conflict. --- Member does not exist / Contest not available / User not in track"
         401:
           $ref: "#/components/responses/UnauthorizedError"
         403:
@@ -2497,6 +2497,12 @@ components:
           type: boolean
           default: true
           description: 当前比赛是否正在进行，允许队伍操作
+        preOpen:
+          type: boolean
+          description: 当前是否在预赛报名期
+        track:
+          type: number
+          description: 赛道ID
         createdAt:
           $ref: "#/components/schemas/Date"
         createdBy:
@@ -2919,6 +2925,12 @@ components:
               year:
                 type: number
                 description: 比赛举办的年份
+              preOpen:
+                type: boolean
+                description: 比赛是否在预赛报名期
+              track:
+                type: number
+                description: 赛道ID
       description: 发布比赛的提交格式
       required: true
 
@@ -2940,6 +2952,12 @@ components:
               enrollAvailable:
                 type: boolean
                 description: 当前比赛是否正在进行，允许队伍操作
+              preOpen:
+                type: boolean
+                description: 比赛是否在预赛报名期
+              track:
+                type: number
+                description: 赛道ID
       description: 更新比赛的提交格式
       required: true
 
