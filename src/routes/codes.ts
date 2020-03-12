@@ -56,6 +56,14 @@ router.get("/", authenticate([]), async (req, res, next) => {
       });
       return res.json(codes);
     } else {
+      if (req.auth.role === "root") {
+        const codes = await Code.find({ ...query }, select, {
+          skip: begin,
+          limit: end - begin + 1,
+          sort: "-createdAt"
+        });
+        return res.json(codes);
+      }
       return res.status(422).send("422 UnProcessable Entity: Missing contents");
     }
   } catch (error) {

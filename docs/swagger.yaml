@@ -3388,7 +3388,7 @@ components:
               name:
                 type: string
               contestId:
-                type: string
+                type: number
               teamId:
                 type: number
               content:

@@ -22,7 +22,7 @@ describe("Rooms", () => {
       .post("/v1/rooms")
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
-        contestId: 2,
+        contestId: 3,
         teams: [1],
         ip: "192.168.0.0",
         port: 8080
@@ -68,6 +68,17 @@ describe("Rooms", () => {
       .then(() =>
         request(Server)
           .get("/v1/rooms/1")
+          .expect(404)
+      ));
+
+  it("Delete the contest with id 3", () =>
+    request(Server)
+      .delete("/v1/contests/3")
+      .set("Authorization", "bearer " + variables.admin.token)
+      .expect(204)
+      .then(() =>
+        request(Server)
+          .get("/v1/contests/3")
           .expect(404)
       ));
 });

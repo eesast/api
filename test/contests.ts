@@ -17,9 +17,9 @@ describe("Contests", () => {
       })
       .expect(201));
 
-  it("Update and get the contest with id 1", () =>
+  it("Update and get the contest with id 2", () =>
     request(Server)
-      .put("/v1/contests/1")
+      .put("/v1/contests/2")
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
         name: "new name",
@@ -51,14 +51,14 @@ describe("Contests", () => {
           .of.length(1);
       }));
 
-  it("Delete the contest with id 1", () =>
+  it("Delete the contest with id 2", () =>
     request(Server)
-      .delete("/v1/contests/1")
+      .delete("/v1/contests/2")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect(204)
       .then(() =>
         request(Server)
-          .get("/v1/contests/1")
+          .get("/v1/contests/2")
           .expect(404)
       ));
 });
