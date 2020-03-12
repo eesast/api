@@ -2,6 +2,7 @@ import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Contest from "../models/contest";
 import Team, { TeamModel } from "../models/team";
+import Track from "../models/track";
 import User from "../models/user";
 import pick from "lodash.pick";
 import checkToken from "../middlewares/checkToken";
@@ -110,6 +111,21 @@ router.post("/", authenticate([]), async (req, res, next) => {
       return res.status(400).send("400 Bad Request: Contest not available");
     }
 
+    if (contest.track) {
+      const track = await Track.findOne({ id: contest.track });
+      if (contest.preOpen === true) {
+        if (track!.prePlayers.indexOf(req.auth.id!) === -1) {
+          res.setHeader("Location", "/teams");
+          return res.status(400).send("400 Bad Request: User not in track");
+        }
+      } else {
+        if (track!.players.indexOf(req.body.id) === -1) {
+          res.setHeader("Location", "/teams");
+          return res.status(400).send("400 Bad Request: User not in track");
+        }
+      }
+    }
+
     if (
       await Team.findOne({ contestId: req.body.contestId, name: req.body.name })
     ) {
@@ -163,6 +179,21 @@ router.post(
       const contest = await Contest.findOne({ id: team.contestId });
       if (!contest || !contest.enrollAvailable) {
         return res.status(400).send("400 Bad Request: Contest not available");
+      }
+
+      if (contest.track) {
+        const track = await Track.findOne({ id: contest.track });
+        if (contest.preOpen === true) {
+          if (track!.prePlayers.indexOf(req.body.id) === -1) {
+            res.setHeader("Location", "/teams");
+            return res.status(400).send("400 Bad Request: User not in track");
+          }
+        } else {
+          if (track!.players.indexOf(req.body.id) === -1) {
+            res.setHeader("Location", "/teams");
+            return res.status(400).send("400 Bad Request: User not in track");
+          }
+        }
       }
 
       if (req.auth.selfCheckRequired) {
