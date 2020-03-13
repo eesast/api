@@ -1157,7 +1157,7 @@ acorn@^7.1.0:
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-7.1.0.tgz#949d36f2c292535da602283586c2477c57eb2d6c"
   integrity sha512-kL5CuoXA/dgxlBbVrflsflzQ3PAas7RYZB52NOm/6839iVYJgKMJ3cQJD+t2i5+qFa8h3MDpEOJiS64E8JLnSQ==
 
-ajv@^6.10.0, ajv@^6.10.2:
+ajv@^6.10.0, ajv@^6.10.2, ajv@^6.12.0:
   version "6.12.0"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.12.0.tgz#06d60b96d87b8454a5adaba86e7854da629db4b7"
   integrity sha512-D6gFiFA0RRLyUbvijN74DWAjXSFxWKaWP7mldxkVhyhAV3+SWA9HEJPHQ2c9soIeTFJqcSdFDGFgdqs1iUU2Hw==
@@ -2741,12 +2741,12 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@3.9.1:
-  version "3.9.1"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.9.1.tgz#c9275c6f5e31a2becce320e1a121e0969dcceeee"
-  integrity sha512-ETb3S54FVAvf+jPaD/eji9NqSLODQG64C9xkIR/3nwxxrBxN00E8S/w5ZklIalr3L3VdAv9tihenNgdlVFDCWw==
+express-openapi-validator@3.9.5:
+  version "3.9.5"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.9.5.tgz#94183b1c2a689a0e7a7d16cdcbaa135f1d566802"
+  integrity sha512-26TTQXmwAXhiD9NbxZszaxTTQl1J56r6WwxT0mDh9Td4Bb6n1no5/GsSGXIBvnhjHwbhl4ldWl1nMHLyVnsnDA==
   dependencies:
-    ajv "^6.10.2"
+    ajv "^6.12.0"
     content-type "^1.0.4"
     js-yaml "^3.13.1"
     json-schema-ref-parser "^7.1.2"
