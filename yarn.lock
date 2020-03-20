@@ -2,6 +2,15 @@
 # yarn lockfile v1
 
 
+"@apidevtools/json-schema-ref-parser@8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@apidevtools/json-schema-ref-parser/-/json-schema-ref-parser-8.0.0.tgz#9eb749499b3f8d919e90bb141e4b6f67aee4692d"
+  integrity sha512-n4YBtwQhdpLto1BaUCyAeflizmIbaloGShsPyRtFf5qdFJxfssj+GgLavczgKJFa3Bq+3St2CKcpRJdjtB4EBw==
+  dependencies:
+    "@jsdevtools/ono" "^7.1.0"
+    call-me-maybe "^1.0.1"
+    js-yaml "^3.13.1"
+
 "@babel/cli@7.8.4":
   version "7.8.4"
   resolved "https://registry.yarnpkg.com/@babel/cli/-/cli-7.8.4.tgz#505fb053721a98777b2b175323ea4f090b7d3c1c"
@@ -827,10 +836,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@jsdevtools/ono@7.1.0":
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/@jsdevtools/ono/-/ono-7.1.0.tgz#f4704197ed4ce4964ae8931f45c81d11e97742e5"
-  integrity sha512-VRKOYangbsWt11BcmDkscOJifWeu+tmHKKHonhkIkg4vKEE+EKDoAZeQ5dOir3kfIDEheNblm5oDJX9t7V/cDQ==
+"@jsdevtools/ono@7.1.1", "@jsdevtools/ono@^7.1.0":
+  version "7.1.1"
+  resolved "https://registry.yarnpkg.com/@jsdevtools/ono/-/ono-7.1.1.tgz#36034f9cb0fb456858c137a3f3e6d6db67ab5cc5"
+  integrity sha512-pu5fxkbLQWzRbBgfFbZfHXz0KlYojOfVdUhcNfy9lef8ZhBt0pckGr8g7zv4vPX4Out5vBNvqd/az4UaVWzZ9A==
 
 "@samverschueren/stream-to-observable@^0.3.0":
   version "0.3.0"
@@ -2118,7 +2127,7 @@ date-fns@^1.27.2:
   resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-1.30.1.tgz#2e71bf0b119153dbb4cc4e88d9ea5acfb50dc05c"
   integrity sha512-hBSVCvSmWC+QypYObzwGOd9wqdDpOt+0wl0KbU+R+uuZBS1jN8VsD1ss3irQDknRj5NvxiTF6oj/nDRnN/UQNw==
 
-deasync@^0.1.16:
+deasync@^0.1.19:
   version "0.1.19"
   resolved "https://registry.yarnpkg.com/deasync/-/deasync-0.1.19.tgz#e7ea89fcc9ad483367e8a48fe78f508ca86286e8"
   integrity sha512-oh3MRktfnPlLysCPpBpKZZzb4cUC/p0aA3SyRGp15lN30juJBTo/CiD0d4fR+f1kBtUQoJj1NE9RPNWQ7BQ9Mg==
@@ -2701,24 +2710,24 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@3.9.5:
-  version "3.9.5"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.9.5.tgz#94183b1c2a689a0e7a7d16cdcbaa135f1d566802"
-  integrity sha512-26TTQXmwAXhiD9NbxZszaxTTQl1J56r6WwxT0mDh9Td4Bb6n1no5/GsSGXIBvnhjHwbhl4ldWl1nMHLyVnsnDA==
+express-openapi-validator@3.10.0:
+  version "3.10.0"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.10.0.tgz#e7435ad28e9a2face4e7ea87206f5a7eccbd5659"
+  integrity sha512-+vNPS00ajussUlZZGJsbdUXOHp/hToF72mD5gfZ6zTcYilNHb7DaDEzmTm5/Y1gI86AO0IXNxZVpmZYw6LEkVw==
   dependencies:
     ajv "^6.12.0"
     content-type "^1.0.4"
     js-yaml "^3.13.1"
-    json-schema-ref-parser "^7.1.2"
+    json-schema-ref-parser "^8.0.0"
     lodash.merge "^4.6.2"
     lodash.uniq "^4.5.0"
     lodash.zipobject "^4.1.3"
     media-typer "^1.1.0"
     multer "^1.4.2"
-    ono "^7.0.0"
-    path-to-regexp "^6.0.0"
+    ono "^7.1.1"
+    path-to-regexp "^6.1.0"
   optionalDependencies:
-    deasync "^0.1.16"
+    deasync "^0.1.19"
 
 express@4.17.1:
   version "4.17.1"
@@ -3940,14 +3949,12 @@ json-parse-better-errors@^1.0.1:
   resolved "https://registry.yarnpkg.com/json-parse-better-errors/-/json-parse-better-errors-1.0.2.tgz#bb867cfb3450e69107c131d1c514bab3dc8bcaa9"
   integrity sha512-mrqyZKfX5EhL7hvqcV6WG1yYjnjeuYDzDhhcAAUrq8Po85NBQBJP+ZDUT75qZQ98IkUoBqdkExkukOU7Ts2wrw==
 
-json-schema-ref-parser@^7.1.2:
-  version "7.1.4"
-  resolved "https://registry.yarnpkg.com/json-schema-ref-parser/-/json-schema-ref-parser-7.1.4.tgz#abb3f2613911e9060dc2268477b40591753facf0"
-  integrity sha512-AD7bvav0vak1/63w3jH8F7eHId/4E4EPdMAEZhGxtjktteUv9dnNB/cJy6nVnMyoTPBJnLwFK6tiQPSTeleCtQ==
+json-schema-ref-parser@^8.0.0:
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/json-schema-ref-parser/-/json-schema-ref-parser-8.0.0.tgz#7c758fac2cf822c05e837abd0a13f8fa2c15ffd4"
+  integrity sha512-2P4icmNkZLrBr6oa5gSZaDSol/oaBHYkoP/8dsw63E54NnHGRhhiFuy9yFoxPuSm+uHKmeGxAAWMDF16SCHhcQ==
   dependencies:
-    call-me-maybe "^1.0.1"
-    js-yaml "^3.13.1"
-    ono "^6.0.0"
+    "@apidevtools/json-schema-ref-parser" "8.0.0"
 
 json-schema-traverse@^0.4.1:
   version "0.4.1"
@@ -4906,17 +4913,12 @@ onetime@^5.1.0:
   dependencies:
     mimic-fn "^2.1.0"
 
-ono@^6.0.0:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/ono/-/ono-6.0.1.tgz#1bc14ffb8af1e5db3f7397f75b88e4a2d64bbd71"
-  integrity sha512-5rdYW/106kHqLeG22GE2MHKq+FlsxMERZev9DCzQX1zwkxnFwBivSn5i17a5O/rDmOJOdf4Wyt80UZljzx9+DA==
-
-ono@^7.0.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/ono/-/ono-7.1.0.tgz#0b760bcdc1c5b9643ae0a4bbbc1668a89555888f"
-  integrity sha512-3S6ebTEqyLRs3R+ms8+K3QQVPsBjoZ5XtM4oo8uNVXDLjwNmUwIXLmXBfXIcwjU8QXJsenLxw2/4RMcGwNhm3w==
+ono@^7.1.1:
+  version "7.1.1"
+  resolved "https://registry.yarnpkg.com/ono/-/ono-7.1.1.tgz#38dc33bd8dfc016a47b7b16a7241be633822d382"
+  integrity sha512-k7lbQdKDAjJ+022kB2I3ONAWvnjI/KnfdvKzCatERyUcCwedrTECcUBa8WMEbXrFc7tAhfurMXJE1oZkK+2XLg==
   dependencies:
-    "@jsdevtools/ono" "7.1.0"
+    "@jsdevtools/ono" "7.1.1"
 
 opencollective-postinstall@^2.0.2:
   version "2.0.2"
@@ -5157,7 +5159,7 @@ path-to-regexp@0.1.7:
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.7.tgz#df604178005f522f15eb4490e7247a1bfaa67f8c"
   integrity sha1-32BBeABfUi8V60SQ5yR6G/qmf4w=
 
-path-to-regexp@^6.0.0:
+path-to-regexp@^6.1.0:
   version "6.1.0"
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-6.1.0.tgz#0b18f88b7a0ce0bfae6a25990c909ab86f512427"
   integrity sha512-h9DqehX3zZZDCEm+xbfU0ZmwCGFCAAraPJWMXJ4+v32NjZJilVg3k1TcKsRgIb8IQ/izZSaydDc1OhJCZvs2Dw==
