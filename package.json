@@ -47,7 +47,7 @@
     "@babel/preset-typescript": "7.9.0",
     "@babel/register": "7.9.0",
     "@types/bcrypt": "3.0.0",
-    "@types/chai": "4.2.10",
+    "@types/chai": "4.2.11",
     "@types/cors": "2.8.6",
     "@types/debug": "4.1.5",
     "@types/dockerode": "2.5.25",
