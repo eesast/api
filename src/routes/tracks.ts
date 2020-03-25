@@ -195,8 +195,8 @@ router.post(
  * @returns status
  */
 router.get("/:id/players/:playerId", authenticate([]), async (req, res) => {
-  const playerId = req.params.playerId;
-  const trackId = req.params.id;
+  const playerId = parseInt(req.params.playerId, 10);
+  const trackId = parseInt(req.params.id, 10);
   const track = await Track.findOne({ id: trackId, players: playerId });
   if (track) return res.status(200).end();
   return res
@@ -211,8 +211,8 @@ router.get("/:id/players/:playerId", authenticate([]), async (req, res) => {
  * @returns status
  */
 router.get("/:id/prePlayers/:playerId", authenticate([]), async (req, res) => {
-  const playerId = req.params.playerId;
-  const trackId = req.params.id;
+  const playerId = parseInt(req.params.playerId, 10);
+  const trackId = parseInt(req.params.id, 10);
   const track = await Track.findOne({ id: trackId, prePlayers: playerId });
   if (track) return res.status(200).end();
   return res
@@ -230,10 +230,10 @@ router.delete(
   "/:id/players/:playerId",
   authenticate(["root", "admin", "self"]),
   async (req, res, next) => {
-    const playerId = req.params.playerId;
-    const trackId = req.params.id;
+    const playerId = parseInt(req.params.playerId, 10);
+    const trackId = parseInt(req.params.id, 10);
     if (req.auth.selfCheckRequired) {
-      if (parseFloat(playerId) !== req.auth.id) {
+      if (playerId !== req.auth.id) {
         return res.status(401).send("401 Unauthorized: Permission denied");
       }
     }
@@ -264,10 +264,10 @@ router.delete(
   "/:id/prePlayers/:playerId",
   authenticate(["root", "admin", "self"]),
   async (req, res, next) => {
-    const playerId = req.params.playerId;
-    const trackId = req.params.id;
+    const playerId = parseInt(req.params.playerId, 10);
+    const trackId = parseInt(req.params.id, 10);
     if (req.auth.selfCheckRequired) {
-      if (parseFloat(playerId) !== req.auth.id) {
+      if (playerId !== req.auth.id) {
         return res.status(401).send("401 Unauthorized: Permission denied");
       }
     }

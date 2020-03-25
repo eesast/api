@@ -5,7 +5,6 @@ import Team, { TeamModel } from "../models/team";
 import Track from "../models/track";
 import User from "../models/user";
 import pick from "lodash.pick";
-import checkToken from "../middlewares/checkToken";
 import checkServer from "../middlewares/checkServer";
 
 const router = express.Router();
@@ -18,7 +17,7 @@ const router = express.Router();
  * @param {number} end
  * @returns {Object[]} teams of given contest
  */
-router.get("/", checkToken, async (req, res, next) => {
+router.get("/", authenticate([]), async (req, res, next) => {
   const query = pick(req.query, ["contestId"]);
 
   const begin = parseInt(req.query.begin, 10) || 0;
@@ -35,12 +34,12 @@ router.get("/", checkToken, async (req, res, next) => {
   try {
     if (req.query.self !== true) {
       teams = await Team.find(
-        { ...query, members: { $nin: req.auth.id } },
+        { ...query, members: { $nin: [req.auth.id!] } },
         select
       );
     }
     teamSelf = await Team.find(
-      { ...query, members: { $in: req.auth.id } },
+      { ...query, members: { $in: [req.auth.id!] } },
       "-_id -__v"
     );
 
@@ -61,7 +60,7 @@ router.get("/", checkToken, async (req, res, next) => {
  * @param {number} id
  * @returns {Object} team with id
  */
-router.get("/:id", checkToken, async (req, res, next) => {
+router.get("/:id", authenticate([]), async (req, res, next) => {
   try {
     const team = await Team.findOne({ id: req.params.id }, "-_id -__v");
 
@@ -135,7 +134,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
     if (
       await Team.findOne({
         contestId: req.body.contestId,
-        members: { $in: req.auth.id }
+        members: { $in: [req.auth.id!] }
       })
     ) {
       res.setHeader("Location", "/teams");
@@ -305,7 +304,7 @@ router.put(
                   !(await Team.findOne({
                     id: { $ne: req.params.id },
                     contestId: team.contestId,
-                    members: { $in: cur }
+                    members: { $in: [cur] }
                   }))
               ),
             Promise.resolve<boolean | null>(true)
