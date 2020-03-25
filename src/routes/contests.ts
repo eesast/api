@@ -37,7 +37,7 @@ router.get("/:id", async (req, res, next) => {
       return res.status(404).send("404 Not Found: Contest does not exist");
     }
 
-    const num = await Team.count({ contestId: req.params.id });
+    const num = await Team.count({ contestId: parseInt(req.params.id, 10) });
 
     res.json({ ...contest.toObject(), totalTeams: num });
   } catch (err) {

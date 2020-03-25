@@ -81,7 +81,7 @@ router.post("/:id/join", checkServer, async (req, res, next) => {
 
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: userId }
+      members: { $in: [userId] }
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
@@ -132,7 +132,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
 
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: userId }
+      members: { $in: [userId] }
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
