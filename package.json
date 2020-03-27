@@ -13,7 +13,7 @@
     "typecheck": "tsc --noUnusedLocals"
   },
   "dependencies": {
-    "@babel/runtime": "7.9.0",
+    "@babel/runtime": "7.9.2",
     "bcrypt": "3.0.8",
     "cors": "2.8.5",
     "cwebp-bin": "5.1.0",
