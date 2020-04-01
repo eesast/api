@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import Docker from "dockerode";
 import secret from "../configs/secret";
-import { image, server } from "../configs/docker";
+import { image } from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
 import checkServer from "../middlewares/checkServer";
 import Contest from "../models/contest";
@@ -164,6 +164,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
  */
 router.post("/", authenticate([]), async (req, res, next) => {
   const body = pick(req.body, ["contestId", "team", "ip", "port"]);
+  const port = body.port;
 
   try {
     const contest = await Contest.findOne({ id: req.body.contestId });
@@ -177,19 +178,34 @@ router.post("/", authenticate([]), async (req, res, next) => {
       updatedBy: req.auth.id
     }).save();
 
-    const token = jwt.sign({ roomId: room.id, server }, secret, {
-      expiresIn: "12h"
-    });
+    // const token = jwt.sign({ roomId: room.id, server }, secret, {
+    //   expiresIn: "12h"
+    // });
 
     if (process.env.NODE_ENV === "production") {
       const docker = new Docker();
       try {
         const container = await docker.createContainer({
           Image: image,
-          Cmd: [`bash -c "echo ${token}"`],
+          Cmd: [
+            "--port",
+            `${port}`,
+            "--debugLevel",
+            "1",
+            "--playerCount",
+            "1",
+            "--agentCount",
+            "1",
+            "--gameTime",
+            "600"
+          ],
           AttachStdin: false,
           AttachStdout: false,
           AttachStderr: false,
+          ExposedPorts: { [`${port}/tcp`]: {} },
+          HostConfig: {
+            PortBindings: { [`${port}/tcp`]: [{ HostPort: `${port}` }] }
+          },
           Tty: false,
           OpenStdin: false,
           StdinOnce: false,
