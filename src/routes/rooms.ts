@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import Docker from "dockerode";
 import secret from "../configs/secret";
-import { image } from "../configs/docker";
+import { image, server } from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
 import checkServer from "../middlewares/checkServer";
 import Contest from "../models/contest";
@@ -178,9 +178,9 @@ router.post("/", authenticate([]), async (req, res, next) => {
       updatedBy: req.auth.id
     }).save();
 
-    // const token = jwt.sign({ roomId: room.id, server }, secret, {
-    //   expiresIn: "12h"
-    // });
+    const token = jwt.sign({ roomId: room.id, server }, secret, {
+      expiresIn: "12h"
+    });
 
     if (process.env.NODE_ENV === "production") {
       const docker = new Docker();
@@ -197,7 +197,9 @@ router.post("/", authenticate([]), async (req, res, next) => {
             "--agentCount",
             "1",
             "--gameTime",
-            "600"
+            "600",
+            "--token",
+            `${token}`
           ],
           AttachStdin: false,
           AttachStdout: false,
