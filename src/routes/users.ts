@@ -39,7 +39,11 @@ router.get("/", authenticate([]), async (req, res, next) => {
     if (group === "teacher") {
       select = select + " -group -role";
     } else {
-      select = select + " -group -role -email -phone";
+      select = select + " -group -role -email -phone -name";
+      if (!Object.keys(query).length && group !== "admin") {
+        res.json([]);
+        return;
+      }
     }
   }
 
@@ -85,7 +89,7 @@ router.post("/details", authenticate([]), async (req, res, next) => {
     if (group === "teacher") {
       select = select + " -group -role";
     } else {
-      select = select + " -group -role -email -phone";
+      select = select + " -group -role -email -phone -name";
     }
   }
 
@@ -123,7 +127,7 @@ router.get("/:id", authenticate([]), async (req, res, next) => {
     }
   }
   if (!hasDetailInfo) {
-    select = select + " -group -role -email -phone";
+    select = select + " -group -role -email -phone -name";
   }
 
   try {

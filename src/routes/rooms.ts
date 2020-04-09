@@ -81,7 +81,7 @@ router.post("/:id/join", checkServer, async (req, res, next) => {
 
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: userId }
+      members: { $in: [userId] }
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
@@ -132,7 +132,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
 
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: userId }
+      members: { $in: [userId] }
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
@@ -164,6 +164,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
  */
 router.post("/", authenticate([]), async (req, res, next) => {
   const body = pick(req.body, ["contestId", "team", "ip", "port"]);
+  const port = body.port;
 
   try {
     const contest = await Contest.findOne({ id: req.body.contestId });
@@ -186,10 +187,27 @@ router.post("/", authenticate([]), async (req, res, next) => {
       try {
         const container = await docker.createContainer({
           Image: image,
-          Cmd: [`bash -c "echo ${token}"`],
+          Cmd: [
+            "--port",
+            `${port}`,
+            "--debugLevel",
+            "1",
+            "--playerCount",
+            "1",
+            "--agentCount",
+            "1",
+            "--gameTime",
+            "600",
+            "--token",
+            `${token}`
+          ],
           AttachStdin: false,
           AttachStdout: false,
           AttachStderr: false,
+          ExposedPorts: { [`${port}/tcp`]: {} },
+          HostConfig: {
+            PortBindings: { [`${port}/tcp`]: [{ HostPort: `${port}` }] }
+          },
           Tty: false,
           OpenStdin: false,
           StdinOnce: false,

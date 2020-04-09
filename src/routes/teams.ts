@@ -2,9 +2,10 @@ import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Contest from "../models/contest";
 import Team, { TeamModel } from "../models/team";
+import Track from "../models/track";
 import User from "../models/user";
 import pick from "lodash.pick";
-import checkToken from "../middlewares/checkToken";
+import checkServer from "../middlewares/checkServer";
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ const router = express.Router();
  * @param {number} end
  * @returns {Object[]} teams of given contest
  */
-router.get("/", checkToken, async (req, res, next) => {
+router.get("/", authenticate([]), async (req, res, next) => {
   const query = pick(req.query, ["contestId"]);
 
   const begin = parseInt(req.query.begin, 10) || 0;
@@ -33,12 +34,12 @@ router.get("/", checkToken, async (req, res, next) => {
   try {
     if (req.query.self !== true) {
       teams = await Team.find(
-        { ...query, members: { $nin: req.auth.id } },
+        { ...query, members: { $nin: [req.auth.id!] } },
         select
       );
     }
     teamSelf = await Team.find(
-      { ...query, members: { $in: req.auth.id } },
+      { ...query, members: { $in: [req.auth.id!] } },
       "-_id -__v"
     );
 
@@ -59,7 +60,7 @@ router.get("/", checkToken, async (req, res, next) => {
  * @param {number} id
  * @returns {Object} team with id
  */
-router.get("/:id", checkToken, async (req, res, next) => {
+router.get("/:id", authenticate([]), async (req, res, next) => {
   try {
     const team = await Team.findOne({ id: req.params.id }, "-_id -__v");
 
@@ -109,6 +110,21 @@ router.post("/", authenticate([]), async (req, res, next) => {
       return res.status(400).send("400 Bad Request: Contest not available");
     }
 
+    if (contest.track) {
+      const track = await Track.findOne({ id: contest.track });
+      if (contest.preOpen === true) {
+        if (track!.prePlayers.indexOf(req.auth.id!) === -1) {
+          res.setHeader("Location", "/teams");
+          return res.status(400).send("400 Bad Request: User not in track");
+        }
+      } else {
+        if (track!.players.indexOf(req.body.id) === -1) {
+          res.setHeader("Location", "/teams");
+          return res.status(400).send("400 Bad Request: User not in track");
+        }
+      }
+    }
+
     if (
       await Team.findOne({ contestId: req.body.contestId, name: req.body.name })
     ) {
@@ -118,7 +134,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
     if (
       await Team.findOne({
         contestId: req.body.contestId,
-        members: { $in: req.auth.id }
+        members: { $in: [req.auth.id!] }
       })
     ) {
       res.setHeader("Location", "/teams");
@@ -162,6 +178,21 @@ router.post(
       const contest = await Contest.findOne({ id: team.contestId });
       if (!contest || !contest.enrollAvailable) {
         return res.status(400).send("400 Bad Request: Contest not available");
+      }
+
+      if (contest.track) {
+        const track = await Track.findOne({ id: contest.track });
+        if (contest.preOpen === true) {
+          if (track!.prePlayers.indexOf(req.body.id) === -1) {
+            res.setHeader("Location", "/teams");
+            return res.status(400).send("400 Bad Request: User not in track");
+          }
+        } else {
+          if (track!.players.indexOf(req.body.id) === -1) {
+            res.setHeader("Location", "/teams");
+            return res.status(400).send("400 Bad Request: User not in track");
+          }
+        }
       }
 
       if (req.auth.selfCheckRequired) {
@@ -250,6 +281,10 @@ router.put(
         }
       }
 
+      if (req.auth.role === "self") {
+        delete req.body.score;
+      }
+
       delete req.body.id;
       delete req.body.contestId;
       delete req.body.inviteCode;
@@ -269,7 +304,7 @@ router.put(
                   !(await Team.findOne({
                     id: { $ne: req.params.id },
                     contestId: team.contestId,
-                    members: { $in: cur }
+                    members: { $in: [cur] }
                   }))
               ),
             Promise.resolve<boolean | null>(true)
@@ -416,5 +451,44 @@ router.delete(
     }
   }
 );
+
+/**
+ * PUT existing team score by server
+ * @param {Number} id - updating Team's id
+ * @return {String} Location header or Not Found
+ */
+router.put("/:id/score", checkServer, async (req, res, next) => {
+  try {
+    const team = await Team.findOne({ id: req.params.id });
+
+    if (!team) {
+      return res.status(404).send("404 Not Found: Team does not exist");
+    }
+
+    if (!req.body.score) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing form data");
+    }
+
+    const update = {
+      ...{ score: req.body.score },
+      updatedAt: new Date(),
+      updatedBy: req.auth.id
+    };
+
+    const newTeam = await Team.findOneAndUpdate(
+      {
+        id: req.params.id
+      },
+      update
+    );
+
+    res.setHeader("Location", "/v1/teams/" + newTeam!.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router;
