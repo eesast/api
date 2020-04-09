@@ -2541,6 +2541,39 @@ paths:
         500:
           description: Server error
 
+  "/v1/codes/{codeId}/compile":
+    post:
+      description: 编译代码
+      tags:
+        - codes
+      operationId: compileCode
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: codeId
+          in: path
+          description: 要编译代码的 ID
+          required: true
+          schema:
+            type: number
+
+      responses:
+        200:
+          description: Successful operation
+          headers:
+            Location:
+              description: 编译信息（暂未区分是否成功）
+              schema:
+                type: string
+        400:
+          description: 400 Error (TODO Add info)
+        404:
+          description: 404 Code does not exist
+        409:
+          description: 409 Code is compiling
+        500:
+          description: Server Error
+
 components:
   schemas:
     Article:

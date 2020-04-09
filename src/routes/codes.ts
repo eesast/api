@@ -1,4 +1,7 @@
 import express from "express";
+import Docker from "dockerode";
+import * as fs from "fs";
+import * as child from "child_process";
 import authenticate from "../middlewares/authenticate";
 import Code from "../models/code";
 import Team from "../models/team";
@@ -133,6 +136,72 @@ router.post("/", authenticate(["root", "self"]), async (req, res, next) => {
     next(error);
   }
 });
+
+/**
+ * POST compile code
+ * @param {number} id
+ * @returns Success or Logs
+ */
+router.post(
+  "/:id/compile",
+  authenticate(["root", "self"]),
+  async (req, res) => {
+    try {
+      const docker = new Docker();
+      const code = await Code.findOne({ id: req.params.id });
+
+      if (!code) {
+        return res.status(404).send("404 Not Found: Code does not exist");
+      } else {
+        const container = docker.getContainer(`THUAI_Compiler_${code.id}`);
+        if (!container) {
+          const compileContainer = await docker.createContainer({
+            Image: "eesast/thuai_compiler",
+            name: `THUAI_Compiler_${code.id}`,
+            Cmd: ["-itd", "/bin/bash"]
+          });
+          await compileContainer.start();
+          await compileContainer.exec({
+            Cmd: [
+              "/bin/bash",
+              "-c",
+              `echo -e ${code.content} > /usr/local/CAPI/src/player.cpp && sh /usr/local/CAPI/compile.sh`
+            ]
+          });
+          let compileInfo = "";
+          fs.exists(`/data/thuai/${code.teamId}`, function(exits) {
+            if (exits) {
+              child.exec(
+                `docker cp ${compileContainer.id}:/usr/local/CAPI/build/AI /data/thuai/${code.teamId}/`
+              );
+            } else {
+              child.exec(
+                `mkdir /data/thuai/${code.teamId}/ && docker cp ${compileContainer.id}:/usr/local/CAPI/build/AI /data/thuai/${code.teamId}/`
+              );
+            }
+          });
+
+          child.exec(
+            `docker exec ${compileContainer.id} cat /usr/local/CAPI/build/error.txt`,
+            function(error, stdout) {
+              if (error) {
+                console.error("Error: Failed to get compilation information");
+                return;
+              }
+              compileInfo = stdout;
+            }
+          );
+
+          return res.status(200).send(compileInfo);
+        } else {
+          return res.status(409).send("409 Conflict: Code is compiling");
+        }
+      }
+    } catch (error) {
+      return res.status(400);
+    }
+  }
+);
 
 /**
  * PUT existing code
