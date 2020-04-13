@@ -8,6 +8,7 @@ export interface CodeModel extends mongoose.Document {
   name: string;
   content: string;
   language: string;
+  compileInfo: string;
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
@@ -22,6 +23,7 @@ const codeSchema = new mongoose.Schema<CodeModel>(
     name: { type: String, required: true },
     content: { type: String, required: true },
     language: { type: String, required: true },
+    compileInfo: String,
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },

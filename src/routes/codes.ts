@@ -1,8 +1,11 @@
 import express from "express";
 import Docker from "dockerode";
 import * as fs from "fs";
-import * as child from "child_process";
+import jwt from "jsonwebtoken";
+import secret from "../configs/secret";
+import { server } from "../configs/docker";
 import authenticate from "../middlewares/authenticate";
+import checkServer from "../middlewares/checkServer";
 import Code from "../models/code";
 import Team from "../models/team";
 import pick from "lodash.pick";
@@ -147,52 +150,48 @@ router.post(
   authenticate(["root", "self"]),
   async (req, res) => {
     try {
-      const docker = new Docker();
       const code = await Code.findOne({ id: req.params.id });
 
       if (!code) {
         return res.status(404).send("404 Not Found: Code does not exist");
       } else {
-        const container = docker.getContainer(`THUAI_Compiler_${code.id}`);
-        if (!container) {
-          const compileContainer = await docker.createContainer({
-            Image: "eesast/thuai_compiler",
-            name: `THUAI_Compiler_${code.id}`,
-            Cmd: ["-itd", "/bin/bash"]
-          });
-          await compileContainer.start();
-          await compileContainer.exec({
-            Cmd: [
-              "/bin/bash",
-              "-c",
-              `echo -e ${code.content} > /usr/local/CAPI/src/player.cpp && sh /usr/local/CAPI/compile.sh`
-            ]
-          });
-          let compileInfo = "";
-          fs.exists(`/data/thuai/${code.teamId}`, function(exits) {
-            if (exits) {
-              child.exec(
-                `docker cp ${compileContainer.id}:/usr/local/CAPI/build/AI /data/thuai/${code.teamId}/`
-              );
-            } else {
-              child.exec(
-                `mkdir /data/thuai/${code.teamId}/ && docker cp ${compileContainer.id}:/usr/local/CAPI/build/AI /data/thuai/${code.teamId}/`
-              );
-            }
-          });
+        const docker = new Docker();
+        // 判断是否存在正在运行的目标container
+        const containers = await docker.listContainers();
+        let containerExist = false;
+        containers.forEach(containerInfo => {
+          if (containerInfo.Names.includes(`THUAI_Compiler_${code.id}`)) {
+            containerExist = true;
+          }
+        });
 
-          child.exec(
-            `docker exec ${compileContainer.id} cat /usr/local/CAPI/build/error.txt`,
-            function(error, stdout) {
-              if (error) {
-                console.error("Error: Failed to get compilation information");
-                return;
-              }
-              compileInfo = stdout;
-            }
+        if (!containerExist) {
+          fs.mkdirSync(`/data/thuai/${code.teamId}`, { recursive: true });
+          fs.writeFileSync(
+            `/data/thuai/${code.teamId}/player.cpp`,
+            code.content,
+            "utf8"
           );
 
-          return res.status(200).send(compileInfo);
+          const token = jwt.sign({ codeId: code.id, server }, secret, {
+            expiresIn: "12h"
+          });
+
+          const compileContainer = await docker.createContainer({
+            Image: "eesast/thuai_compiler:v2.1",
+            HostConfig: {
+              Binds: [`/data/thuai/${code.teamId}:/usr/local/mnt`],
+              NetworkMode: "host"
+            },
+            Cmd: ["sh", "/usr/local/CAPI/compile.sh"],
+            Env: [`THUAI_COMPILE_TOKEN=${token}`],
+            name: `THUAI_Compiler_${code.id}`,
+            AttachStdin: false,
+            AttachStdout: false,
+            AttachStderr: false
+          });
+          await compileContainer.start();
+          return res.status(200).send("200 Success: Compile Start");
         } else {
           return res.status(409).send("409 Conflict: Code is compiling");
         }
@@ -202,6 +201,70 @@ router.post(
     }
   }
 );
+
+/**
+ * PUT existing code compile info
+ * @param {number} id
+ * @returns {String} Location header or Not Found
+ */
+router.put("/:id/compile", checkServer, async (req, res, next) => {
+  try {
+    const code = await Code.findOne({ id: req.params.id });
+
+    if (!code) {
+      return res.status(404).send("404 Not Found: Code does not exits");
+    }
+
+    if (!req.body.compileInfo) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing form data");
+    }
+
+    const docker = new Docker();
+
+    const containers = await docker.listContainers();
+    console.log(containers);
+    let containerExist = false;
+    containers.forEach(containerInfo => {
+      if (containerInfo.Names.includes(`THUAI_Compiler_${code.id}`)) {
+        containerExist = true;
+      }
+    });
+
+    if (!containerExist) {
+      return res
+        .status(404)
+        .send("404 Not Found: Docker container does not exist");
+    }
+
+    try {
+      const container = docker.getContainer(`THUAI_Compiler_${code.id}`);
+      const info = await container.inspect();
+      if (info.State.Running) {
+        await container.stop();
+      }
+      await container.remove();
+    } catch (error) {
+      return res
+        .status(503)
+        .send(
+          "503 Service Unavailable: Failed to stop or remove docker container"
+        );
+    }
+
+    const update = {
+      ...{ compileInfo: req.body.compileInfo },
+      updatedAt: new Date(),
+      updatedBy: req.auth.id
+    };
+    const newCode = await Code.findOneAndUpdate({ id: req.params.id }, update);
+    res.setHeader("Location", "/v1/codes/" + newCode!.id);
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * PUT existing code
