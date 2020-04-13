@@ -13,7 +13,7 @@ describe("Tracks", () => {
         name: "testTrack",
         description: "A test Track",
         year: 2020,
-        open: false
+        open: false,
       })
       .expect(201));
 
@@ -22,13 +22,9 @@ describe("Tracks", () => {
       .get("/v1/tracks")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("array")
-          .of.length(1);
-        expect(r.body[0])
-          .to.be.an("object")
-          .that.has.property("id");
+      .then((r) => {
+        expect(r.body).to.be.an("array").of.length(1);
+        expect(r.body[0]).to.be.an("object").that.has.property("id");
         variables.trackId = r.body[0].id;
       }));
 
@@ -37,7 +33,7 @@ describe("Tracks", () => {
       .post(`/v1/tracks/${variables.trackId}/players`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        playerId: 2018000000
+        playerId: 2018000000,
       })
       .expect(403));
 
@@ -53,7 +49,7 @@ describe("Tracks", () => {
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
         open: true,
-        preOpen: true
+        preOpen: true,
       })
       .expect(204));
 
@@ -62,7 +58,7 @@ describe("Tracks", () => {
       .post(`/v1/tracks/${variables.trackId}/players`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        playerId: 2018000000
+        playerId: 2018000000,
       })
       .expect(403));
 
@@ -71,7 +67,7 @@ describe("Tracks", () => {
       .post(`/v1/tracks/${variables.trackId}/prePlayers`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        playerId: 2018000000
+        playerId: 2018000000,
       })
       .expect(204));
   it("Join a track and success", () =>
@@ -79,7 +75,7 @@ describe("Tracks", () => {
       .post(`/v1/tracks/${variables.trackId}/players`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        playerId: 2018000000
+        playerId: 2018000000,
       })
       .expect(204));
 
@@ -100,19 +96,11 @@ describe("Tracks", () => {
       .get(`/v1/tracks/${variables.trackId}?playerInfo=true&prePlayerInfo=true`)
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("object")
-          .that.has.property("players");
-        expect(r.body.players)
-          .to.be.a("array")
-          .of.length(1);
-        expect(r.body)
-          .to.be.an("object")
-          .that.has.property("prePlayers");
-        expect(r.body.prePlayers)
-          .to.be.a("array")
-          .of.length(1);
+      .then((r) => {
+        expect(r.body).to.be.an("object").that.has.property("players");
+        expect(r.body.players).to.be.a("array").of.length(1);
+        expect(r.body).to.be.an("object").that.has.property("prePlayers");
+        expect(r.body.prePlayers).to.be.a("array").of.length(1);
       }));
 
   it("Join a track and failed by rejoin", () =>
@@ -120,7 +108,7 @@ describe("Tracks", () => {
       .post(`/v1/tracks/${variables.trackId}/players`)
       .set("Authorization", "bearer " + variables.user.token)
       .send({
-        playerId: 2018000000
+        playerId: 2018000000,
       })
       .expect(409));
 

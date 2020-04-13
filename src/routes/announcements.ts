@@ -23,7 +23,7 @@ router.get("/", async (req, res, next) => {
     const announcements = await Announcement.find(query, "-_id -__v", {
       skip: begin,
       limit: end - begin + 1,
-      sort: "-priority -updatedAt"
+      sort: "-priority -updatedAt",
     });
 
     res.json(announcements);
@@ -66,7 +66,7 @@ router.post(
       const announcement = await new Announcement({
         ...req.body,
         createdBy: req.auth.id,
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       }).save();
 
       res.setHeader("Location", "/v1/announcements/" + announcement.id);
@@ -89,7 +89,7 @@ router.put(
     const update = {
       ...req.body,
       updatedAt: new Date(),
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     };
 
     try {
@@ -123,7 +123,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const deleteAnnouncement = await Announcement.findOneAndDelete({
-        id: req.params.id
+        id: req.params.id,
       });
 
       if (!deleteAnnouncement) {

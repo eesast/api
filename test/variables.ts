@@ -3,13 +3,13 @@ export default {
   admin: {
     username: "admin",
     password: "password",
-    token: ""
+    token: "",
   },
   user: {
     username: "testusername",
     password: "testpassword",
-    token: ""
+    token: "",
   },
   publicToken: "",
-  trackId: 0
+  trackId: 0,
 };

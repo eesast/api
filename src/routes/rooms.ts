@@ -81,7 +81,7 @@ router.post("/:id/join", checkServer, async (req, res, next) => {
 
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: [userId] }
+      members: { $in: [userId] },
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
@@ -132,7 +132,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
 
     const team = await Team.findOne({
       contestId: room.contestId,
-      members: { $in: [userId] }
+      members: { $in: [userId] },
     });
     if (!team) {
       return res.status(400).send("400 Bad Request: User not in team");
@@ -145,7 +145,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
     const update = {
       updatedAt: new Date(),
       updatedBy: req.auth.id,
-      teams: room.teams
+      teams: room.teams,
     };
     const newRoom = await Room.findOneAndUpdate({ id: req.params.id }, update);
     if (!newRoom) {
@@ -175,11 +175,11 @@ router.post("/", authenticate([]), async (req, res, next) => {
     const room = await new Room({
       ...body,
       createdBy: req.auth.id,
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     }).save();
 
     const token = jwt.sign({ roomId: room.id, server }, secret, {
-      expiresIn: "12h"
+      expiresIn: "12h",
     });
 
     if (process.env.NODE_ENV === "production") {
@@ -199,19 +199,19 @@ router.post("/", authenticate([]), async (req, res, next) => {
             "--gameTime",
             "600",
             "--token",
-            `${token}`
+            `${token}`,
           ],
           AttachStdin: false,
           AttachStdout: false,
           AttachStderr: false,
           ExposedPorts: { [`${port}/tcp`]: {} },
           HostConfig: {
-            PortBindings: { [`${port}/tcp`]: [{ HostPort: `${port}` }] }
+            PortBindings: { [`${port}/tcp`]: [{ HostPort: `${port}` }] },
           },
           Tty: false,
           OpenStdin: false,
           StdinOnce: false,
-          name: `THUAI-Room${room.id}`
+          name: `THUAI-Room${room.id}`,
         });
         await container.start();
       } catch {
@@ -242,7 +242,7 @@ router.post("/check/:token", async (req, res) => {
 
     await room.updateOne({
       status: 1,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     res.status(204).end();
@@ -270,7 +270,7 @@ router.put(
       const update = {
         ...req.body,
         updatedAt: new Date(),
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       };
 
       const newRoom = await Room.findOneAndUpdate(
@@ -333,7 +333,7 @@ router.put("/:id/status", checkServer, async (req, res, next) => {
     const update = {
       ...{ status: req.body.status },
       updatedAt: new Date(),
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     };
 
     const newRoom = await Room.findOneAndUpdate({ id: req.params.id }, update);
@@ -385,7 +385,7 @@ router.delete(
       }
 
       const deleteRoom = await Room.findOneAndDelete({
-        id: req.params.id
+        id: req.params.id,
       });
 
       if (!deleteRoom) {

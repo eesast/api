@@ -10,7 +10,7 @@ const checkToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.get("Authorization");
   if (!authHeader) {
     req.auth = {
-      tokenValid: false
+      tokenValid: false,
     };
     return next();
   }
@@ -19,7 +19,7 @@ const checkToken = (req: Request, res: Response, next: NextFunction) => {
   jwt.verify(token, secret, (err, decoded) => {
     if (err) {
       req.auth = {
-        tokenValid: false
+        tokenValid: false,
       };
       return next();
     }
@@ -27,7 +27,7 @@ const checkToken = (req: Request, res: Response, next: NextFunction) => {
     const user = decoded as UserModel;
     req.auth = {
       tokenValid: true,
-      ...user
+      ...user,
     };
     next();
   });

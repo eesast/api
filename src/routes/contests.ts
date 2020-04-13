@@ -57,7 +57,7 @@ router.post(
       const contest = await new Contest({
         ...req.body,
         createdBy: req.auth.id,
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       }).save();
 
       res.setHeader("Location", "/v1/contests/" + contest.id);
@@ -87,7 +87,7 @@ router.put(
       const update = {
         ...req.body,
         updatedAt: new Date(),
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       };
 
       const newContest = await Contest.findOneAndUpdate(
@@ -114,7 +114,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const deleteContest = await Contest.findOneAndDelete({
-        id: req.params.id
+        id: req.params.id,
       });
 
       if (!deleteContest) {

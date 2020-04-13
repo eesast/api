@@ -17,9 +17,9 @@ router.get("/", async (req, res, next) => {
   const query = {
     ...pick(req.query, ["replyTo", "articleId", "authorId", "likedBy"]),
     ...(req.query.title && {
-      title: { $regex: req.query.title, $options: "i" }
+      title: { $regex: req.query.title, $options: "i" },
     }),
-    visible: !req.query.invisible
+    visible: !req.query.invisible,
   };
 
   try {
@@ -105,7 +105,7 @@ router.post(
       const comment = await new Comment({
         ...req.body,
         createdBy: req.auth.id,
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       }).save();
 
       res.setHeader("Location", "/v1/comments/" + comment.id);
@@ -141,7 +141,7 @@ router.put(
       const update = {
         ...req.body,
         updatedAt: new Date(),
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       };
 
       const newComment = await Comment.findOneAndUpdate(
@@ -168,7 +168,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const deleteComment = await Comment.findOneAndDelete({
-        id: req.params.id
+        id: req.params.id,
       });
 
       if (!deleteComment) {

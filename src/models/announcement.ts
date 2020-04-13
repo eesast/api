@@ -23,14 +23,14 @@ const announcementSchema = new mongoose.Schema<AnnouncementModel>(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
   },
   {
-    collection: "announcements"
+    collection: "announcements",
   }
 );
 
-announcementSchema.pre<AnnouncementModel>("save", function(next) {
+announcementSchema.pre<AnnouncementModel>("save", function (next) {
   Counter.findByIdAndUpdate(
     "announcement",
     { $inc: { count: 1 } },

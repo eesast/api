@@ -31,14 +31,14 @@ const teamSchema = new mongoose.Schema<TeamModel>(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
   },
   {
-    collection: "teams"
+    collection: "teams",
   }
 );
 
-teamSchema.pre<TeamModel>("save", function(next) {
+teamSchema.pre<TeamModel>("save", function (next) {
   Counter.findByIdAndUpdate(
     "team",
     { $inc: { count: 1 } },

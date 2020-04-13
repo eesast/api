@@ -11,10 +11,10 @@ export interface CounterModel extends mongoose.Document {
 const counterSchema = new mongoose.Schema<CounterModel>(
   {
     _id: { type: String, required: true },
-    count: { type: Number, default: 0 }
+    count: { type: Number, default: 0 },
   },
   {
-    collection: "counters"
+    collection: "counters",
   }
 );
 

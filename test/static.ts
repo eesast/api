@@ -13,9 +13,7 @@ describe("Static", () => {
       .expect(201));
 
   it("Download file", () =>
-    request(Server)
-      .get("/static/files/swagger.yaml")
-      .expect(200));
+    request(Server).get("/static/files/swagger.yaml").expect(200));
 
   it("Delete file", () =>
     request(Server)
@@ -23,8 +21,6 @@ describe("Static", () => {
       .set("Authorization", "bearer " + variables.admin.token)
       .expect(204)
       .then(() =>
-        request(Server)
-          .get("/static/files/swagger.yaml")
-          .expect(404)
+        request(Server).get("/static/files/swagger.yaml").expect(404)
       ));
 });

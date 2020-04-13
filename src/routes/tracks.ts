@@ -21,7 +21,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
     "open",
     "playerId",
     "preOpen",
-    "prePlayerId"
+    "prePlayerId",
   ]);
   if (query.open) query.open = query.open == "true";
   if (query.open) query.preOpen = query.preOpen == "true";
@@ -52,7 +52,7 @@ router.post("/", authenticate(["root", "admin"]), async (req, res, next) => {
     "year",
     "description",
     "open",
-    "preOpen"
+    "preOpen",
   ]);
   try {
     const newTrack = new Track({
@@ -62,7 +62,7 @@ router.post("/", authenticate(["root", "admin"]), async (req, res, next) => {
       open,
       preOpen,
       players: [],
-      prePlayers: []
+      prePlayers: [],
     });
     const result = await newTrack.save();
     res.setHeader("Location", `/v1/tracks/${result.id}`);
@@ -89,7 +89,7 @@ router.put("/:id", authenticate(["root", "admin"]), async (req, res, next) => {
     "year",
     "description",
     "open",
-    "preOpen"
+    "preOpen",
   ]);
   try {
     await Track.updateOne({ id }, { $set: query });
@@ -135,7 +135,7 @@ router.post(
 
       const old = await Track.findOne({
         players: playerId,
-        year: track.year
+        year: track.year,
       });
       if (old)
         return res
@@ -322,7 +322,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const deleteTrack = await Track.findOneAndDelete({
-        id: req.params.id
+        id: req.params.id,
       });
 
       if (!deleteTrack) {

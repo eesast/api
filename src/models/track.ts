@@ -20,7 +20,7 @@ const trackSchema = new mongoose.Schema<TrackModel>(
     players: {
       type: [{ type: Number, index: true }],
       index: true,
-      default: []
+      default: [],
     },
     description: { type: String, default: "No description" },
     open: { type: Boolean, default: false },
@@ -28,15 +28,15 @@ const trackSchema = new mongoose.Schema<TrackModel>(
     prePlayers: {
       type: [{ type: Number, index: true }],
       index: true,
-      default: []
-    }
+      default: [],
+    },
   },
   {
-    collection: "tracks"
+    collection: "tracks",
   }
 );
 
-trackSchema.pre<TrackModel>("save", function(next) {
+trackSchema.pre<TrackModel>("save", function (next) {
   Counter.findByIdAndUpdate(
     "track",
     { $inc: { count: 1 } },

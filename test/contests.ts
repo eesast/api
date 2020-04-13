@@ -13,7 +13,7 @@ describe("Contests", () => {
         type: "type",
         name: "name",
         year: 2019,
-        enrollAvailable: false
+        enrollAvailable: false,
       })
       .expect(201));
 
@@ -23,21 +23,19 @@ describe("Contests", () => {
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
         name: "new name",
-        enrollAvailable: true
+        enrollAvailable: true,
       })
       .expect(204)
-      .then(r =>
+      .then((r) =>
         request(Server)
           .get(r.header.location)
           .expect("Content-Type", /json/)
-          .then(r => {
-            expect(r.body)
-              .to.be.an("object")
-              .to.include({
-                name: "new name",
-                enrollAvailable: true,
-                totalTeams: 0
-              });
+          .then((r) => {
+            expect(r.body).to.be.an("object").to.include({
+              name: "new name",
+              enrollAvailable: true,
+              totalTeams: 0,
+            });
           })
       ));
 
@@ -45,10 +43,8 @@ describe("Contests", () => {
     request(Server)
       .get("/v1/contests")
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("array")
-          .of.length(1);
+      .then((r) => {
+        expect(r.body).to.be.an("array").of.length(1);
       }));
 
   it("Delete the contest with id 1", () =>
@@ -56,9 +52,5 @@ describe("Contests", () => {
       .delete("/v1/contests/1")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect(204)
-      .then(() =>
-        request(Server)
-          .get("/v1/contests/1")
-          .expect(404)
-      ));
+      .then(() => request(Server).get("/v1/contests/1").expect(404)));
 });
