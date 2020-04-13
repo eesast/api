@@ -17,7 +17,7 @@ router.get("/", async (req, res, next) => {
   const query = pick(req.query, ["type", "year"]);
 
   try {
-    const contests = await Contest.find(query, "-_id -__v");
+    const contests = await Contest.find(query as any, "-_id -__v");
     res.json(contests);
   } catch (err) {
     next(err);

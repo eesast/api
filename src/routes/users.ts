@@ -28,8 +28,8 @@ router.get("/", authenticate([]), async (req, res, next) => {
   };
 
   let select = "-_id -__v -password";
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
   const group = req.auth.group || "";
   if (
     group !== "admin" ||
@@ -48,7 +48,7 @@ router.get("/", authenticate([]), async (req, res, next) => {
   }
 
   try {
-    const users = await User.find(query, select, {
+    const users = await User.find(query as any, select, {
       skip: begin,
       limit: end - begin + 1,
       sort: "-createdAt",
@@ -78,8 +78,8 @@ router.post("/details", authenticate([]), async (req, res, next) => {
   };
 
   let select = "-_id -__v -password";
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
   const group = req.auth.group || "";
   if (
     group !== "admin" ||
@@ -94,7 +94,7 @@ router.post("/details", authenticate([]), async (req, res, next) => {
   }
 
   try {
-    const users = await User.find(query, select, {
+    const users = await User.find(query as any, select, {
       skip: begin,
       limit: end - begin + 1,
       sort: "-createdAt",
@@ -397,7 +397,7 @@ router.post(
     }
 
     if (req.auth.selfCheckRequired) {
-      if (parseFloat(id) !== req.auth.id) {
+      if (parseFloat(id as string) !== req.auth.id) {
         return res.status(403).send("403 Forbidden: Permission denied");
       }
     }
@@ -456,7 +456,7 @@ router.post("/token/validate", (req, res) => {
   jwt.verify(
     token,
     secret,
-    (err: jwt.VerifyErrors, decoded: object | string) => {
+    (err: jwt.VerifyErrors | null, decoded: object | string | undefined) => {
       if (err) {
         return res
           .status(401)

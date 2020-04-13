@@ -20,8 +20,8 @@ const router = express.Router();
 router.get("/", authenticate([]), async (req, res, next) => {
   const query = pick(req.query, ["contestId"]);
 
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
 
   const select =
     "-_id -__v" +
@@ -32,14 +32,14 @@ router.get("/", authenticate([]), async (req, res, next) => {
   let teams: TeamModel[] = [];
   let teamSelf: TeamModel[] = [];
   try {
-    if (req.query.self !== true) {
+    if ((req.query.self as any) !== true) {
       teams = await Team.find(
-        { ...query, members: { $nin: [req.auth.id!] } },
+        { ...query, members: { $nin: [req.auth.id!] } } as any,
         select
       );
     }
     teamSelf = await Team.find(
-      { ...query, members: { $in: [req.auth.id!] } },
+      { ...query, members: { $in: [req.auth.id!] } } as any,
       "-_id -__v"
     );
 

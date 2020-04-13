@@ -23,7 +23,7 @@ router.get("/", async (req, res, next) => {
   };
 
   try {
-    const comments = await Comment.find(query, "-_id -__v");
+    const comments = await Comment.find(query as any, "-_id -__v");
     res.json(comments);
   } catch (err) {
     next(err);

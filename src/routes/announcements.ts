@@ -16,11 +16,11 @@ const router = express.Router();
 router.get("/", async (req, res, next) => {
   const query = pick(req.query, ["contestId", "priority"]);
 
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
 
   try {
-    const announcements = await Announcement.find(query, "-_id -__v", {
+    const announcements = await Announcement.find(query as any, "-_id -__v", {
       skip: begin,
       limit: end - begin + 1,
       sort: "-priority -updatedAt",

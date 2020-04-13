@@ -25,7 +25,7 @@ router.get("/", async (req, res, next) => {
   const query = pick(req.query, ["contestId", "status"]);
 
   try {
-    const rooms = await Room.find(query, "-_id -__v");
+    const rooms = await Room.find(query as any, "-_id -__v");
     res.json(rooms);
   } catch (err) {
     next(err);

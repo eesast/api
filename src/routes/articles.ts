@@ -40,17 +40,18 @@ router.get("/", checkToken, async (req, res, next) => {
     visible: !req.query.invisible,
   };
 
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
   const select =
-    "-_id -__v" + (req.query.noContent === true ? " -content" : "");
+    "-_id -__v" + ((req.query.noContent as any) === true ? " -content" : "");
 
   try {
     if (
       !query.visible &&
       ((req.auth.role !== "root" && req.auth.role !== "editor") ||
         ((query.authorId || query.createdBy) &&
-          req.auth.id !== (query.authorId || query.createdBy)))
+          req.auth.id !==
+            ((query.authorId as any) || (query.createdBy as any))))
     ) {
       return res
         .status(403)
@@ -62,14 +63,14 @@ router.get("/", checkToken, async (req, res, next) => {
     if (req.query.count) {
       if (query.authorId) {
         const num = await Article.count({
-          authorId: query.authorId,
+          authorId: query.authorId as any,
           visible: query.visible,
         });
         return res.json({ num: num });
       }
       if (query.createdBy) {
         const num = await Article.count({
-          createdBy: query.createdBy,
+          createdBy: query.createdBy as any,
           visible: query.visible,
         });
         return res.json({ num: num });
@@ -92,7 +93,7 @@ router.get("/", checkToken, async (req, res, next) => {
       req.query.tag === "underReview"
     ) {
       const articles = await Article.find(
-        { ...query, tags: { $in: [req.query.tag] } },
+        { ...query, tags: { $in: [req.query.tag] } } as any,
         select,
         {
           skip: begin,
@@ -103,7 +104,7 @@ router.get("/", checkToken, async (req, res, next) => {
       res.json(articles);
     }
 
-    const articles = await Article.find(query, select, {
+    const articles = await Article.find(query as any, select, {
       skip: begin,
       limit: end - begin + 1,
       sort: "-createdAt",
