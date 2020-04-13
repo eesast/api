@@ -184,7 +184,7 @@ router.post(
               NetworkMode: "host"
             },
             Cmd: ["sh", "/usr/local/CAPI/compile.sh"],
-            Env: [`THUAI_COMPILE_TOKEN=${token}`],
+            Env: [`THUAI_COMPILE_TOKEN=${token}`, `THUAI_CODEID=${code.id}`],
             name: `THUAI_Compiler_${code.id}`,
             AttachStdin: false,
             AttachStdout: false,
