@@ -152,6 +152,8 @@ router.post(
     try {
       const code = await Code.findOne({ id: req.params.id });
 
+      const role = req.body.role ? req.body.role : 0;
+
       if (!code) {
         return res.status(404).send("404 Not Found: Code does not exist");
       } else {
@@ -178,13 +180,17 @@ router.post(
           });
 
           const compileContainer = await docker.createContainer({
-            Image: "eesast/thuai_compiler:v2.1",
+            Image: "eesast/thuai_compiler:latest",
             HostConfig: {
-              Binds: [`/data/thuai/${code.teamId}:/usr/local/mnt`],
-              NetworkMode: "host"
+              Binds: [`/data/thuai/${code.teamId}:/usr/local/mnt`]
+              // NetworkMode: "host" 本地测试时使用host模式
             },
             Cmd: ["sh", "/usr/local/CAPI/compile.sh"],
-            Env: [`THUAI_COMPILE_TOKEN=${token}`, `THUAI_CODEID=${code.id}`],
+            Env: [
+              `THUAI_COMPILE_TOKEN=${token}`,
+              `THUAI_CODEID=${code.id}`,
+              `THUAI_CODEROLE=${role}`
+            ],
             name: `THUAI_Compiler_${code.id}`,
             AttachStdin: false,
             AttachStdout: false,
@@ -223,20 +229,21 @@ router.put("/:id/compile", checkServer, async (req, res, next) => {
 
     const docker = new Docker();
 
-    const containers = await docker.listContainers();
-    console.log(containers);
-    let containerExist = false;
-    containers.forEach(containerInfo => {
-      if (containerInfo.Names.includes(`THUAI_Compiler_${code.id}`)) {
-        containerExist = true;
-      }
-    });
+    // const containers = await docker.listContainers();
+    // let containerExist = false;
+    // containers.forEach(containerInfo => {
+    //   if (containerInfo.Names.includes(`THUAI_Compiler_${code.id}`)) {
+    //     containerExist = true;
+    //   }
+    // });
 
-    if (!containerExist) {
-      return res
-        .status(404)
-        .send("404 Not Found: Docker container does not exist");
-    }
+    // if (!containerExist) {
+    //   console.log("container not found");
+    // docker发出消息后自动终止了，这里并无法列出
+    // return res
+    //   .status(404)
+    //   .send("404 Not Found: Docker container does not exist");
+    // }
 
     try {
       const container = docker.getContainer(`THUAI_Compiler_${code.id}`);
@@ -259,6 +266,7 @@ router.put("/:id/compile", checkServer, async (req, res, next) => {
       updatedBy: req.auth.id
     };
     const newCode = await Code.findOneAndUpdate({ id: req.params.id }, update);
+    // 此时container已被删除，log中不会有状态码
     res.setHeader("Location", "/v1/codes/" + newCode!.id);
     res.status(204).end();
   } catch (error) {

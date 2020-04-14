@@ -2456,6 +2456,8 @@ paths:
 
   "/v1/codes/{codeId}":
     get:
+      tags:
+        - codes
       description: 通过ID获取代码
       summary: Describe this route
       operationId: getCodeById
@@ -2556,7 +2558,16 @@ paths:
           required: true
           schema:
             type: number
-
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: number
       responses:
         200:
           description: Successful operation
