@@ -23,11 +23,12 @@ const router = express.Router();
 router.get("/", authenticate([]), async (req, res, next) => {
   try {
     const query = {
-      ...pick(req.query, ["contestId", "teamId"])
+      ...pick(req.query, ["contestId", "teamId"]),
     };
 
-    const begin = parseInt(req.query.begin, 10) || 0;
-    const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+    const begin = parseInt(req.query.begin as string, 10) || 0;
+    const end =
+      parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
     const select = "-_id -__v";
 
     const userId = req.auth.id;
@@ -40,10 +41,10 @@ router.get("/", authenticate([]), async (req, res, next) => {
         req.auth.role === "root" ||
         req.auth.role === "organizer"
       ) {
-        const codes = await Code.find({ ...query }, select, {
+        const codes = await Code.find({ ...query } as any, select, {
           skip: begin,
           limit: end - begin + 1,
-          sort: "-createdAt"
+          sort: "-createdAt",
         });
         return res.json(codes);
       } else {
@@ -55,18 +56,18 @@ router.get("/", authenticate([]), async (req, res, next) => {
       query.contestId &&
       (req.auth.role === "root" || req.auth.role === "organizer")
     ) {
-      const codes = await Code.find({ ...query }, select, {
+      const codes = await Code.find({ ...query } as any, select, {
         skip: begin,
         limit: end - begin + 1,
-        sort: "-createdAt"
+        sort: "-createdAt",
       });
       return res.json(codes);
     } else {
       if (req.auth.role === "root") {
-        const codes = await Code.find({ ...query }, select, {
+        const codes = await Code.find({ ...query } as any, select, {
           skip: begin,
           limit: end - begin + 1,
-          sort: "-createdAt"
+          sort: "-createdAt",
         });
         return res.json(codes);
       }
@@ -130,7 +131,7 @@ router.post("/", authenticate(["root", "self"]), async (req, res, next) => {
     const code = await new Code({
       ...req.body,
       createdBy: req.auth.id,
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     }).save();
 
     res.setHeader("Location", "/v1/codes/" + code.id);
@@ -161,7 +162,7 @@ router.post(
         // 判断是否存在正在运行的目标container
         const containers = await docker.listContainers();
         let containerExist = false;
-        containers.forEach(containerInfo => {
+        containers.forEach((containerInfo) => {
           if (containerInfo.Names.includes(`THUAI_Compiler_${code.id}`)) {
             containerExist = true;
           }
@@ -176,25 +177,25 @@ router.post(
           );
 
           const token = jwt.sign({ codeId: code.id, server }, secret, {
-            expiresIn: "12h"
+            expiresIn: "12h",
           });
 
           const compileContainer = await docker.createContainer({
             Image: "eesast/thuai_compiler:latest",
             HostConfig: {
-              Binds: [`/data/thuai/${code.teamId}:/usr/local/mnt`]
+              Binds: [`/data/thuai/${code.teamId}:/usr/local/mnt`],
               // NetworkMode: "host" 本地测试时使用host模式
             },
             Cmd: ["sh", "/usr/local/CAPI/compile.sh"],
             Env: [
               `THUAI_COMPILE_TOKEN=${token}`,
               `THUAI_CODEID=${code.id}`,
-              `THUAI_CODEROLE=${role}`
+              `THUAI_CODEROLE=${role}`,
             ],
             name: `THUAI_Compiler_${code.id}`,
             AttachStdin: false,
             AttachStdout: false,
-            AttachStderr: false
+            AttachStderr: false,
           });
           await compileContainer.start();
           return res.status(200).send("200 Success: Compile Start");
@@ -263,7 +264,7 @@ router.put("/:id/compile", checkServer, async (req, res, next) => {
     const update = {
       ...{ compileInfo: req.body.compileInfo },
       updatedAt: new Date(),
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     };
     const newCode = await Code.findOneAndUpdate({ id: req.params.id }, update);
     // 此时container已被删除，log中不会有状态码
@@ -302,7 +303,7 @@ router.put(
       const update = {
         ...req.body,
         updatedAt: new Date(),
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       };
       const newCode = await Code.findOneAndUpdate(
         { id: req.params.id },
