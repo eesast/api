@@ -27,14 +27,14 @@ const app = express();
     "https://info.eesast.com",
     "https://thu-ai.net",
     "http://140.143.170.135",
-    "http://140.143.170.135:3000"
+    "http://140.143.170.135:3000",
   ];
 
   const devWhitelist = [...whitelist, "http://localhost:3000"];
 
   app.use(
     cors({
-      origin: function(origin, callback) {
+      origin: function (origin, callback) {
         if (
           !origin ||
           (process.env.NODE_ENV === "production"
@@ -46,7 +46,7 @@ const app = express();
         } else {
           callback(new Error("Not allowed by CORS"));
         }
-      }
+      },
     })
   );
 
@@ -61,7 +61,7 @@ const app = express();
   // install the Open-Api Validator
   const apiSpec = path.resolve(__dirname, "../docs/swagger.yaml");
   await new OpenApiValidator({
-    apiSpec
+    apiSpec,
   }).install(app);
 
   app.use("/v1/articles", articleRouter);

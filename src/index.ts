@@ -10,7 +10,7 @@ const debug = Debug("sast-api");
 const databaseUrl =
   process.env.NODE_ENV === "production" ? process.env.DATABASE : "localhost";
 
-const normalizePort: (val: string) => number | boolean = val => {
+const normalizePort: (val: string) => number | boolean = (val) => {
   const portNo = parseInt(val, 10);
   if (portNo >= 0) {
     return portNo;
@@ -24,12 +24,12 @@ mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api?authSource=admin`, {
   useFindAndModify: false,
   useUnifiedTopology: true,
   user: process.env.DB_USER,
-  pass: process.env.DB_PASS
+  pass: process.env.DB_PASS,
 });
 
 const db = mongoose.connection;
 
-db.on("error", error => {
+db.on("error", (error) => {
   debug("Database connection error: " + error);
   process.exit(1);
 });

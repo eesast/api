@@ -8,13 +8,13 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     secure: false, // will actually use TLS
     auth: {
       user: process.env.NO_REPLY_EMAIL,
-      pass: process.env.NO_REPLY_PASS
+      pass: process.env.NO_REPLY_PASS,
     },
     dkim: {
       domainName: "eesast.com",
       keySelector: "mail",
-      privateKey: process.env.DKIM_KEY!
-    }
+      privateKey: process.env.DKIM_KEY!,
+    },
   });
 
   const info = await transporter.sendMail({
@@ -22,7 +22,7 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     to,
     subject,
     text: HtmlToText.fromString(html),
-    html
+    html,
   });
 
   console.log("Email %s sent to %s", info.messageId, to);

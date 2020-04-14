@@ -5,7 +5,7 @@ import { sendEmail } from "../helpers";
 import {
   newMentorApplicationTemplate,
   updateMentorApplicationTemplate,
-  messageReceiveTemplate
+  messageReceiveTemplate,
 } from "../helpers/htmlTemplates";
 
 const router = express.Router();

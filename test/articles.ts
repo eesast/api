@@ -17,7 +17,7 @@ describe("Articles", () => {
         abstract: "abstract",
         image: "",
         tags: ["test"],
-        visible: false
+        visible: false,
       })
       .expect(201));
 
@@ -27,14 +27,14 @@ describe("Articles", () => {
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
         title: "new title",
-        visible: true
+        visible: true,
       })
       .expect(204)
-      .then(r =>
+      .then((r) =>
         request(Server)
           .get(r.header.location)
           .expect("Content-Type", /json/)
-          .then(r => {
+          .then((r) => {
             expect(r.body)
               .to.be.an("object")
               .that.has.property("title")
@@ -46,10 +46,8 @@ describe("Articles", () => {
     request(Server)
       .get("/v1/articles")
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("array")
-          .of.length(1);
+      .then((r) => {
+        expect(r.body).to.be.an("array").of.length(1);
       }));
 
   it("Like the article with id 1", () =>
@@ -61,10 +59,8 @@ describe("Articles", () => {
         request(Server)
           .get("/v1/articles/1")
           .expect("Content-Type", /json/)
-          .then(r => {
-            expect(r.body.likers)
-              .to.be.an("array")
-              .that.contains(0);
+          .then((r) => {
+            expect(r.body.likers).to.be.an("array").that.contains(0);
           })
       ));
 
@@ -77,10 +73,8 @@ describe("Articles", () => {
         request(Server)
           .get("/v1/articles/1")
           .expect("Content-Type", /json/)
-          .then(r => {
-            expect(r.body.likers)
-              .to.be.an("array")
-              .that.not.contains(0);
+          .then((r) => {
+            expect(r.body.likers).to.be.an("array").that.not.contains(0);
           })
       ));
 
@@ -89,9 +83,5 @@ describe("Articles", () => {
       .delete("/v1/articles/1")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect(204)
-      .then(() =>
-        request(Server)
-          .get("/v1/articles/1")
-          .expect(404)
-      ));
+      .then(() => request(Server).get("/v1/articles/1").expect(404)));
 });

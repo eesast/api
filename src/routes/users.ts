@@ -24,12 +24,12 @@ const router = express.Router();
 router.get("/", authenticate([]), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
-    ...(req.query.isTeacher && { group: "teacher" })
+    ...(req.query.isTeacher && { group: "teacher" }),
   };
 
   let select = "-_id -__v -password";
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
   const group = req.auth.group || "";
   if (
     group !== "admin" ||
@@ -48,10 +48,10 @@ router.get("/", authenticate([]), async (req, res, next) => {
   }
 
   try {
-    const users = await User.find(query, select, {
+    const users = await User.find(query as any, select, {
       skip: begin,
       limit: end - begin + 1,
-      sort: "-createdAt"
+      sort: "-createdAt",
     });
     res.json(users);
   } catch (err) {
@@ -74,12 +74,12 @@ router.post("/details", authenticate([]), async (req, res, next) => {
   const query = {
     ...pick(req.query, ["username", "department", "class"]),
     ...(req.query.isTeacher && { group: "teacher" }),
-    ...(req.body.ids && { id: { $in: req.body.ids } })
+    ...(req.body.ids && { id: { $in: req.body.ids } }),
   };
 
   let select = "-_id -__v -password";
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
   const group = req.auth.group || "";
   if (
     group !== "admin" ||
@@ -94,10 +94,10 @@ router.post("/details", authenticate([]), async (req, res, next) => {
   }
 
   try {
-    const users = await User.find(query, select, {
+    const users = await User.find(query as any, select, {
       skip: begin,
       limit: end - begin + 1,
-      sort: "-createdAt"
+      sort: "-createdAt",
     });
     res.json(users);
   } catch (err) {
@@ -161,7 +161,7 @@ router.post("/", async (req, res, next) => {
       group: "student",
       role: "student",
       ...req.body,
-      password: hash
+      password: hash,
     }).save();
 
     res.setHeader("Location", "/v1/users/" + user.id);
@@ -213,12 +213,12 @@ router.post("/login", async (req, res, next) => {
           "https://hasura.io/jwt/claims": {
             "x-hasura-allowed-roles": [user.role],
             "x-hasura-default-role": user.role,
-            "x-hasura-user-id": user.id.toString()
-          }
+            "x-hasura-user-id": user.id.toString(),
+          },
         },
         secret,
         {
-          expiresIn: "12h"
+          expiresIn: "12h",
         }
       );
       res.json({ token });
@@ -254,7 +254,7 @@ router.post("/reset", async (req, res, next) => {
 
     if (req.body.action === "get") {
       const token = jwt.sign({ email: user.email, action: "reset" }, secret, {
-        expiresIn: "15m"
+        expiresIn: "15m",
       });
 
       await sendEmail(
@@ -289,7 +289,7 @@ router.post("/reset", async (req, res, next) => {
 
       await user.updateOne({
         password: hash,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
       res.status(204).end();
@@ -345,7 +345,7 @@ router.put("/:id", authenticate(["root", "self"]), async (req, res, next) => {
       ...req.body,
       ...(password && { password }),
       updatedAt: new Date(),
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     };
     const user = await User.findOneAndUpdate({ id: req.params.id }, update);
 
@@ -368,7 +368,7 @@ router.put("/:id", authenticate(["root", "self"]), async (req, res, next) => {
 router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
   try {
     const deleteUser = await User.findOneAndDelete({
-      id: req.params.id
+      id: req.params.id,
     });
 
     if (!deleteUser) {
@@ -397,7 +397,7 @@ router.post(
     }
 
     if (req.auth.selfCheckRequired) {
-      if (parseFloat(id) !== req.auth.id) {
+      if (parseFloat(id as string) !== req.auth.id) {
         return res.status(403).send("403 Forbidden: Permission denied");
       }
     }
@@ -408,24 +408,24 @@ router.post(
     const allowedEndpoints = [
       {
         path: "/v1/users/:id",
-        methods: ["GET"]
+        methods: ["GET"],
       },
       {
         path: "/v1/users/details",
-        methods: ["POST"]
+        methods: ["POST"],
       },
       {
         path: "/v1/users/token/validate",
-        methods: ["POST"]
+        methods: ["POST"],
       },
       {
         path: "/v1/tracks/:id/prePlayers/:playerId",
-        methods: ["GET"]
+        methods: ["GET"],
       },
       {
         path: "/v1/tracks/:id/players/:playerId",
-        methods: ["GET"]
-      }
+        methods: ["GET"],
+      },
     ];
 
     try {
@@ -433,13 +433,13 @@ router.post(
         token: jwt.sign(
           {
             id,
-            allowedEndpoints
+            allowedEndpoints,
           },
           secret,
           {
-            expiresIn: "12h"
+            expiresIn: "12h",
           }
-        )
+        ),
       });
     } catch (err) {
       next(err);
@@ -456,7 +456,7 @@ router.post("/token/validate", (req, res) => {
   jwt.verify(
     token,
     secret,
-    (err: jwt.VerifyErrors, decoded: object | string) => {
+    (err: jwt.VerifyErrors | null, decoded: object | string | undefined) => {
       if (err) {
         return res
           .status(401)

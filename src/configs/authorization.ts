@@ -10,13 +10,13 @@ const roles = {
     "editor", // manage articles and comments
     "keeper", // manage reservations and items
     "organizer", // manage contests, teams and announcements
-    "counselor" // manage info
+    "counselor", // manage info
   ],
   student: [
     "student",
-    "writer" // write articles
+    "writer", // write articles
   ],
-  teacher: ["teacher"]
+  teacher: ["teacher"],
 };
 
 export { groups, roles };

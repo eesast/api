@@ -29,28 +29,29 @@ router.get("/", checkToken, async (req, res, next) => {
       "createdBy",
       // "tag",
       "alias",
-      "likedBy"
+      "likedBy",
     ]),
     ...(req.query.title && {
-      title: { $regex: req.query.title, $options: "i" }
+      title: { $regex: req.query.title, $options: "i" },
     }),
     // ...(req.query.tag && {
     //   tags: { $in: req.query.tag }
     // }),
-    visible: !req.query.invisible
+    visible: !req.query.invisible,
   };
 
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
   const select =
-    "-_id -__v" + (req.query.noContent === true ? " -content" : "");
+    "-_id -__v" + ((req.query.noContent as any) === true ? " -content" : "");
 
   try {
     if (
       !query.visible &&
       ((req.auth.role !== "root" && req.auth.role !== "editor") ||
         ((query.authorId || query.createdBy) &&
-          req.auth.id !== (query.authorId || query.createdBy)))
+          req.auth.id !==
+            ((query.authorId as any) || (query.createdBy as any))))
     ) {
       return res
         .status(403)
@@ -62,15 +63,15 @@ router.get("/", checkToken, async (req, res, next) => {
     if (req.query.count) {
       if (query.authorId) {
         const num = await Article.count({
-          authorId: query.authorId,
-          visible: query.visible
+          authorId: query.authorId as any,
+          visible: query.visible,
         });
         return res.json({ num: num });
       }
       if (query.createdBy) {
         const num = await Article.count({
-          createdBy: query.createdBy,
-          visible: query.visible
+          createdBy: query.createdBy as any,
+          visible: query.visible,
         });
         return res.json({ num: num });
       }
@@ -80,7 +81,7 @@ router.get("/", checkToken, async (req, res, next) => {
       ) {
         const num = await Article.count({
           visible: query.visible,
-          tags: { $in: ["underReview"] }
+          tags: { $in: ["underReview"] },
         });
         return res.json({ num: num });
       } else return res.status(403).send("403 Forbidden: Forbidden behavior");
@@ -92,21 +93,21 @@ router.get("/", checkToken, async (req, res, next) => {
       req.query.tag === "underReview"
     ) {
       const articles = await Article.find(
-        { ...query, tags: { $in: [req.query.tag] } },
+        { ...query, tags: { $in: [req.query.tag] } } as any,
         select,
         {
           skip: begin,
           limit: end - begin + 1,
-          sort: "-createdAt"
+          sort: "-createdAt",
         }
       );
       res.json(articles);
     }
 
-    const articles = await Article.find(query, select, {
+    const articles = await Article.find(query as any, select, {
       skip: begin,
       limit: end - begin + 1,
-      sort: "-createdAt"
+      sort: "-createdAt",
     });
 
     if (query.alias) {
@@ -203,7 +204,7 @@ router.post("/", authenticate(["root", "writer"]), async (req, res, next) => {
     const article = await new Article({
       ...req.body,
       createdBy: req.auth.id,
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     }).save();
 
     res.setHeader("Location", "/v1/articles/" + article.id);
@@ -249,7 +250,7 @@ router.put(
                 ? req.body.tags.splice(req.body.tags.indexOf("underReview"), 1)
                 : article.tags.splice(article.tags.indexOf("underReview"), 1),
               updatedAt: new Date(),
-              updatedBy: req.auth.id
+              updatedBy: req.auth.id,
             };
 
             const newArticle = await Article.findOneAndUpdate(
@@ -266,7 +267,7 @@ router.put(
       const update = {
         ...req.body,
         updatedAt: new Date(),
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       };
 
       const newArticle = await Article.findOneAndUpdate(
@@ -293,7 +294,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const deleteArticle = await Article.findOneAndDelete({
-        id: req.params.id
+        id: req.params.id,
       });
 
       if (!deleteArticle) {

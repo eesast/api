@@ -25,14 +25,14 @@ const commentSchema = new mongoose.Schema<CommentModel>(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
   },
   {
-    collection: "comments"
+    collection: "comments",
   }
 );
 
-commentSchema.pre<CommentModel>("save", function(next) {
+commentSchema.pre<CommentModel>("save", function (next) {
   Counter.findByIdAndUpdate(
     "comment",
     { $inc: { count: 1 } },

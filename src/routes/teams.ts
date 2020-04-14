@@ -20,8 +20,8 @@ const router = express.Router();
 router.get("/", authenticate([]), async (req, res, next) => {
   const query = pick(req.query, ["contestId"]);
 
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
 
   const select =
     "-_id -__v" +
@@ -32,14 +32,14 @@ router.get("/", authenticate([]), async (req, res, next) => {
   let teams: TeamModel[] = [];
   let teamSelf: TeamModel[] = [];
   try {
-    if (req.query.self !== true) {
+    if ((req.query.self as any) !== true) {
       teams = await Team.find(
-        { ...query, members: { $nin: [req.auth.id!] } },
+        { ...query, members: { $nin: [req.auth.id!] } } as any,
         select
       );
     }
     teamSelf = await Team.find(
-      { ...query, members: { $in: [req.auth.id!] } },
+      { ...query, members: { $in: [req.auth.id!] } } as any,
       "-_id -__v"
     );
 
@@ -134,7 +134,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
     if (
       await Team.findOne({
         contestId: req.body.contestId,
-        members: { $in: [req.auth.id!] }
+        members: { $in: [req.auth.id!] },
       })
     ) {
       res.setHeader("Location", "/teams");
@@ -147,9 +147,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
       body.members = [req.auth.id];
       body.leader = req.auth.id;
     }
-    body.inviteCode = Math.random()
-      .toString(36)
-      .slice(2, 10);
+    body.inviteCode = Math.random().toString(36).slice(2, 10);
 
     const newTeam = await new Team(body).save();
     res.setHeader("Location", "/v1/teams/" + newTeam.id);
@@ -216,14 +214,14 @@ router.post(
       if (
         await Team.findOne({
           contestId: team.contestId,
-          members: { $in: req.body.id }
+          members: { $in: req.body.id },
         })
       ) {
         return res.status(409).send("409 Conflict: User is already in a team");
       }
       if (
         !(await User.findOne({
-          id: req.body.id
+          id: req.body.id,
         }))
       ) {
         return res.status(400).send("400 Bad Request: Member does not exist");
@@ -298,13 +296,13 @@ router.put(
           (await req.body.members.reduce(
             (prev: Promise<boolean | null>, cur: number) =>
               prev.then(
-                async Valid =>
+                async (Valid) =>
                   Valid &&
                   (await User.findOne({ id: cur })) &&
                   !(await Team.findOne({
                     id: { $ne: req.params.id },
                     contestId: team.contestId,
-                    members: { $in: [cur] }
+                    members: { $in: [cur] },
                   }))
               ),
             Promise.resolve<boolean | null>(true)
@@ -317,7 +315,7 @@ router.put(
         req.body.name !== team.name &&
         (await Team.findOne({
           contestId: team.contestId,
-          name: req.body.name
+          name: req.body.name,
         }))
       ) {
         return res.status(409).send("409 Conflict: Team name already exists");
@@ -435,7 +433,7 @@ router.delete(
       const update = {
         updatedAt: new Date(),
         updatedBy: req.auth.id,
-        members: team.members
+        members: team.members,
       };
       const newTeam = await Team.findOneAndUpdate(
         { id: req.params.id },
@@ -474,12 +472,12 @@ router.put("/:id/score", checkServer, async (req, res, next) => {
     const update = {
       ...{ score: req.body.score },
       updatedAt: new Date(),
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     };
 
     const newTeam = await Team.findOneAndUpdate(
       {
-        id: req.params.id
+        id: req.params.id,
       },
       update
     );

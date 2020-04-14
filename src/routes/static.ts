@@ -14,7 +14,7 @@ const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.resolve(serverConfig.staticFilePath, req.params.category!);
-    fs.mkdir(dir, { recursive: true }, err => cb(err, dir));
+    fs.mkdir(dir, { recursive: true }, (err) => cb(err, dir));
   },
   filename: (req, file, cb) => {
     const dotIndex = file.originalname.lastIndexOf(".");
@@ -30,10 +30,10 @@ const storage = multer.diskStorage({
 
     req.file = {
       ...req.file,
-      filename: newFilename
+      filename: newFilename,
     };
     cb(null, newFilename);
-  }
+  },
 });
 const upload = multer({ storage });
 
@@ -55,13 +55,13 @@ router.get("/images/:filename", async (req, res) => {
     filename
   );
 
-  fs.exists(fullPath, exists => {
+  fs.exists(fullPath, (exists) => {
     if (!exists) {
       return res.status(404).send("404 Not Found: File does not exist");
     }
 
     if (req.accepts("image/webp")) {
-      fs.exists(fullPath + ".webp", webpExists => {
+      fs.exists(fullPath + ".webp", (webpExists) => {
         if (webpExists) {
           res.sendFile(fullPath + ".webp");
         } else {
@@ -124,7 +124,7 @@ router.delete(
     "editor",
     "keeper",
     "organizer",
-    "counselor"
+    "counselor",
   ]),
   upload.single("file"),
   async (req, res, next) => {
@@ -136,7 +136,7 @@ router.delete(
       return res.status(404).send("404 Not Found: File does not exist");
     }
 
-    return fs.unlink(fullPath, err => {
+    return fs.unlink(fullPath, (err) => {
       if (err) {
         next(err);
       } else {

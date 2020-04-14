@@ -35,14 +35,14 @@ const articleSchema = new mongoose.Schema<ArticleModel>(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
   },
   {
-    collection: "articles"
+    collection: "articles",
   }
 );
 
-articleSchema.pre<ArticleModel>("save", function(next) {
+articleSchema.pre<ArticleModel>("save", function (next) {
   Counter.findByIdAndUpdate(
     "article",
     { $inc: { count: 1 } },

@@ -37,10 +37,10 @@ const userSchema = new mongoose.Schema<UserModel>(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
   },
   {
-    collection: "users"
+    collection: "users",
   }
 );
 

@@ -27,14 +27,14 @@ const contestSchema = new mongoose.Schema<ContestModel>(
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
-    updatedBy: Number
+    updatedBy: Number,
   },
   {
-    collection: "contests"
+    collection: "contests",
   }
 );
 
-contestSchema.pre<ContestModel>("save", function(next) {
+contestSchema.pre<ContestModel>("save", function (next) {
   Counter.findByIdAndUpdate(
     "contest",
     { $inc: { count: 1 } },

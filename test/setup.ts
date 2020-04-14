@@ -7,7 +7,7 @@ import variables from "./variables";
 
 dotenv.config();
 
-before("Set up the database for testing", function(done) {
+before("Set up the database for testing", function (done) {
   this.timeout(15000);
 
   if (process.env.CI) {
@@ -17,7 +17,7 @@ before("Set up the database for testing", function(done) {
       useFindAndModify: false,
       useUnifiedTopology: true,
       user: "travis",
-      pass: "test"
+      pass: "test",
     });
   } else {
     mongoose.connect(
@@ -28,7 +28,7 @@ before("Set up the database for testing", function(done) {
         useFindAndModify: false,
         useUnifiedTopology: true,
         user: process.env.DB_USER,
-        pass: process.env.DB_PASS
+        pass: process.env.DB_PASS,
       }
     );
   }
@@ -40,7 +40,7 @@ before("Set up the database for testing", function(done) {
   });
 });
 
-before("Create admin user", async function() {
+before("Create admin user", async function () {
   this.timeout(10000);
 
   const admin = new User({
@@ -53,7 +53,7 @@ before("Create admin user", async function() {
     department: "电子系",
     class: "无00",
     group: "admin",
-    role: "root"
+    role: "root",
   });
   const testuser = new User({
     id: 2018000000,
@@ -65,7 +65,7 @@ before("Create admin user", async function() {
     department: "电子工程系",
     class: "无80",
     group: "admin",
-    role: "student"
+    role: "student",
   });
 
   return Promise.all([admin.save(), testuser.save()]);

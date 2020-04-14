@@ -16,7 +16,7 @@ describe("Users", () => {
         name: "test",
         phone: 0,
         department: "string",
-        class: "string"
+        class: "string",
       })
       .expect(201));
 
@@ -25,13 +25,11 @@ describe("Users", () => {
       .post("/v1/users/login")
       .send({
         username: variables.user.username,
-        password: variables.user.password
+        password: variables.user.password,
       })
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("object")
-          .that.has.property("token");
+      .then((r) => {
+        expect(r.body).to.be.an("object").that.has.property("token");
         variables.user.token = r.body.token;
       }));
 
@@ -40,33 +38,31 @@ describe("Users", () => {
       .post("/v1/users/login")
       .send({
         username: variables.admin.username,
-        password: variables.admin.password
+        password: variables.admin.password,
       })
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("object")
-          .that.has.property("token");
+      .then((r) => {
+        expect(r.body).to.be.an("object").that.has.property("token");
         variables.admin.token = r.body.token;
       }));
 
   const allowedEndpoints = [
     {
       path: "/v1/users/",
-      methods: ["GET"]
+      methods: ["GET"],
     },
     {
       path: "/v1/users/:id",
-      methods: ["GET"]
+      methods: ["GET"],
     },
     {
       path: "/v1/users/details",
-      methods: ["POST"]
+      methods: ["POST"],
     },
     {
       path: "/v1/users/token/validate",
-      methods: ["POST"]
-    }
+      methods: ["POST"],
+    },
   ];
 
   it("Apply Public Token", () =>
@@ -75,10 +71,8 @@ describe("Users", () => {
       .set("Authorization", "bearer " + variables.admin.token)
       .send({ allowedEndpoints })
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("object")
-          .that.has.property("token");
+      .then((r) => {
+        expect(r.body).to.be.an("object").that.has.property("token");
         variables.publicToken = r.body.token;
       }));
 
@@ -101,10 +95,8 @@ describe("Users", () => {
       .send({ token: variables.publicToken })
       .expect(200)
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("object")
-          .that.has.property("id");
+      .then((r) => {
+        expect(r.body).to.be.an("object").that.has.property("id");
         expect(r.body).has.property("allowedEndpoints");
       }));
 
@@ -113,10 +105,8 @@ describe("Users", () => {
       .get("/v1/users")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("array")
-          .of.length(3);
+      .then((r) => {
+        expect(r.body).to.be.an("array").of.length(3);
       }));
 
   it("get the user with id 2017000000", () =>
@@ -124,10 +114,8 @@ describe("Users", () => {
       .get("/v1/users/2017000000")
       .set("Authorization", "bearer " + variables.publicToken)
       .expect("Content-Type", /json/)
-      .then(r => {
-        expect(r.body)
-          .to.be.an("object")
-          .has.property("id");
+      .then((r) => {
+        expect(r.body).to.be.an("object").has.property("id");
         expect(r.body.id).to.be.equals(2017000000);
       }));
 
@@ -136,15 +124,15 @@ describe("Users", () => {
       .put("/v1/users/2017000000")
       .set("Authorization", "bearer " + variables.admin.token)
       .send({
-        name: "new name"
+        name: "new name",
       })
       .expect(204)
-      .then(r =>
+      .then((r) =>
         request(Server)
           .get(r.header.location + "?detailInfo=true")
           .set("Authorization", "bearer " + variables.admin.token)
           .expect("Content-Type", /json/)
-          .then(r => {
+          .then((r) => {
             expect(r.body)
               .to.be.an("object")
               .that.has.property("name")

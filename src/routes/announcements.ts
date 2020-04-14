@@ -16,14 +16,14 @@ const router = express.Router();
 router.get("/", async (req, res, next) => {
   const query = pick(req.query, ["contestId", "priority"]);
 
-  const begin = parseInt(req.query.begin, 10) || 0;
-  const end = parseInt(req.query.end, 10) || Number.MAX_SAFE_INTEGER;
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
 
   try {
-    const announcements = await Announcement.find(query, "-_id -__v", {
+    const announcements = await Announcement.find(query as any, "-_id -__v", {
       skip: begin,
       limit: end - begin + 1,
-      sort: "-priority -updatedAt"
+      sort: "-priority -updatedAt",
     });
 
     res.json(announcements);
@@ -66,7 +66,7 @@ router.post(
       const announcement = await new Announcement({
         ...req.body,
         createdBy: req.auth.id,
-        updatedBy: req.auth.id
+        updatedBy: req.auth.id,
       }).save();
 
       res.setHeader("Location", "/v1/announcements/" + announcement.id);
@@ -89,7 +89,7 @@ router.put(
     const update = {
       ...req.body,
       updatedAt: new Date(),
-      updatedBy: req.auth.id
+      updatedBy: req.auth.id,
     };
 
     try {
@@ -123,7 +123,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const deleteAnnouncement = await Announcement.findOneAndDelete({
-        id: req.params.id
+        id: req.params.id,
       });
 
       if (!deleteAnnouncement) {

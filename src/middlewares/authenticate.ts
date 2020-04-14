@@ -8,11 +8,9 @@ import User, { UserModel, UserPublicToken } from "../models/user";
  */
 const authenticate: (
   acceptableRoles?: string[]
-) => (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => Response | void = acceptableRoles => {
+) => (req: Request, res: Response, next: NextFunction) => Response | void = (
+  acceptableRoles
+) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.get("Authorization");
     if (!authHeader) {
