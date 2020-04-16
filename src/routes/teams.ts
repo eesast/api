@@ -470,7 +470,9 @@ router.put("/:id/score", checkServer, async (req, res, next) => {
     }
 
     const update = {
-      ...{ score: req.body.score },
+      ...{
+        score: req.body.replace ? req.body.score : team.score + req.body.score,
+      },
       updatedAt: new Date(),
       updatedBy: req.auth.id,
     };
@@ -483,7 +485,7 @@ router.put("/:id/score", checkServer, async (req, res, next) => {
     );
 
     res.setHeader("Location", "/v1/teams/" + newTeam!.id);
-    res.status(204).end();
+    return res.status(204).end();
   } catch (err) {
     next(err);
   }
