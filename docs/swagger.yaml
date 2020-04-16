@@ -1541,6 +1541,8 @@ paths:
               properties:
                 score:
                   type: number
+                replace:
+                  type: boolean
       responses:
         204:
           description: Successful operation
