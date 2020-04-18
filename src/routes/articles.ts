@@ -173,7 +173,7 @@ router.get("/:id/unlike", authenticate([]), async (req, res, next) => {
   try {
     const article = await Article.findOneAndUpdate(
       { id: req.params.id },
-      { $pullAll: { likers: [req.auth.id] } }
+      { $pullAll: { likers: [req.auth.id!] } }
     );
 
     if (!article) {

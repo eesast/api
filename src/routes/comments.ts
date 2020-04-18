@@ -80,7 +80,7 @@ router.get("/:id/unlike", authenticate([]), async (req, res, next) => {
   try {
     const comment = await Comment.findOneAndUpdate(
       { id: req.params.id },
-      { $pullAll: { likers: [req.auth.id] } }
+      { $pullAll: { likers: [req.auth.id!] } }
     );
 
     if (!comment) {
