@@ -163,7 +163,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
  * @returns {String} Location header
  */
 router.post("/", authenticate([]), async (req, res, next) => {
-  const body = pick(req.body, ["contestId", "teams", "port"]); // ip 由 docker 分配
+  const body = pick(req.body, ["contestId", "teams", "ip", "port"]); // ip 由 docker 分配
   const port = body.port;
 
   try {
@@ -222,9 +222,11 @@ router.post("/", authenticate([]), async (req, res, next) => {
 
         const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
         const netInfo = (await network.inspect()) as Docker.NetworkInspectInfo;
-        roomIp = netInfo.Containers![`THUAI-Room${room.id}`].Ipv4Address.split(
-          "/"
-        )[0];
+        const containerInfo = Object.values(netInfo.Containers!)[0];
+        // dockerode type 有问题，IPv4是正确的
+        roomIp = containerInfo.IPv4Address.split("/")[0];
+
+        console.log("updateIp");
 
         await Room.findOneAndUpdate(
           { id: room.id },
