@@ -163,7 +163,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
  * @returns {String} Location header
  */
 router.post("/", authenticate([]), async (req, res, next) => {
-  const body = pick(req.body, ["contestId", "team", "ip", "port"]);
+  const body = pick(req.body, ["contestId", "teams", "ip", "port"]); // ip 由 docker 分配
   const port = body.port;
 
   try {
@@ -184,18 +184,22 @@ router.post("/", authenticate([]), async (req, res, next) => {
 
     if (process.env.NODE_ENV === "production") {
       const docker = new Docker();
+      let roomIp = "";
       try {
+        await docker.createNetwork({
+          name: `THUAI-RoomNet${room.id}`,
+        });
         const container = await docker.createContainer({
           Image: image,
           Cmd: [
             "--port",
             `${port}`,
             "--debugLevel",
-            "1",
+            "0",
             "--playerCount",
-            "1",
+            "2",
             "--agentCount",
-            "1",
+            `${body.teams.length}`,
             "--gameTime",
             "600",
             "--token",
@@ -207,6 +211,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
           ExposedPorts: { [`${port}/tcp`]: {} },
           HostConfig: {
             PortBindings: { [`${port}/tcp`]: [{ HostPort: `${port}` }] },
+            NetworkMode: `THUAI-RoomNet${room.id}`,
           },
           Tty: false,
           OpenStdin: false,
@@ -214,7 +219,50 @@ router.post("/", authenticate([]), async (req, res, next) => {
           name: `THUAI-Room${room.id}`,
         });
         await container.start();
+
+        const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
+        const netInfo = (await network.inspect()) as Docker.NetworkInspectInfo;
+        const containerInfo = Object.values(netInfo.Containers!)[0];
+        // dockerode type 有问题，IPv4是正确的
+        roomIp = containerInfo.IPv4Address.split("/")[0];
+
+        console.log("updateIp");
+
+        await Room.findOneAndUpdate(
+          { id: room.id },
+          { ip: roomIp, updatedAt: new Date() }
+        );
       } catch {
+        return res
+          .status(503)
+          .send("503 Service Unavailable: Failed to start docker container");
+      }
+
+      try {
+        body.teams.map(async (teamId: number) => {
+          const agent = await docker.createContainer({
+            Image: "eesast/thuai_agentclient",
+            HostConfig: {
+              Binds: [`/data/thuai/${teamId}:/usr/local/mnt`],
+              NetworkMode: `THUAI-RoomNet${room.id}`,
+            },
+            AttachStdin: false,
+            AttachStdout: false,
+            AttachStderr: false,
+            Tty: false,
+            OpenStdin: false,
+            StdinOnce: false,
+            name: `THUAI-Room${room.id}-${teamId}`,
+            Cmd: [
+              roomIp + `:${body.port}`,
+              body.teams.length.toString(),
+              "0",
+              "600",
+            ],
+          });
+          await agent.start();
+        });
+      } catch (error) {
         return res
           .status(503)
           .send("503 Service Unavailable: Failed to start docker container");
@@ -320,6 +368,8 @@ router.put("/:id/status", checkServer, async (req, res, next) => {
             await container.stop();
           }
           await container.remove();
+          const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
+          await network.remove();
         } catch {
           return res
             .status(503)
@@ -375,11 +425,23 @@ router.delete(
             await container.stop();
           }
           await container.remove();
+
+          room.teams.map(async (teamId: number) => {
+            const agent = docker.getContainer(`THUAI-Room${room.id}-${teamId}`);
+            const info = await agent.inspect();
+            if (info.State.Running) {
+              await agent.stop();
+            }
+            await agent.remove();
+          });
+
+          const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
+          await network.remove();
         } catch {
           return res
             .status(503)
             .send(
-              "503 Service Unavailable: Failed to stop or remove docker container"
+              "503 Service Unavailable: Failed to stop or remove docker container / network"
             );
         }
       }
