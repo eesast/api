@@ -169,7 +169,10 @@ router.post(
         });
 
         if (!containerExist) {
-          fs.mkdirSync(`/data/thuai/${code.teamId}`, { recursive: true });
+          fs.mkdirSync(`/data/thuai/${code.teamId}`, {
+            recursive: true,
+            mode: 0o775,
+          });
           fs.writeFileSync(
             `/data/thuai/${code.teamId}/player.cpp`,
             code.content,

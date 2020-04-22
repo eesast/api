@@ -1514,6 +1514,43 @@ paths:
         500:
           description: Server error
 
+  "/v1/teams/scores":
+    put:
+      tags:
+        - teams
+      summary: 根据比赛结果更新多支队伍分数
+      description: 由server发起
+      operationId: updateTeamsScore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - scores
+              properties:
+                scores:
+                  type: array
+      responses:
+        204:
+          description: Successful operation
+          headers:
+            Location:
+              description: 被更新队伍的 URL
+              schema:
+                type: string
+        401:
+          $ref: "#/components/responses/UnauthorizedError"
+        403:
+          description: "Forbidden: Permission denied"
+        404:
+          description: "Not Found: Team does not exist"
+        422:
+          description: "Unprocessable Entity: Missing form data"
+        500:
+          description: Server error
+
   "/v1/teams/{teamId}/score":
     put:
       tags:

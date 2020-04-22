@@ -2,10 +2,12 @@ import express from "express";
 import authenticate from "../middlewares/authenticate";
 import Contest from "../models/contest";
 import Team, { TeamModel } from "../models/team";
+import Room from "../models/room";
 import Track from "../models/track";
 import User from "../models/user";
 import pick from "lodash.pick";
 import checkServer from "../middlewares/checkServer";
+import * as child from "child_process";
 
 const router = express.Router();
 
@@ -50,6 +52,53 @@ router.get("/", authenticate([]), async (req, res, next) => {
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
         .slice(begin, end)
     );
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PUT existing team score by server
+ * @return {String} Location header or Not Found
+ */
+router.put("/scores", checkServer, async (req, res, next) => {
+  try {
+    const room = await Room.findOne({ id: req.body.roomId });
+
+    if (!room) {
+      return res.status(404).send("404 Not Found: Room does not exist");
+    }
+
+    const preScores = [] as number[];
+    for (let i = 0; i < room.teams.length; i++) {
+      const teamId = room.teams[i];
+      const team = await Team.findOne({ id: teamId });
+      preScores.push(team?.score || 300);
+    }
+
+    child.exec(
+      `python3 ./scripts/update_score.py -p ${preScores.toString()} -c ${
+        req.body.scores
+      }`,
+      async (err, stdout, stderr) => {
+        if (err) console.log(stderr);
+        else {
+          const newScores = stdout
+            .split(/[[\]\s]+/)
+            .slice(1, -1)
+            .map((str) => parseInt(str));
+          for (let i = 0; i < room.teams.length; i++) {
+            const teamId = room.teams[i];
+            await Team.findOneAndUpdate(
+              { id: teamId },
+              { score: newScores[i] }
+            );
+          }
+        }
+      }
+    );
+
+    res.status(204).send("update scores success");
   } catch (err) {
     next(err);
   }

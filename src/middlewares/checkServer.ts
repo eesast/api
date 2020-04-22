@@ -19,6 +19,10 @@ const checkServer = (req: Request, res: Response, next: NextFunction) => {
     if (decoded.server !== server) {
       return res.status(403).send("403 Forbidden: Permission denied");
     }
+    req.body = {
+      roomId: decoded.roomId,
+      ...req.body,
+    };
     req.auth = { id: 0 };
     next();
   } catch (err) {
