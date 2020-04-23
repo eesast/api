@@ -239,7 +239,8 @@ router.post("/", authenticate([]), async (req, res, next) => {
       }
 
       try {
-        body.teams.map(async (teamId: number) => {
+        for (let i = 0; i < body.teams.length; i++) {
+          const teamId = body.teams[i];
           const agent = await docker.createContainer({
             Image: "eesast/thuai_agentclient",
             HostConfig: {
@@ -261,7 +262,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
             ],
           });
           await agent.start();
-        });
+        }
       } catch (error) {
         return res
           .status(503)
