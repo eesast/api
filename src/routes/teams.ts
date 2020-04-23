@@ -1,4 +1,5 @@
 import express from "express";
+import Docker from "dockerode";
 import authenticate from "../middlewares/authenticate";
 import Contest from "../models/contest";
 import Team, { TeamModel } from "../models/team";
@@ -97,6 +98,49 @@ router.put("/scores", checkServer, async (req, res, next) => {
         }
       }
     );
+
+    try {
+      const docker = new Docker();
+      const container = docker.getContainer(`THUAI-Room${room.id}`);
+      if (!container) {
+        return res
+          .status(404)
+          .send("404 Not Found: Docker container does not exist");
+      }
+      const info = await container.inspect();
+      if (info.State.Running) {
+        await container.stop();
+      }
+      await new Promise((resolve, reject) => {
+        child.exec(
+          `docker cp THUAI-Room${room.id}:/server.playback /data/thuai/playback/Room${room.id}.pb`,
+          (err, stdout, stderr) => {
+            if (err) reject(stderr);
+            else resolve(stdout);
+          }
+        );
+      });
+
+      await container.remove();
+
+      room.teams.map(async (teamId: number) => {
+        const agent = docker.getContainer(`THUAI-Room${room.id}-${teamId}`);
+        const info = await agent.inspect();
+        if (info.State.Running) {
+          await agent.stop();
+        }
+        await agent.remove();
+      });
+
+      const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
+      await network.remove();
+    } catch {
+      return res
+        .status(503)
+        .send(
+          "503 Service Unavailable: Failed to stop or remove docker container / network"
+        );
+    }
 
     res.status(204).send("update scores success");
   } catch (err) {
