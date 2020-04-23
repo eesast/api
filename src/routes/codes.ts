@@ -89,7 +89,7 @@ router.get("/:id", authenticate([]), async (req, res, next) => {
 
     const code = await Code.findOne({ id: req.params.id }, "-_id -__v");
     if (!code) {
-      return res.status(404).send("404 Not Found: Code does not exits");
+      return res.status(404).send("404 Not Found: Code does not exist");
     }
 
     const team = await Team.findOne({ id: code?.teamId });
@@ -116,7 +116,7 @@ router.post("/", authenticate(["root", "self"]), async (req, res, next) => {
 
     const team = await Team.findOne({ id: req.body.teamId });
     if (!team) {
-      return res.status(404).send("404 Not Found: Team does not exits");
+      return res.status(404).send("404 Not Found: Team does not exist");
     } else if (team.contestId !== req.body.contestId) {
       return res
         .status(403)
@@ -169,15 +169,31 @@ router.post(
         });
 
         if (!containerExist) {
-          fs.mkdirSync(`/data/thuai/${code.teamId}`, {
-            recursive: true,
-            mode: 0o775,
+          await new Promise((resolve, reject) => {
+            fs.mkdir(
+              `/data/thuai/${code.teamId}`,
+              {
+                recursive: true,
+                mode: 0o775,
+              },
+              (err, path) => {
+                if (err) reject(err);
+                else resolve(path);
+              }
+            );
           });
-          fs.writeFileSync(
-            `/data/thuai/${code.teamId}/player.cpp`,
-            code.content,
-            "utf8"
-          );
+
+          await new Promise((resolve, reject) => {
+            fs.writeFile(
+              `/data/thuai/${code.teamId}/player.cpp`,
+              code.content,
+              "utf8",
+              (err) => {
+                if (err) reject(err);
+                else resolve("success");
+              }
+            );
+          });
 
           const token = jwt.sign({ codeId: code.id, server }, secret, {
             expiresIn: "12h",
@@ -187,7 +203,7 @@ router.post(
             Image: "eesast/thuai_compiler:latest",
             HostConfig: {
               Binds: [`/data/thuai/${code.teamId}:/usr/local/mnt`],
-              // NetworkMode: "host" 本地测试时使用host模式
+              // NetworkMode: "host", //本地测试时使用host模式
             },
             Cmd: ["sh", "/usr/local/CAPI/compile.sh"],
             Env: [
@@ -222,7 +238,7 @@ router.put("/:id/compile", checkServer, async (req, res, next) => {
     const code = await Code.findOne({ id: req.params.id });
 
     if (!code) {
-      return res.status(404).send("404 Not Found: Code does not exits");
+      return res.status(404).send("404 Not Found: Code does not exist");
     }
 
     if (!req.body.compileInfo) {
@@ -264,6 +280,36 @@ router.put("/:id/compile", checkServer, async (req, res, next) => {
         );
     }
 
+    if (req.body.compileInfo !== "compile success") {
+      try {
+        const compileInfo = await new Promise<string>((resolve, reject) => {
+          fs.readFile(`/data/thuai/${code.teamId}/error.txt`, (err, data) => {
+            if (err) reject(err);
+            else resolve(data.toString("utf8"));
+          });
+        });
+
+        const update = {
+          ...{ compileInfo: compileInfo },
+          updatedAt: new Date(),
+          updatedBy: req.auth.id,
+        };
+        const newCode = await Code.findOneAndUpdate(
+          { id: req.params.id },
+          update
+        );
+        // 此时container已被删除，log中不会有状态码
+        res.setHeader("Location", "/v1/codes/" + newCode!.id);
+        res.status(204).end();
+      } catch (error) {
+        return res
+          .status(503)
+          .send(
+            "503 Service Unavailable: Failed to read compileInfo or Update compileInfo"
+          );
+      }
+    }
+
     const update = {
       ...{ compileInfo: req.body.compileInfo },
       updatedAt: new Date(),
@@ -291,16 +337,16 @@ router.put(
       const code = await Code.findOne({ id: req.params.id });
 
       if (!code) {
-        return res.status(404).send("404 Not Found: Code does not exits");
+        return res.status(404).send("404 Not Found: Code does not exist");
       }
 
       const team = await Team.findOne({ id: code.teamId! });
       if (!team) {
-        return res.status(404).send("404 Not Found: Team does not exits");
+        return res.status(404).send("404 Not Found: Team does not exist");
       }
 
       if (!team.members.includes(req.auth.id!) || req.auth.role !== "root") {
-        return res.status(403).send("404 Not Found: Team does not exits");
+        return res.status(403).send("404 Not Found: Team does not exist");
       }
 
       const update = {
@@ -336,7 +382,7 @@ router.delete(
         if (
           !(await Team.findOne({ id: teamId }))?.members.includes(req.auth.id!)
         ) {
-          return res.status(403).send("404 Not Found: Team does not exits");
+          return res.status(403).send("404 Not Found: Team does not exist");
         }
       }
 
