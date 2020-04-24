@@ -77,27 +77,30 @@ router.put("/scores", checkServer, async (req, res, next) => {
       preScores.push(team?.score || 300);
     }
 
-    child.exec(
-      `python3 ./scripts/update_score.py -p ${preScores.toString()} -c ${
-        req.body.scores
-      }`,
-      async (err, stdout, stderr) => {
-        if (err) console.log(stderr);
-        else {
-          const newScores = stdout
-            .split(/[[\]\s]+/)
-            .slice(1, -1)
-            .map((str) => parseInt(str));
-          for (let i = 0; i < room.teams.length; i++) {
-            const teamId = room.teams[i];
-            await Team.findOneAndUpdate(
-              { id: teamId },
-              { score: newScores[i] }
-            );
+    await new Promise((resolve, reject) => {
+      child.exec(
+        `python3 ./scripts/update_score.py -p ${preScores.toString()} -c ${
+          req.body.scores
+        }`,
+        async (err, stdout, stderr) => {
+          if (err) reject(stderr);
+          else {
+            const newScores = stdout
+              .split(/[[\]\s]+/)
+              .slice(1, -1)
+              .map((str) => parseInt(str));
+            for (let i = 0; i < room.teams.length; i++) {
+              const teamId = room.teams[i];
+              await Team.findOneAndUpdate(
+                { id: teamId },
+                { score: newScores[i] }
+              );
+            }
+            resolve("success");
           }
         }
-      }
-    );
+      );
+    });
 
     try {
       const docker = new Docker();
