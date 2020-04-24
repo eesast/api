@@ -163,7 +163,7 @@ router.post("/:id/leave", checkServer, async (req, res, next) => {
  * @returns {String} Location header
  */
 router.post("/", authenticate([]), async (req, res, next) => {
-  const body = pick(req.body, ["contestId", "teams", "ip", "port"]); // ip 由 docker 分配
+  const body = pick(req.body, ["contestId", "ip", "port"]); // ip 由 docker 分配; teams 由 agent 连上后进行更新
   const port = body.port;
 
   try {
@@ -174,6 +174,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
 
     const room = await new Room({
       ...body,
+      teams: [] as number[],
       createdBy: req.auth.id,
       updatedBy: req.auth.id,
     }).save();
@@ -199,7 +200,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
             "--playerCount",
             "2",
             "--agentCount",
-            `${body.teams.length}`,
+            `${req.body.teams.length}`,
             "--gameTime",
             "600",
             "--token",
@@ -239,8 +240,18 @@ router.post("/", authenticate([]), async (req, res, next) => {
       }
 
       try {
-        for (let i = 0; i < body.teams.length; i++) {
-          const teamId = body.teams[i];
+        for (let i = 0; i < req.body.teams.length; i++) {
+          const teamId = req.body.teams[i];
+          const team = await Team.findOne({ id: teamId });
+          const agentToken = jwt.sign(
+            {
+              id: team?.leader,
+            },
+            secret,
+            {
+              expiresIn: "12h",
+            }
+          );
           const agent = await docker.createContainer({
             Image: "eesast/thuai_agentclient",
             HostConfig: {
@@ -254,7 +265,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
             OpenStdin: false,
             StdinOnce: false,
             name: `THUAI-Room${room.id}-${teamId}`,
-            Cmd: [roomIp + `:${body.port}`, "2", "0", "600"],
+            Cmd: [roomIp + `:${body.port}`, "2", "1", "600", `${agentToken}`],
           });
           await agent.start();
         }
