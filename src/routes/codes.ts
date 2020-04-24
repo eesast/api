@@ -308,17 +308,20 @@ router.put("/:id/compile", checkServer, async (req, res, next) => {
             "503 Service Unavailable: Failed to read compileInfo or Update compileInfo"
           );
       }
+    } else {
+      const update = {
+        ...{ compileInfo: req.body.compileInfo },
+        updatedAt: new Date(),
+        updatedBy: req.auth.id,
+      };
+      const newCode = await Code.findOneAndUpdate(
+        { id: req.params.id },
+        update
+      );
+      // 此时container已被删除，log中不会有状态码
+      res.setHeader("Location", "/v1/codes/" + newCode!.id);
+      res.status(204).end();
     }
-
-    const update = {
-      ...{ compileInfo: req.body.compileInfo },
-      updatedAt: new Date(),
-      updatedBy: req.auth.id,
-    };
-    const newCode = await Code.findOneAndUpdate({ id: req.params.id }, update);
-    // 此时container已被删除，log中不会有状态码
-    res.setHeader("Location", "/v1/codes/" + newCode!.id);
-    res.status(204).end();
   } catch (error) {
     next(error);
   }
