@@ -75,6 +75,23 @@ router.get("/images/:filename", async (req, res) => {
 });
 
 /**
+ * GET
+ * Get static thuai playback
+ */
+router.get("/thuai/:filename", async (req, res) => {
+  const filename = req.params.filename;
+  const fullPath = path.resolve("/data/thuai/playback", filename);
+
+  fs.exists(fullPath, (exists) => {
+    if (!exists) {
+      return res.status(404).send("404 Not Found: File does not exist");
+    }
+
+    res.sendFile(fullPath);
+  });
+});
+
+/**
  * POST new files
  * @param {string} category directory
  * @returns Location header

@@ -99,6 +99,34 @@ paths:
         500:
           description: Server error
 
+  "/static/thuai/:filename":
+    get:
+      tags:
+        - static
+      summary: 下载thuai相关文件（目前为回放）
+      description: 下载thuai相关文件（目前为回放）
+      operationId: getThuaiFile
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        400:
+          $ref: "#/components/responses/BadRequest"
+        404:
+          description: "Not Found: File does not exist"
+        500:
+          description: Server error
+
   "/static/{category}":
     post:
       tags:
