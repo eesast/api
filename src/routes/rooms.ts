@@ -210,7 +210,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
           AttachStderr: false,
           ExposedPorts: { [`${port}/tcp`]: {} },
           HostConfig: {
-            PortBindings: { [`${port}/tcp`]: [{ HostPort: `${port}` }] },
+            // PortBindings: { [`${port}/tcp`]: [{ HostPort: `${port}` }] },
             NetworkMode: `THUAI-RoomNet${room.id}`,
           },
           Tty: false,
@@ -254,12 +254,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
             OpenStdin: false,
             StdinOnce: false,
             name: `THUAI-Room${room.id}-${teamId}`,
-            Cmd: [
-              roomIp + `:${body.port}`,
-              body.teams.length.toString(),
-              "0",
-              "600",
-            ],
+            Cmd: [roomIp + `:${body.port}`, "2", "0", "600"],
           });
           await agent.start();
         }
