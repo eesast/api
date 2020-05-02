@@ -34,6 +34,9 @@ COPY --from=builder /home/node/app/build ./build
 # Copy doc files
 COPY docs ./docs
 
+# Cope scripts
+COPY scripts ./scripts
+
 EXPOSE 28888
 
 CMD yarn serve
