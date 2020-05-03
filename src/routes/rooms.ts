@@ -17,16 +17,31 @@ const router = express.Router();
  * GET rooms with queries
  * @param {number} contestId
  * @param {number} status
+ * @param {boolean} self - only get team with self if true
  * @param {number} begin
  * @param {number} end
  * @returns {Object[]} rooms of given contest with given status
  */
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate([]), async (req, res, next) => {
   const query = pick(req.query, ["contestId", "status"]);
 
   try {
+    if ((req.query.self as any) === true) {
+      const team = await Team.findOne({
+        contestId: parseInt(query.contestId as string),
+        members: { $in: [req.auth.id!] },
+      });
+      if (!team) {
+        return res.status(404).send("404 Not Found: Team does not exist");
+      }
+      const rooms = await Room.find(
+        { ...query, teams: { $in: [team.id] } } as any,
+        "-_id -__v"
+      );
+      return res.json(rooms);
+    }
     const rooms = await Room.find(query as any, "-_id -__v");
-    res.json(rooms);
+    return res.json(rooms);
   } catch (err) {
     next(err);
   }
@@ -226,8 +241,6 @@ router.post("/", authenticate([]), async (req, res, next) => {
         const containerInfo = Object.values(netInfo.Containers!)[0];
         // dockerode type 有问题，IPv4是正确的
         roomIp = (containerInfo as any).IPv4Address.split("/")[0];
-
-        console.log("updateIp");
 
         await Room.findOneAndUpdate(
           { id: room.id },

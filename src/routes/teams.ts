@@ -95,12 +95,13 @@ router.put("/scores", checkServer, async (req, res, next) => {
     const updateScores = preScores.map((score, idx) => {
       return Math.round(score + 150 * (actual[idx] - predict[idx]));
     });
-    console.log(updateScores);
 
     for (let i = 0; i < room.teams.length; i++) {
       const teamId = room.teams[i];
       await Team.findOneAndUpdate({ id: teamId }, { score: updateScores[i] });
     }
+
+    await Room.findOneAndUpdate({ id: room.id }, { scores: req.body.scores });
 
     try {
       const docker = new Docker();
@@ -116,7 +117,7 @@ router.put("/scores", checkServer, async (req, res, next) => {
       }
       await new Promise((resolve, reject) => {
         child.exec(
-          `docker cp THUAI-Room${room.id}:/server.playback /data/thuai/playback/Room${room.id}.pb`,
+          `docker cp THUAI-Room${room.id}:/app/server.playback /data/thuai/playback/Room${room.id}.pb`,
           (err, stdout, stderr) => {
             if (err) reject(stderr);
             else resolve(stdout);
