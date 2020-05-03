@@ -53,6 +53,7 @@ describe("Rooms", () => {
   it("Get all rooms", () =>
     request(Server)
       .get("/v1/rooms")
+      .set("Authorization", "bearer " + variables.admin.token)
       .expect("Content-Type", /json/)
       .then((r) => {
         expect(r.body).to.be.an("array").of.length(1);
@@ -63,20 +64,12 @@ describe("Rooms", () => {
       .delete("/v1/rooms/1")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect(204)
-      .then(() =>
-        request(Server)
-          .get("/v1/rooms/1")
-          .expect(404)
-      ));
+      .then(() => request(Server).get("/v1/rooms/1").expect(404)));
 
   it("Delete the contest with id 3", () =>
     request(Server)
       .delete("/v1/contests/3")
       .set("Authorization", "bearer " + variables.admin.token)
       .expect(204)
-      .then(() =>
-        request(Server)
-          .get("/v1/contests/3")
-          .expect(404)
-      ));
+      .then(() => request(Server).get("/v1/contests/3").expect(404)));
 });
