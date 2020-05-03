@@ -77,30 +77,30 @@ router.put("/scores", checkServer, async (req, res, next) => {
       preScores.push(team?.score || 300);
     }
 
-    await new Promise((resolve, reject) => {
-      child.exec(
-        `python3 ./scripts/update_score.py -p ${preScores.toString()} -c ${
-          req.body.scores
-        }`,
-        async (err, stdout, stderr) => {
-          if (err) reject(stderr);
-          else {
-            const newScores = stdout
-              .split(/[[\]\s]+/)
-              .slice(1, -1)
-              .map((str) => parseInt(str));
-            for (let i = 0; i < room.teams.length; i++) {
-              const teamId = room.teams[i];
-              await Team.findOneAndUpdate(
-                { id: teamId },
-                { score: newScores[i] }
-              );
-            }
-            resolve("success");
-          }
-        }
-      );
+    const softmax = (array: number[]) => {
+      const exp = array.map((x) => Math.exp(x));
+      const sum = eval(exp.join("+"));
+      return exp.map((x) => x / sum);
+    };
+
+    const reasonableSoftmax = (array: number[], k = 5) => {
+      const temp = array.map((x) => (k * x) / eval(array.join("+")));
+      return softmax(temp);
+    };
+
+    const predict = reasonableSoftmax(preScores, 8);
+    console.log(predict);
+    const actual = reasonableSoftmax(req.body.scores, 4);
+    console.log(actual);
+    const updateScores = preScores.map((score, idx) => {
+      return Math.round(score + 150 * (actual[idx] - predict[idx]));
     });
+    console.log(updateScores);
+
+    for (let i = 0; i < room.teams.length; i++) {
+      const teamId = room.teams[i];
+      await Team.findOneAndUpdate({ id: teamId }, { score: updateScores[i] });
+    }
 
     try {
       const docker = new Docker();
