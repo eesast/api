@@ -1810,6 +1810,8 @@ paths:
         - rooms
       summary: 返回匹配查询的房间
       description: 可以通过 query 进行筛选
+      security:
+        - bearerAuth: []
       operationId: findRooms
       parameters:
         - name: contestId
@@ -1823,6 +1825,11 @@ paths:
             type: number
             enum: [0, 1, 2]
           description: 房间是否开启
+        - name: self
+          in: query
+          schema:
+            type: boolean
+          description: 是否只获取自己队伍参与的比赛
         - name: begin
           in: query
           schema:
