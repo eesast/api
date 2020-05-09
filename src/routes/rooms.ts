@@ -211,7 +211,7 @@ router.post("/", authenticate([]), async (req, res, next) => {
             "--port",
             `${port}`,
             "--debugLevel",
-            "0",
+            "1",
             "--playerCount",
             "2",
             "--agentCount",
