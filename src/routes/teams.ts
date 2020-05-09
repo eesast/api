@@ -114,18 +114,6 @@ router.put("/scores", checkServer, async (req, res, next) => {
       if (info.State.Running) {
         await container.stop();
       }
-      await new Promise((resolve, reject) => {
-        child.exec(
-          `docker cp THUAI-Room${room.id}:/server.playback /data/thuai/playback/Room${room.id}.pb`,
-          (err, stdout, stderr) => {
-            if (err) reject(stderr);
-            else resolve(stdout);
-          }
-        );
-      });
-
-      await container.remove();
-
       room.teams.map(async (teamId: number) => {
         const agent = docker.getContainer(`THUAI-Room${room.id}-${teamId}`);
         const info = await agent.inspect();
@@ -137,6 +125,18 @@ router.put("/scores", checkServer, async (req, res, next) => {
 
       const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
       await network.remove();
+
+      await new Promise((resolve, reject) => {
+        child.exec(
+          `docker cp THUAI-Room${room.id}:/server.playback /data/thuai/playback/Room${room.id}.pb`,
+          (err, stdout, stderr) => {
+            if (err) reject(stderr);
+            else resolve(stdout);
+          }
+        );
+      });
+
+      await container.remove();
     } catch {
       return res
         .status(503)
