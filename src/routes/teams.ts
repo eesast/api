@@ -84,7 +84,7 @@ router.put("/scores", checkServer, async (req, res, next) => {
     };
 
     const reasonableSoftmax = (array: number[], k = 5) => {
-      const temp = array.map((x) => (k * x) / eval(array.join("+")));
+      const temp = array.map((x) => (x ? (k * x) / eval(array.join("+")) : 0));
       return softmax(temp);
     };
 
