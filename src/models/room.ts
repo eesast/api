@@ -8,6 +8,7 @@ export interface RoomModel extends mongoose.Document {
   teams: number[];
   ip: string;
   port: number;
+  scores: number[];
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
@@ -36,6 +37,7 @@ const roomSchema = new mongoose.Schema<RoomModel>(
       min: 0,
       max: 65535,
     },
+    scores: [Number],
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
