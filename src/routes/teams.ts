@@ -1,14 +1,14 @@
-import express from "express";
 import Docker from "dockerode";
+import express from "express";
+import * as fs from "fs";
+import pick from "lodash.pick";
 import authenticate from "../middlewares/authenticate";
+import checkServer from "../middlewares/checkServer";
 import Contest from "../models/contest";
-import Team, { TeamModel } from "../models/team";
 import Room from "../models/room";
+import Team, { TeamModel } from "../models/team";
 import Track from "../models/track";
 import User from "../models/user";
-import pick from "lodash.pick";
-import checkServer from "../middlewares/checkServer";
-import * as child from "child_process";
 
 const router = express.Router();
 
@@ -87,7 +87,7 @@ router.put("/scores", checkServer, async (req, res, next) => {
       const temp = array.map((x) => (x ? (k * x) / eval(array.join("+")) : 0));
       return softmax(temp);
     };
-
+    console.log(`room${room.id} score: ${req.body.scores}`);
     const predict = reasonableSoftmax(preScores, 8);
     console.log(predict);
     const actual = reasonableSoftmax(req.body.scores, 4);
@@ -127,15 +127,15 @@ router.put("/scores", checkServer, async (req, res, next) => {
       const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
       await network.remove();
 
-      await new Promise((resolve, reject) => {
-        child.exec(
-          `docker cp THUAI-Room${room.id}:/server.playback /data/thuai/playback/Room${room.id}.pb`,
-          (err, stdout, stderr) => {
-            if (err) reject(stderr);
-            else resolve(stdout);
-          }
-        );
+      const playback = await container.getArchive({
+        path: "/app/server.playback",
       });
+
+      const writeStream = fs.createWriteStream(
+        `/data/thuai/playback/Room${room.id}.tar`
+      );
+
+      playback.pipe(writeStream);
 
       await container.remove();
     } catch {
