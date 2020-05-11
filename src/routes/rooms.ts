@@ -25,6 +25,9 @@ const router = express.Router();
 router.get("/", authenticate([]), async (req, res, next) => {
   const query = pick(req.query, ["contestId", "status"]);
 
+  const begin = parseInt(req.query.begin as string, 10) || 0;
+  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
+
   try {
     if ((req.query.self as any) === true) {
       const team = await Team.findOne({
@@ -40,7 +43,11 @@ router.get("/", authenticate([]), async (req, res, next) => {
       );
       return res.json(rooms);
     }
-    const rooms = await Room.find(query as any, "-_id -__v");
+    const rooms = await Room.find(query as any, "-_id -__v", {
+      skip: begin,
+      limit: end - begin + 1,
+      sort: "-updatedAt",
+    });
     return res.json(rooms);
   } catch (err) {
     next(err);
