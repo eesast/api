@@ -87,11 +87,8 @@ router.put("/scores", checkServer, async (req, res, next) => {
       const temp = array.map((x) => (x ? (k * x) / eval(array.join("+")) : 0));
       return softmax(temp);
     };
-    console.log(`room${room.id} score: ${req.body.scores}`);
     const predict = reasonableSoftmax(preScores, 8);
-    console.log(predict);
     const actual = reasonableSoftmax(req.body.scores, 4);
-    console.log(actual);
     const updateScores = preScores.map((score, idx) => {
       return Math.round(score + 150 * (actual[idx] - predict[idx]));
     });
@@ -115,29 +112,30 @@ router.put("/scores", checkServer, async (req, res, next) => {
       if (info.State.Running) {
         await container.stop();
       }
-      room.teams.map(async (teamId: number) => {
-        const agent = docker.getContainer(`THUAI-Room${room.id}-${teamId}`);
-        const info = await agent.inspect();
-        if (info.State.Running) {
-          await agent.stop();
-        }
-        await agent.remove();
-      });
 
-      const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
-      await network.remove();
+      await Promise.all(
+        room.teams.map(async (teamId: number) => {
+          const agent = docker.getContainer(`THUAI-Room${room.id}-${teamId}`);
+          const info = await agent.inspect();
+          if (info.State.Running) {
+            await agent.stop();
+          }
+          await agent.remove();
+        })
+      );
 
       const playback = await container.getArchive({
         path: "/app/server.playback",
       });
-
       const writeStream = fs.createWriteStream(
         `/data/thuai/playback/Room${room.id}.tar`
       );
-
       playback.pipe(writeStream);
 
       await container.remove();
+
+      const network = docker.getNetwork(`THUAI-RoomNet${room.id}`);
+      await network.remove();
     } catch {
       return res
         .status(503)
