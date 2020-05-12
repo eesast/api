@@ -1297,6 +1297,11 @@ paths:
           description: 按时间降序排列，结束队伍的位置
           schema:
             type: number
+        - name: sortByScore
+          in: query
+          description: 是否按照分数排序
+          schema:
+            type: boolean
       responses:
         200:
           description: Successful operation

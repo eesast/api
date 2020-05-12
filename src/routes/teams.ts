@@ -18,6 +18,7 @@ const router = express.Router();
  * @param {boolean} self - only get team with self if true
  * @param {number} begin
  * @param {number} end
+ * @param {boolean} sortByScore
  * @returns {Object[]} teams of given contest
  */
 router.get("/", authenticate([]), async (req, res, next) => {
@@ -45,6 +46,16 @@ router.get("/", authenticate([]), async (req, res, next) => {
       { ...query, members: { $in: [req.auth.id!] } } as any,
       "-_id -__v"
     );
+
+    if (req.body.sortByScore) {
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.json(
+        teams
+          .concat(teamSelf)
+          .sort((a, b) => a.score - b.score)
+          .slice(begin, end)
+      );
+    }
 
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.json(
@@ -98,7 +109,10 @@ router.put("/scores", checkServer, async (req, res, next) => {
       await Team.findOneAndUpdate({ id: teamId }, { score: updateScores[i] });
     }
 
-    await Room.findOneAndUpdate({ id: room.id }, { scores: req.body.scores });
+    await Room.findOneAndUpdate(
+      { id: room.id },
+      { scores: req.body.scores, status: 2 }
+    );
 
     try {
       const docker = new Docker();
