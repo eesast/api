@@ -28,20 +28,13 @@ const app = express();
     "https://thu-ai.net",
     "http://140.143.170.135",
     "http://140.143.170.135:3000",
+    "http://localhost:3000",
   ];
-
-  const devWhitelist = [...whitelist, "http://localhost:3000"];
 
   app.use(
     cors({
       origin: function (origin, callback) {
-        if (
-          !origin ||
-          (process.env.NODE_ENV === "production"
-            ? whitelist
-            : devWhitelist
-          ).indexOf(origin) !== -1
-        ) {
+        if (!origin || whitelist.indexOf(origin) !== -1) {
           callback(null, true);
         } else {
           callback(new Error("Not allowed by CORS"));
