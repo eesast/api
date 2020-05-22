@@ -9,17 +9,7 @@
       "request": "launch",
       "name": "Debug server",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": ["dev:debug"],
-      "restart": true,
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug test",
-      "runtimeExecutable": "yarn",
-      "runtimeArgs": ["test:debug"],
+      "runtimeArgs": ["debug"],
       "restart": true,
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
