@@ -20,7 +20,7 @@ const recaptcha = async (req: Request, res: Response, next: NextFunction) => {
     );
     const result = await response.json();
 
-    if (result.success && req.hostname.includes(result.hostname)) {
+    if (result.success) {
       next();
     } else {
       res.status(400).end("Invalid reCAPTCHA");
