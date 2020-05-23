@@ -25,7 +25,8 @@ const recaptcha = async (req: Request, res: Response, next: NextFunction) => {
     } else {
       res.status(400).end("Invalid reCAPTCHA");
     }
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).end();
   }
 };

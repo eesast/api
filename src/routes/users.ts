@@ -28,6 +28,7 @@ router.post("/", recaptcha, async (req, res) => {
 
     res.status(201).end();
   } catch (err) {
+    console.error(err);
     res.status(500).end();
   }
 });
@@ -73,6 +74,7 @@ router.post("/login", async (req, res) => {
       res.status(401).end();
     }
   } catch (err) {
+    console.error(err);
     res.status(500).end();
   }
 });

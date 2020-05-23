@@ -38,6 +38,7 @@ const authenticate: (
 
       User.findOne({ id: payload.id }, (error, user) => {
         if (error) {
+          console.error(err);
           return res.status(500).end();
         }
         if (!user) {
