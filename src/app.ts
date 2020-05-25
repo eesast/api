@@ -7,11 +7,7 @@ import userRouter from "./routes/users";
 const app = express();
 
 if (process.env.NODE_ENV === "production") {
-  const whitelist = [
-    "https://eesast.com",
-    "https://api.eesast.com",
-    "http://localhost:3000",
-  ];
+  const whitelist = ["https://eesast.com", "http://localhost:3000"];
 
   app.use(
     cors({

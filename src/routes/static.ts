@@ -21,7 +21,13 @@ router.get("/*", async (req, res) => {
 
   const isPublic = path.split("/")[1] && path.split("/")[1] === "public";
   if (!isPublic) {
-    // customize authorization
+    /**
+     * customize authorization
+     * one possible solution for future scenarios:
+     *   path based authorization:
+     *     /public, /root/images, /[id]-filename.txt
+     * now allow any email verified user to access "/"
+     */
     await new Promise((resolve) =>
       authenticate(["student", "teacher", "counselor", "root"])(
         req,

@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 
 export interface UserModel extends mongoose.Document {
-  id: number;
+  email: string;
   password: string;
   role: string;
+  emailVerified: boolean;
   createdAt: Date;
   createdBy: number;
   updatedAt: Date;
@@ -12,9 +13,10 @@ export interface UserModel extends mongoose.Document {
 
 const userSchema = new mongoose.Schema<UserModel>(
   {
-    id: { type: Number, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, required: true },
+    emailVerified: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     createdBy: Number,
     updatedAt: { type: Date, default: Date.now },
