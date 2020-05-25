@@ -33,6 +33,7 @@ router.post("/", recaptcha, async (req, res) => {
       const token = jwt.sign(
         {
           email,
+          type: "regular",
           action: "verifyEmail",
         },
         process.env.SECRET!,
@@ -43,7 +44,9 @@ router.post("/", recaptcha, async (req, res) => {
       await sendEmail(
         email,
         "验证您的邮箱",
-        verifyEmailTemplate(`${process.env.EESAST_URL}/verify?token=${token}`)
+        verifyEmailTemplate(
+          `${process.env.EESAST_URL}/verify?type=regular&token=${token}`
+        )
       );
     } catch (error) {
       console.error(error);
@@ -103,66 +106,63 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/verify", async (req, res) => {
-  const { token } = req.query;
-  jwt.verify(token as string, process.env.SECRET!, async (err, decoded) => {
-    if (err || !decoded) {
-      return res.status(401).send("401 Unauthorized: Token expired or invalid");
-    }
-
-    const payload = decoded as { email: string; action: string };
-    if (payload.action !== "verifyEmail") {
-      return res.status(401).send("401 Unauthorized: Token expired or invalid");
-    }
-
-    try {
-      const user = await User.findOne({ email: payload.email });
-
-      if (!user) {
-        return res.status(500).end();
-      }
-
-      user.update({ emailVerified: true }, (err) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).end();
-        } else {
-          return res.status(200).end();
-        }
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).end();
-    }
-  });
-});
-
 router.post("/verify", async (req, res) => {
-  const { action } = req.body;
+  const { action, type } = req.body;
 
   if (action === "request") {
     await new Promise((resolve) => recaptcha(req, res, resolve));
-    await new Promise((resolve) => authenticate()(req, res, resolve));
 
-    const { tsinghuaEmail } = req.body;
-    const token = jwt.sign(
-      {
-        email: req.auth.user.email,
-        tsinghuaEmail,
-        action: "verifyTsinghuaEmail",
-      },
-      process.env.SECRET!,
-      {
-        expiresIn: "15m",
+    if (type === "regular") {
+      const { email } = req.body;
+      try {
+        const token = jwt.sign(
+          {
+            email,
+            type: "regular",
+            action: "verifyEmail",
+          },
+          process.env.SECRET!,
+          {
+            expiresIn: "15m",
+          }
+        );
+        await sendEmail(
+          email,
+          "验证您的邮箱",
+          verifyEmailTemplate(
+            `${process.env.EESAST_URL}/verify?type=regular&token=${token}`
+          )
+        );
+      } catch (error) {
+        console.error(error);
       }
-    );
-    await sendEmail(
-      tsinghuaEmail,
-      "验证您的清华邮箱",
-      verifyEmailTemplate(
-        `${process.env.EESAST_URL}/verify??type=tsinghua&token=${token}`
-      )
-    );
+      return res.status(200).end();
+    } else if (type === "tsinghua") {
+      await new Promise((resolve) => authenticate()(req, res, resolve));
+
+      const { tsinghuaEmail } = req.body;
+      const token = jwt.sign(
+        {
+          email: req.auth.user.email,
+          type: "tsinghua",
+          tsinghuaEmail,
+          action: "verifyEmail",
+        },
+        process.env.SECRET!,
+        {
+          expiresIn: "15m",
+        }
+      );
+      await sendEmail(
+        tsinghuaEmail,
+        "验证您的清华邮箱",
+        verifyEmailTemplate(
+          `${process.env.EESAST_URL}/verify?type=tsinghua&token=${token}`
+        )
+      );
+    } else {
+      return res.status(422).send("422 Unprocessable Entity: Wrong action");
+    }
   } else if (action === "fulfill") {
     const { token } = req.body;
 
@@ -175,10 +175,11 @@ router.post("/verify", async (req, res) => {
 
       const payload = decoded as {
         email: string;
+        type: string;
         tsinghuaEmail: string;
         action: string;
       };
-      if (payload.action !== "verifyTsinghuaEmail") {
+      if (payload.action !== "verifyEmail") {
         return res
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
@@ -191,17 +192,30 @@ router.post("/verify", async (req, res) => {
           return res.status(500).end();
         }
 
-        if (user.role === "user") {
-          user.update({ role: "student" }, (err) => {
+        if (type === "tsinghua") {
+          if (user.role === "user") {
+            user.update({ role: "student" }, (err) => {
+              if (err) {
+                console.error(err);
+                res.status(500).end();
+              } else {
+                return res.status(200).end();
+              }
+            });
+          } else {
+            return res.status(200).end();
+          }
+        } else if (type === "regular") {
+          user.update({ emailVerified: true }, (err) => {
             if (err) {
               console.error(err);
-              res.status(500).end();
+              return res.status(500).end();
             } else {
               return res.status(200).end();
             }
           });
         } else {
-          return res.status(200).end();
+          return res.status(422).send("422 Unprocessable Entity: Wrong action");
         }
       } catch (err) {
         console.error(err);
