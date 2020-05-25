@@ -8,7 +8,7 @@ import {
   verifyEmailTemplate,
   resetPasswordTemplate,
 } from "../helpers/htmlTemplates";
-import authenticate from "../middlewares/authenticate";
+import authenticate, { JwtPayload } from "../middlewares/authenticate";
 
 const router = express.Router();
 
@@ -49,13 +49,14 @@ router.post("/", recaptcha, async (req, res) => {
         )
       );
     } catch (error) {
+      // email verification can be requested later
       console.error(error);
     }
 
-    res.status(201).end();
+    return res.status(201).end();
   } catch (err) {
     console.error(err);
-    res.status(500).end();
+    return res.status(500).end();
   }
 });
 
@@ -81,28 +82,25 @@ router.post("/login", async (req, res) => {
     }
 
     if (!user.emailVerified) {
-      return res.status(401).end("401 Unauthorized: Email not verified");
+      return res.status(401).send("401 Unauthorized: Email not verified");
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-        "https://hasura.io/jwt/claims": {
-          "x-hasura-allowed-roles": [user.role],
-          "x-hasura-default-role": user.role,
-          "x-hasura-user-id": user.id.toString(),
-        },
+    const payload: JwtPayload = {
+      email: user.email,
+      role: user.role,
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": [user.role],
+        "x-hasura-default-role": user.role,
+        "x-hasura-user-id": user.id.toString(),
       },
-      process.env.SECRET!,
-      {
-        expiresIn: "2h",
-      }
-    );
+    };
+    const token = jwt.sign(payload, process.env.SECRET!, {
+      expiresIn: "12h",
+    });
     return res.status(200).json({ token });
   } catch (err) {
     console.error(err);
-    res.status(500).end();
+    return res.status(500).end();
   }
 });
 
@@ -133,35 +131,43 @@ router.post("/verify", async (req, res) => {
             `${process.env.EESAST_URL}/verify?type=regular&token=${token}`
           )
         );
+        return res.status(200).end();
       } catch (error) {
         console.error(error);
+        return res.status(500).end();
       }
-      return res.status(200).end();
     } else if (type === "tsinghua") {
+      // must provide token to know which account to verify for
       await new Promise((resolve) => authenticate()(req, res, resolve));
 
-      const { tsinghuaEmail } = req.body;
-      const token = jwt.sign(
-        {
-          email: req.auth.user.email,
-          type: "tsinghua",
+      try {
+        const { tsinghuaEmail } = req.body;
+        const token = jwt.sign(
+          {
+            email: req.auth.user.email,
+            type: "tsinghua",
+            tsinghuaEmail,
+            action: "verifyEmail",
+          },
+          process.env.SECRET!,
+          {
+            expiresIn: "15m",
+          }
+        );
+        await sendEmail(
           tsinghuaEmail,
-          action: "verifyEmail",
-        },
-        process.env.SECRET!,
-        {
-          expiresIn: "15m",
-        }
-      );
-      await sendEmail(
-        tsinghuaEmail,
-        "验证您的清华邮箱",
-        verifyEmailTemplate(
-          `${process.env.EESAST_URL}/verify?type=tsinghua&token=${token}`
-        )
-      );
+          "验证您的清华邮箱",
+          verifyEmailTemplate(
+            `${process.env.EESAST_URL}/verify?type=tsinghua&token=${token}`
+          )
+        );
+        return res.status(200).end();
+      } catch (error) {
+        console.error(error);
+        return res.status(500).end();
+      }
     } else {
-      return res.status(422).send("422 Unprocessable Entity: Wrong action");
+      return res.status(422).send("422 Unprocessable Entity: Wrong type");
     }
   } else if (action === "fulfill") {
     const { token } = req.body;
@@ -197,7 +203,7 @@ router.post("/verify", async (req, res) => {
             user.update({ role: "student" }, (err) => {
               if (err) {
                 console.error(err);
-                res.status(500).end();
+                return res.status(500).end();
               } else {
                 return res.status(200).end();
               }
@@ -215,7 +221,7 @@ router.post("/verify", async (req, res) => {
             }
           });
         } else {
-          return res.status(422).send("422 Unprocessable Entity: Wrong action");
+          return res.status(422).send("422 Unprocessable Entity: Wrong type");
         }
       } catch (err) {
         console.error(err);
@@ -249,6 +255,7 @@ router.post("/reset", async (req, res) => {
       "重置您的密码",
       resetPasswordTemplate(`${process.env.EESAST_URL}/reset?token=${token}`)
     );
+    return res.status(200).end();
   } else if (action === "fulfill") {
     const { token } = req.body;
 
@@ -269,6 +276,12 @@ router.post("/reset", async (req, res) => {
       const email = payload.email;
       const { password } = req.body;
 
+      if (!password) {
+        return res
+          .status(422)
+          .send("422 Unprocessable Entity: Missing new password");
+      }
+
       try {
         const saltRounds = 10;
         const hash = await bcrypt.hash(password, saltRounds);
@@ -282,14 +295,14 @@ router.post("/reset", async (req, res) => {
         user.update({ password: hash }, (err) => {
           if (err) {
             console.error(err);
-            res.status(500).end();
+            return res.status(500).end();
           } else {
             return res.status(204).end();
           }
         });
       } catch (err) {
         console.error(err);
-        res.status(500).end();
+        return res.status(500).end();
       }
     });
   } else {

@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user";
 
 export interface JwtPayload {
-  id: number;
+  email: string;
   role: string;
   "https://hasura.io/jwt/claims": {
     "x-hasura-allowed-roles": string[];
@@ -36,7 +36,7 @@ const authenticate: (
 
       const payload = decoded as JwtPayload;
 
-      User.findOne({ id: payload.id }, (error, user) => {
+      User.findOne({ email: payload.email }, (error, user) => {
         if (error) {
           console.error(err);
           return res.status(500).end();
