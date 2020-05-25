@@ -44,7 +44,7 @@ const authenticate: (
         if (!user) {
           return res.status(401).send("401 Unauthorized: Permission denied");
         }
-        req.auth.user = user;
+        req.auth = { user };
         // use authenticate() to accept all registered users
         if (!acceptableRoles || acceptableRoles.length === 0) {
           return next();
