@@ -106,7 +106,7 @@ export const verifyEmailTemplate = (url: string) => {
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;">
                               <tbody>
                               <tr>
-                                  <td style="width:75px;"> <img height="auto" src="${process.env.API_URL}/static/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
+                                  <td style="width:75px;"> <img height="auto" src="${process.env.CDN_URL}/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
                               </tr>
                               </tbody>
                           </table>
@@ -389,7 +389,7 @@ export const resetPasswordTemplate = (url: string) => {
                         <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;">
                             <tbody>
                             <tr>
-                                <td style="width:75px;"> <img height="auto" src="${process.env.API_URL}/static/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
+                                <td style="width:75px;"> <img height="auto" src="${process.env.CDN_URL}/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
                             </tr>
                             </tbody>
                         </table>
@@ -676,7 +676,7 @@ export const newMentorApplicationTemplate = (
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;">
                               <tbody>
                               <tr>
-                                  <td style="width:75px;"> <img height="auto" src="${process.env.API_URL}/static/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
+                                  <td style="width:75px;"> <img height="auto" src="${process.env.CDN_URL}/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
                               </tr>
                               </tbody>
                           </table>
@@ -963,7 +963,7 @@ export const updateMentorApplicationTemplate = (
                             <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;">
                                 <tbody>
                                 <tr>
-                                    <td style="width:75px;"> <img height="auto" src="${process.env.API_URL}/static/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
+                                    <td style="width:75px;"> <img height="auto" src="${process.env.CDN_URL}/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -1250,7 +1250,7 @@ export const messageReceiveTemplate = (
                               <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;">
                                   <tbody>
                                   <tr>
-                                      <td style="width:75px;"> <img height="auto" src="${process.env.API_URL}/static/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
+                                      <td style="width:75px;"> <img height="auto" src="${process.env.CDN_URL}/public/images/logo.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;font-size:13px;" width="75" /> </td>
                                   </tr>
                                   </tbody>
                               </table>
