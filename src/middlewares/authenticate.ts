@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user";
 
 export interface JwtPayload {
+  _id: string;
   email: string;
   role: string;
   "https://hasura.io/jwt/claims": {
