@@ -9,6 +9,7 @@ import {
   resetPasswordTemplate,
 } from "../helpers/htmlTemplates";
 import authenticate, { JwtPayload } from "../middlewares/authenticate";
+import IsEmail from "isemail";
 
 const router = express.Router();
 
@@ -17,6 +18,14 @@ router.post("/", recaptcha, async (req, res) => {
 
   if (!email || !password) {
     return res.status(422).send("422 Unprocessable Entity: Missing form data");
+  }
+
+  if (!IsEmail.validate(email)) {
+    return res.status(422).send("422 Unprocessable Entity: Invalid email");
+  }
+
+  if (password.length < 12) {
+    return res.status(422).send("422 Unprocessable Entity: Password too short");
   }
 
   try {
