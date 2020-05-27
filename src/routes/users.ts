@@ -69,6 +69,40 @@ router.post("/", recaptcha, async (req, res) => {
   }
 });
 
+router.put("/", authenticate(), async (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Missing new password");
+  }
+
+  try {
+    const saltRounds = 10;
+    const hash = await bcrypt.hash(password, saltRounds);
+
+    const email = req.auth.user.email;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(500).end();
+    }
+
+    user.update({ password: hash }, (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).end();
+      } else {
+        return res.status(204).end();
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).end();
+  }
+});
+
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
