@@ -21,7 +21,7 @@ const getPolicy = () => ({
   ],
 });
 
-router.get("/sts", async (req, res) => {
+router.get("/sts", authenticate(["counselor", "root"]), async (req, res) => {
   STS.getCredential(
     {
       secretId: process.env.COS_SECRETID,
