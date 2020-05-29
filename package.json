@@ -5,7 +5,7 @@
   "scripts": {
     "start": "nodemon",
     "debug": "nodemon --debug",
-    "build": "babel src -d build -x \".ts\" --source-maps",
+    "build": "babel src -d build -x \".ts\" --ignore \"src/@types/**/*\" --source-maps",
     "serve": "cross-env NODE_ENV=production node build/index.js",
     "lint": "eslint --ext .js,.ts src/",
     "typecheck": "tsc --noUnusedLocals"
