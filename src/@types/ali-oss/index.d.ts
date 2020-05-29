@@ -1,4 +1,5 @@
 declare module "ali-oss" {
-  const STS: any;
+  import OSS from "ali-oss";
   export { STS };
+  export default OSS;
 }

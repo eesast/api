@@ -1,19 +1,9 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
 import { STS } from "ali-oss";
+import { policy, getOSS } from "../helpers/oss";
 
 const router = express.Router();
-
-const policy = {
-  Version: "1",
-  Statement: [
-    {
-      Action: "oss:*",
-      Resource: "*",
-      Effect: "Allow",
-    },
-  ],
-};
 
 router.get("/sts", authenticate(["counselor", "root"]), async (req, res) => {
   const client = new STS({
@@ -35,6 +25,40 @@ router.get("/sts", authenticate(["counselor", "root"]), async (req, res) => {
       console.error(err);
       res.status(500).end();
     });
+});
+
+router.get("/*", async (req, res) => {
+  const path = req.url;
+
+  const isPublic = path.split("/")[1] && path.split("/")[1] === "public";
+  if (!isPublic) {
+    /**
+     * customize authorization
+     * one possible solution for future scenarios:
+     *   path based authorization:
+     *     /public, /root/images, /[id]-filename.txt
+     * now allow any tsinghua email verified user to access "/"
+     */
+    await new Promise((resolve) =>
+      authenticate(["student", "teacher", "counselor", "root"])(
+        req,
+        res,
+        resolve
+      )
+    );
+  }
+
+  const oss = await getOSS();
+
+  const filename = path.split("/").slice(-1)[0];
+  const response = {
+    "content-disposition": `attachment; filename=${filename}`,
+  };
+
+  const url = oss.signatureUrl(path.substr(1), { response });
+
+  res.location(url);
+  res.status(303).end();
 });
 
 export default router;
