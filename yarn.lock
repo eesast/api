@@ -2898,14 +2898,14 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-express-openapi-validator@3.12.9:
-  version "3.12.9"
-  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.12.9.tgz#1d1eba979a5fbecc9b3f116d0c604e4f88479965"
-  integrity sha512-b88G97lb2E3j0f5BHhu7nvwFWOl6ZUOnkxMPilUInKl4pHea63+C8QbG+pQHvYNamowpggMpwpVdlHu7cm9vOQ==
+express-openapi-validator@3.14.1:
+  version "3.14.1"
+  resolved "https://registry.yarnpkg.com/express-openapi-validator/-/express-openapi-validator-3.14.1.tgz#34342196721c6922fb54db71d7c6a88f751157c4"
+  integrity sha512-iVaB30hvGch3Ml7/5xSQuX2uGXOx+wkBSOeKtxcD5v0lwm9Zco7jHwRTH8C4lEWizXicVtj7L1PuugROzLWoSw==
   dependencies:
     ajv "^6.12.2"
     content-type "^1.0.4"
-    js-yaml "^3.13.1"
+    js-yaml "^3.14.0"
     json-schema-ref-parser "^8.0.0"
     lodash.merge "^4.6.2"
     lodash.uniq "^4.5.0"
@@ -4118,6 +4118,14 @@ js-yaml@3.13.1, js-yaml@^3.13.1:
   version "3.13.1"
   resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.13.1.tgz#aff151b30bfdfa8e49e05da22e7415e9dfa37847"
   integrity sha512-YfbcO7jXDdyj0DGxYVSlSeQNHbD7XPWvrVWeVUujrQEoZzWJIRrCPoyk6kL6IAjAG2IolMK4T0hNUe0HOUs5Jw==
+  dependencies:
+    argparse "^1.0.7"
+    esprima "^4.0.0"
+
+js-yaml@^3.14.0:
+  version "3.14.0"
+  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.14.0.tgz#a7a34170f26a21bb162424d8adacb4113a69e482"
+  integrity sha512-/4IbIeHcD9VMHFqDR/gQ7EdZdLimOvW2DdcxFjdyyZ9NsbS+ccrXqVWDtab/lRl5AlUqmpBx8EhPaWR+OtY17A==
   dependencies:
     argparse "^1.0.7"
     esprima "^4.0.0"
