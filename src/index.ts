@@ -3,10 +3,9 @@ import dotenv from "dotenv";
 import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
-import serverConfig from "./configs/server";
 
 dotenv.config();
-const debug = Debug("sast-api");
+const debug = Debug("eesast-api");
 const databaseUrl =
   process.env.NODE_ENV === "production" ? process.env.DATABASE : "localhost";
 
@@ -37,7 +36,7 @@ db.once("open", () => {
   debug("Database connected");
 });
 
-const port = normalizePort(process.env.PORT || serverConfig.port);
+const port = normalizePort(process.env.PORT || "28888");
 app.set("port", port);
 
 const server = http.createServer(app);

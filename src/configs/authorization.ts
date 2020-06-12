@@ -1,22 +1,9 @@
-/**
- * Define authorization spec
- */
+export const roles = [
+  "user", // base role; email not verified; cannot log into info
+  "student", // email verified; can log into info; can write weekly; can join contests
+  "teacher", // manually assigned; email verification not required
 
-const groups = ["admin", "student", "teacher"];
+  "counselor", // manually assigned; email verification not required; can manage info
 
-const roles = {
-  admin: [
-    "root",
-    "editor", // manage articles and comments
-    "keeper", // manage reservations and items
-    "organizer", // manage contests, teams and announcements
-    "counselor", // manage info
-  ],
-  student: [
-    "student",
-    "writer", // write articles
-  ],
-  teacher: ["teacher"],
-};
-
-export { groups, roles };
+  "root",
+];

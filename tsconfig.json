@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "target": "esnext"
   },
-  "include": ["src/**/*", "test/**/*", "@types/**/*"]
+  "include": ["src/**/*"]
 }

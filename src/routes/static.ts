@@ -1,166 +1,68 @@
 import express from "express";
-import fs from "fs";
-import multer from "multer";
-import path from "path";
-import { v1 as uuid } from "uuid";
-import serverConfig from "../configs/server";
 import authenticate from "../middlewares/authenticate";
-import isImage from "is-image";
-import cwebp from "cwebp-bin";
-import utf8 from "utf8";
-import { execFile } from "child_process";
+import { STS } from "ali-oss";
+import { policy, getOSS } from "../helpers/oss";
 
 const router = express.Router();
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.resolve(serverConfig.staticFilePath, req.params.category!);
-    fs.mkdir(dir, { recursive: true }, (err) => cb(err, dir));
-  },
-  filename: (req, file, cb) => {
-    const dotIndex = file.originalname.lastIndexOf(".");
-    const extention = file.originalname.substring(dotIndex);
-    const fullPath = path.join(
-      serverConfig.staticFilePath,
-      req.params.category!,
-      file.originalname
-    );
-    const name = file.originalname.substring(0, dotIndex);
-    const newFilename =
-      name + (fs.existsSync(fullPath) ? "_" + uuid() : "") + extention;
 
-    req.file = {
-      ...req.file,
-      filename: newFilename,
-    };
-    cb(null, newFilename);
-  },
-});
-const upload = multer({ storage });
+router.get("/sts", authenticate(["counselor", "root"]), async (req, res) => {
+  const client = new STS({
+    accessKeyId: process.env.OSS_KEY_ID!,
+    accessKeySecret: process.env.OSS_KEY_SECRET!,
+  });
 
-/**
- * GET
- * Get static files
- * Use `express.static()` in `app.js`
- */
-
-/**
- * GET
- * Get static images
- */
-router.get("/images/:filename", async (req, res) => {
-  const filename = req.params.filename;
-  const fullPath = path.resolve(
-    serverConfig.staticFilePath,
-    "images",
-    filename
-  );
-
-  fs.exists(fullPath, (exists) => {
-    if (!exists) {
-      return res.status(404).send("404 Not Found: File does not exist");
-    }
-
-    if (req.accepts("image/webp")) {
-      fs.exists(fullPath + ".webp", (webpExists) => {
-        if (webpExists) {
-          res.sendFile(fullPath + ".webp");
-        } else {
-          res.sendFile(fullPath);
-        }
+  client
+    .assumeRole(process.env.OSS_ROLE_ARN, policy, 3600)
+    .then((result: any) => {
+      res.status(200).json({
+        AccessKeyId: result.credentials.AccessKeyId,
+        AccessKeySecret: result.credentials.AccessKeySecret,
+        SecurityToken: result.credentials.SecurityToken,
+        Expiration: result.credentials.Expiration,
       });
-    } else {
-      res.sendFile(fullPath);
-    }
-  });
-});
-
-/**
- * GET
- * Get static thuai playback
- */
-router.get("/thuai/:filename", async (req, res) => {
-  const filename = req.params.filename;
-  const fullPath = path.resolve("/data/thuai/playback", filename);
-
-  fs.exists(fullPath, (exists) => {
-    if (!exists) {
-      return res.status(404).send("404 Not Found: File does not exist");
-    }
-
-    res.sendFile(fullPath);
-  });
-});
-
-/**
- * POST new files
- * @param {string} category directory
- * @returns Location header
- */
-router.post(
-  "/:category",
-  authenticate([]),
-  upload.single("file"),
-  async (req, res) => {
-    const category = req.params.category;
-    const filename = req.file.filename;
-    const fullPath = path.resolve(
-      serverConfig.staticFilePath,
-      category,
-      filename
-    );
-
-    if (isImage(filename)) {
-      try {
-        await execFile(cwebp, [fullPath, "-o", fullPath + ".webp"]);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    res.setHeader(
-      "Location",
-      `/static/${category}/` + escape(utf8.encode(filename))
-    );
-    res
-      .status(201)
-      .send(`/static/${category}/` + escape(utf8.encode(filename)));
-  }
-);
-
-/**
- * DELETE file
- * @param {string} category - local directory
- * @param {string} filename
- * @returns No Content or Not Found
- */
-router.delete(
-  "/:category/:filename",
-  authenticate([
-    "root",
-    "writer",
-    "editor",
-    "keeper",
-    "organizer",
-    "counselor",
-  ]),
-  upload.single("file"),
-  async (req, res, next) => {
-    const category = req.params.category;
-    const filename = req.params.filename;
-    const fullPath = path.join(serverConfig.staticFilePath, category, filename);
-
-    if (!fs.existsSync(fullPath)) {
-      return res.status(404).send("404 Not Found: File does not exist");
-    }
-
-    return fs.unlink(fullPath, (err) => {
-      if (err) {
-        next(err);
-      } else {
-        res.status(204).end();
-      }
+    })
+    .catch((err: Error) => {
+      console.error(err);
+      res.status(500).end();
     });
+});
+
+router.get("/*", async (req, res) => {
+  const path = req.url;
+
+  const isPublic = path.split("/")[1] && path.split("/")[1] === "public";
+  if (!isPublic) {
+    /**
+     * customize authorization
+     * one possible solution for future scenarios:
+     *   path based authorization:
+     *     /public, /root/images, /[id]-filename.txt
+     * now allow any tsinghua email verified user to access "/"
+     */
+    await new Promise((resolve) =>
+      authenticate(["student", "teacher", "counselor", "root"])(
+        req,
+        res,
+        resolve
+      )
+    );
   }
-);
+
+  const oss = await getOSS();
+
+  const filename = path.split("/").slice(-1)[0];
+  const response = {
+    "content-disposition": `attachment; filename=${filename}`,
+  };
+
+  const url = oss.signatureUrl(path.substr(1), { response });
+
+  if (req.xhr) {
+    res.status(200).json({ location: url });
+  } else {
+    res.location(url);
+    res.status(303).end();
+  }
+});
 
 export default router;

@@ -1,490 +1,358 @@
 import bcrypt from "bcrypt";
 import express from "express";
 import jwt from "jsonwebtoken";
-import secret from "../configs/secret";
-import authenticate from "../middlewares/authenticate";
 import User from "../models/user";
-import pick from "lodash.pick";
+import recaptcha from "../middlewares/recaptcha";
 import { sendEmail } from "../helpers";
-import { resetPasswordTemplate } from "../helpers/htmlTemplates";
+import {
+  verifyEmailTemplate,
+  resetPasswordTemplate,
+} from "../helpers/htmlTemplates";
+import authenticate, { JwtPayload } from "../middlewares/authenticate";
+import IsEmail from "isemail";
 
 const router = express.Router();
 
-/**
- * GET users with queries
- * @param {string} username
- * @param {string} department
- * @param {string} class
- * @param {number} begin
- * @param {number} end
- * @param {boolean} detailInfo
- * @param {boolean} isTeacher
- * @returns certain users
- */
-router.get("/", authenticate([]), async (req, res, next) => {
-  const query = {
-    ...pick(req.query, ["username", "department", "class"]),
-    ...(req.query.isTeacher && { group: "teacher" }),
-  };
+router.post("/", recaptcha, async (req, res) => {
+  const { email, password } = req.body;
 
-  let select = "-_id -__v -password";
-  const begin = parseInt(req.query.begin as string, 10) || 0;
-  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
-  const group = req.auth.group || "";
-  if (
-    group !== "admin" ||
-    !req.query.detailInfo ||
-    req.query.detailInfo.toString() === "false"
-  ) {
-    if (group === "teacher") {
-      select = select + " -group -role";
-    } else {
-      select = select + " -group -role -email -phone -name";
-      if (!Object.keys(query).length && group !== "admin") {
-        res.json([]);
-        return;
-      }
-    }
-  }
-
-  try {
-    const users = await User.find(query as any, select, {
-      skip: begin,
-      limit: end - begin + 1,
-      sort: "-createdAt",
-    });
-    res.json(users);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * POST users with queries
- * @param {string} username
- * @param {string} department
- * @param {string} class
- * @param {number} begin
- * @param {number} end
- * @param {boolean} detailInfo
- * @param {boolean} isTeacher
- * @returns certain users
- */
-router.post("/details", authenticate([]), async (req, res, next) => {
-  const query = {
-    ...pick(req.query, ["username", "department", "class"]),
-    ...(req.query.isTeacher && { group: "teacher" }),
-    ...(req.body.ids && { id: { $in: req.body.ids } }),
-  };
-
-  let select = "-_id -__v -password";
-  const begin = parseInt(req.query.begin as string, 10) || 0;
-  const end = parseInt(req.query.end as string, 10) || Number.MAX_SAFE_INTEGER;
-  const group = req.auth.group || "";
-  if (
-    group !== "admin" ||
-    !req.query.detailInfo ||
-    req.query.detailInfo.toString() === "false"
-  ) {
-    if (group === "teacher") {
-      select = select + " -group -role";
-    } else {
-      select = select + " -group -role -email -phone -name";
-    }
-  }
-
-  try {
-    const users = await User.find(query as any, select, {
-      skip: begin,
-      limit: end - begin + 1,
-      sort: "-createdAt",
-    });
-    res.json(users);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * GET user of Id
- * @param {number} id
- * @param {boolean} detailInfo
- * @returns {Object} user with id
- */
-router.get("/:id", authenticate([]), async (req, res, next) => {
-  let select = "-_id -__v -password";
-  let hasDetailInfo = false;
-  if (
-    req.auth.tokenValid &&
-    req.query.detailInfo &&
-    req.query.detailInfo.toString() === "true"
-  ) {
-    if (
-      (req.auth.id && req.auth.id.toString() === req.params.id) ||
-      req.auth.role === "root"
-    ) {
-      hasDetailInfo = true;
-    }
-  }
-  if (!hasDetailInfo) {
-    select = select + " -group -role -email -phone -name";
-  }
-
-  try {
-    const user = await User.findOne({ id: req.params.id }, select);
-
-    if (!user) {
-      return res.status(404).send("404 Not Found: User does not exist");
-    }
-
-    res.json(user);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * POST new user
- * @returns Location header
- */
-router.post("/", async (req, res, next) => {
-  const password = req.body.password;
-  if (!password) {
+  if (!email || !password) {
     return res.status(422).send("422 Unprocessable Entity: Missing form data");
+  }
+
+  if (!IsEmail.validate(email)) {
+    return res.status(422).send("422 Unprocessable Entity: Invalid email");
+  }
+
+  if (password.length < 12) {
+    return res.status(422).send("422 Unprocessable Entity: Password too short");
   }
 
   try {
     const saltRounds = 10;
     const hash = await bcrypt.hash(password, saltRounds);
 
-    const user = await new User({
-      group: "student",
-      role: "student",
-      ...req.body,
+    await new User({
+      email,
       password: hash,
+      role: "user",
     }).save();
 
-    res.setHeader("Location", "/v1/users/" + user.id);
-    res.status(201).end();
+    try {
+      const token = jwt.sign(
+        {
+          email,
+          type: "regular",
+          action: "verifyEmail",
+        },
+        process.env.SECRET!,
+        {
+          expiresIn: "15m",
+        }
+      );
+      await sendEmail(
+        email,
+        "验证您的邮箱",
+        verifyEmailTemplate(
+          `${process.env.EESAST_URL}/verify?type=regular&token=${token}`
+        )
+      );
+    } catch (error) {
+      // email verification can be requested later
+      console.error(error);
+    }
+
+    return res.status(201).end();
   } catch (err) {
-    next(err);
+    console.error(err);
+    return res.status(500).end();
   }
 });
 
-/**
- * POST login form
- * @returns {Object} token:token
- */
-router.post("/login", async (req, res, next) => {
-  const id = req.body.id;
-  const username = req.body.username;
-  const email = req.body.email;
-  const password = req.body.password;
-  if (!((id || username || email) && password)) {
+router.put("/", authenticate(), async (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Missing new password");
+  }
+
+  try {
+    const saltRounds = 10;
+    const hash = await bcrypt.hash(password, saltRounds);
+
+    const email = req.auth.user.email;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(500).end();
+    }
+
+    user.update({ password: hash }, (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).end();
+      } else {
+        return res.status(204).end();
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).end();
+  }
+});
+
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
     return res
       .status(422)
       .send("422 Unprocessable Entity: Missing credentials");
   }
 
   try {
-    let user = await User.findOne({ username });
-
-    if (!user && email) {
-      user = await User.findOne({ email });
-    }
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).send("404 Not Found: User does not exist");
     }
 
     const valid = await bcrypt.compare(password, user.password);
-    if (valid) {
-      const token = jwt.sign(
-        {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          group: user.group,
-          role: user.role,
-          department: user.department,
-          class: user.class,
-          "https://hasura.io/jwt/claims": {
-            "x-hasura-allowed-roles": [user.role],
-            "x-hasura-default-role": user.role,
-            "x-hasura-user-id": user.id.toString(),
-          },
-        },
-        secret,
-        {
-          expiresIn: "12h",
-        }
-      );
-      res.json({ token });
-    } else {
-      res.status(401).end();
+    if (!valid) {
+      return res.status(401).end();
     }
+
+    if (!user.emailVerified) {
+      return res.status(401).send("401 Unauthorized: Email not verified");
+    }
+
+    const payload: JwtPayload = {
+      _id: user._id,
+      email: user.email,
+      role: user.role,
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": [user.role],
+        "x-hasura-default-role": user.role,
+        "x-hasura-user-id": user.id.toString(),
+      },
+    };
+    const token = jwt.sign(payload, process.env.SECRET!, {
+      expiresIn: "12h",
+    });
+    return res
+      .status(200)
+      .json({ _id: user._id, email: user.email, role: user.role, token });
   } catch (err) {
-    next(err);
+    console.error(err);
+    return res.status(500).end();
   }
 });
 
-/**
- * POST reset password
- * @returns No Content or Not Found
- */
-router.post("/reset", async (req, res, next) => {
-  try {
-    const query = pick(req.body, ["username", "id", "email"]);
-    if (!(query.id || query.username || query.email) || !req.body.action) {
-      return res
-        .status(422)
-        .send("422 Unprocessable Entity: Missing essential information");
-    }
+router.post("/verify", async (req, res) => {
+  const { action, type } = req.body;
 
-    const user = await User.findOne(query);
+  if (action === "request") {
+    await new Promise((resolve) => recaptcha(req, res, resolve));
 
-    if (!user) {
-      return res.status(404).send("404 Not Found: User does not exist");
-    }
-    if (!user.email) {
-      return res.status(404).send("404 Not Found: User does not have an email");
-    }
-
-    if (req.body.action === "get") {
-      const token = jwt.sign({ email: user.email, action: "reset" }, secret, {
-        expiresIn: "15m",
-      });
-
-      await sendEmail(
-        user.email,
-        "重置您的密码",
-        resetPasswordTemplate(user.name, "https://eesast.com/reset/" + token)
-      );
-
-      res.status(201).end();
-    }
-    if (req.body.action === "set") {
-      if (!req.body.token) {
-        return res.status(401).send("401 Unauthorized: Missing token");
+    if (type === "regular") {
+      const { email } = req.body;
+      try {
+        const token = jwt.sign(
+          {
+            email,
+            type: "regular",
+            action: "verifyEmail",
+          },
+          process.env.SECRET!,
+          {
+            expiresIn: "15m",
+          }
+        );
+        await sendEmail(
+          email,
+          "验证您的邮箱",
+          verifyEmailTemplate(
+            `${process.env.EESAST_URL}/verify?type=regular&token=${token}`
+          )
+        );
+        return res.status(200).end();
+      } catch (error) {
+        console.error(error);
+        return res.status(500).end();
       }
-      if (!req.body.password) {
-        return res
-          .status(422)
-          .send("422 Unprocessable Entity: Missing essential information");
-      }
+    } else if (type === "tsinghua") {
+      // must provide token to know which account to verify for
+      await new Promise((resolve) => authenticate()(req, res, resolve));
 
       try {
-        const payload = jwt.verify(req.body.token, secret) as any;
-        if (payload.email !== user.email || payload.action !== "reset") {
-          return res.status(401).send("401 Unauthorized: Wrong token");
-        }
-      } catch {
-        return res.status(401).send("401 Unauthorized: Wrong token");
-      }
-
-      const saltRounds = 10;
-      const hash = await bcrypt.hash(req.body.password, saltRounds);
-
-      await user.updateOne({
-        password: hash,
-        updatedAt: new Date(),
-      });
-
-      res.status(204).end();
-    }
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * POST check token for resetting password
- * @returns 200 or 401
- */
-router.get("/reset/:token", (req, res) => {
-  try {
-    const decoded = jwt.verify(req.params.token, secret) as any;
-
-    if (decoded.action === "reset") {
-      res.status(200).end();
-    } else {
-      res.status(401).send("401 Unauthorized: Wrong token");
-    }
-  } catch (err) {
-    res.status(401).send("401 Unauthorized: Wrong token");
-  }
-});
-
-/**
- * PUT existing user
- * @param {number} id - updating user's id
- * @returns Location header or Not Found
- */
-router.put("/:id", authenticate(["root", "self"]), async (req, res, next) => {
-  if (req.auth.selfCheckRequired) {
-    if (parseFloat(req.params.id) !== req.auth.id) {
-      return res.status(401).send("401 Unauthorized: Permission denied");
-    }
-  }
-
-  if (req.auth.role !== "root") {
-    delete req.body.group;
-    delete req.body.role;
-  }
-
-  let password;
-  if (req.body.password) {
-    const saltRounds = 10;
-    password = await bcrypt.hash(req.body.password, saltRounds);
-  }
-
-  try {
-    const update = {
-      ...req.body,
-      ...(password && { password }),
-      updatedAt: new Date(),
-      updatedBy: req.auth.id,
-    };
-    const user = await User.findOneAndUpdate({ id: req.params.id }, update);
-
-    if (!user) {
-      return res.status(404).send("404 Not Found: User does not exist");
-    }
-
-    res.setHeader("Location", "/v1/users/" + user.id);
-    res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * DELETE a user of Id
- * @param {number} id - deleting user's id
- * @returns No Content or Not Found
- */
-router.delete("/:id", authenticate(["root"]), async (req, res, next) => {
-  try {
-    const deleteUser = await User.findOneAndDelete({
-      id: req.params.id,
-    });
-
-    if (!deleteUser) {
-      return res.status(404).send("404 Not Found: User does not exist");
-    }
-
-    res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * Apply public token
- * @returns  {Object} token:token
- */
-router.post(
-  "/token/apply",
-  authenticate(["root", "self"]),
-  async (req, res, next) => {
-    const id = req.query.userId;
-    if (!id || !req.body.allowedEndpoints) {
-      return res
-        .status(422)
-        .send("422 Unprocessable Entity: Missing essential information");
-    }
-
-    if (req.auth.selfCheckRequired) {
-      if (parseFloat(id as string) !== req.auth.id) {
-        return res.status(403).send("403 Forbidden: Permission denied");
-      }
-    }
-
-    // 这里写死了，实际上应当去根据某种（现在还不存在）的权限规则去检查
-    // req.body.allowedEndpoints 的值是否合法，生成相应的 allowedEndpoints
-    // 这个东西可以单独提出来写
-    const allowedEndpoints = [
-      {
-        path: "/v1/users/:id",
-        methods: ["GET"],
-      },
-      {
-        path: "/v1/users/details",
-        methods: ["POST"],
-      },
-      {
-        path: "/v1/users/token/validate",
-        methods: ["POST"],
-      },
-      {
-        path: "/v1/tracks/:id/prePlayers/:playerId",
-        methods: ["GET"],
-      },
-      {
-        path: "/v1/tracks/:id/players/:playerId",
-        methods: ["GET"],
-      },
-    ];
-
-    try {
-      return res.status(200).send({
-        token: jwt.sign(
+        const { tsinghuaEmail } = req.body;
+        const token = jwt.sign(
           {
-            id,
-            allowedEndpoints,
+            email: req.auth.user.email,
+            type: "tsinghua",
+            tsinghuaEmail,
+            action: "verifyEmail",
           },
-          secret,
+          process.env.SECRET!,
           {
-            expiresIn: "12h",
+            expiresIn: "15m",
           }
-        ),
-      });
-    } catch (err) {
-      next(err);
+        );
+        await sendEmail(
+          tsinghuaEmail,
+          "验证您的清华邮箱",
+          verifyEmailTemplate(
+            `${process.env.EESAST_URL}/verify?type=tsinghua&token=${token}`
+          )
+        );
+        return res.status(200).end();
+      } catch (error) {
+        console.error(error);
+        return res.status(500).end();
+      }
+    } else {
+      return res.status(422).send("422 Unprocessable Entity: Wrong type");
     }
-  }
-);
+  } else if (action === "fulfill") {
+    const { token } = req.body;
 
-/**
- * Validate a public token
- * @returns {Object|string} decoded if success "Invalid Token" if not
- */
-router.post("/token/validate", (req, res) => {
-  const token = req.body.token;
-  jwt.verify(
-    token,
-    secret,
-    (err: jwt.VerifyErrors | null, decoded: object | string | undefined) => {
-      if (err) {
+    jwt.verify(token as string, process.env.SECRET!, async (err, decoded) => {
+      if (err || !decoded) {
         return res
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      return res.json(decoded as object);
-    }
-  );
+
+      const payload = decoded as {
+        email: string;
+        type: string;
+        tsinghuaEmail: string;
+        action: string;
+      };
+      if (payload.action !== "verifyEmail") {
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
+      }
+
+      try {
+        const user = await User.findOne({ email: payload.email });
+
+        if (!user) {
+          return res.status(500).end();
+        }
+
+        if (type === "tsinghua") {
+          if (user.role === "user") {
+            user.update({ role: "student" }, (err) => {
+              if (err) {
+                console.error(err);
+                return res.status(500).end();
+              } else {
+                return res.status(200).end();
+              }
+            });
+          } else {
+            return res.status(200).end();
+          }
+        } else if (type === "regular") {
+          user.update({ emailVerified: true }, (err) => {
+            if (err) {
+              console.error(err);
+              return res.status(500).end();
+            } else {
+              return res.status(200).end();
+            }
+          });
+        } else {
+          return res.status(422).send("422 Unprocessable Entity: Wrong type");
+        }
+      } catch (err) {
+        console.error(err);
+        res.status(500).end();
+      }
+    });
+  } else {
+    return res.status(422).send("422 Unprocessable Entity: Wrong action");
+  }
 });
 
-/**
- * GET the username of a user
- * @param {number} id
- * @returns {Object} of Not Found
- */
-router.get("/username/:id", async (req, res, next) => {
-  const select =
-    "-_id -__v -role -group -email -password -name -phone -class -department";
-  try {
-    const user = await User.findOne({ id: req.params.id }, select);
+router.post("/reset", async (req, res) => {
+  const { action } = req.body;
 
-    if (!user) {
-      return res.status(404).send("404 Not Found: User does not exist");
-    }
+  if (action === "request") {
+    await new Promise((resolve) => recaptcha(req, res, resolve));
 
-    res.send({ username: user.username });
-  } catch (err) {
-    next(err);
+    const { email } = req.body;
+    const token = jwt.sign(
+      {
+        email,
+        action: "resetPassword",
+      },
+      process.env.SECRET!,
+      {
+        expiresIn: "15m",
+      }
+    );
+    await sendEmail(
+      email,
+      "重置您的密码",
+      resetPasswordTemplate(`${process.env.EESAST_URL}/reset?token=${token}`)
+    );
+    return res.status(200).end();
+  } else if (action === "fulfill") {
+    const { token } = req.body;
+
+    jwt.verify(token as string, process.env.SECRET!, async (err, decoded) => {
+      if (err || !decoded) {
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
+      }
+
+      const payload = decoded as { email: string; action: string };
+      if (payload.action !== "resetPassword") {
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
+      }
+
+      const email = payload.email;
+      const { password } = req.body;
+
+      if (!password) {
+        return res
+          .status(422)
+          .send("422 Unprocessable Entity: Missing new password");
+      }
+
+      try {
+        const saltRounds = 10;
+        const hash = await bcrypt.hash(password, saltRounds);
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+          return res.status(500).end();
+        }
+
+        user.update({ password: hash }, (err) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).end();
+          } else {
+            return res.status(204).end();
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        return res.status(500).end();
+      }
+    });
+  } else {
+    return res.status(422).send("422 Unprocessable Entity: Wrong action");
   }
 });
 
