@@ -57,7 +57,7 @@ router.get("/*", async (req, res) => {
 
   const url = oss.signatureUrl(path.substr(1), { response });
 
-  if (req.xhr) {
+  if (req.accepts("application/json")) {
     res.status(200).json({ location: url });
   } else {
     res.location(url);
