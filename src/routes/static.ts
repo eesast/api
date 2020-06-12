@@ -57,8 +57,12 @@ router.get("/*", async (req, res) => {
 
   const url = oss.signatureUrl(path.substr(1), { response });
 
-  res.location(url);
-  res.status(303).end();
+  if (req.xhr) {
+    res.status(200).json({ location: url });
+  } else {
+    res.location(url);
+    res.status(303).end();
+  }
 });
 
 export default router;
