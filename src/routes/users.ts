@@ -135,7 +135,7 @@ router.post("/login", async (req, res) => {
       "https://hasura.io/jwt/claims": {
         "x-hasura-allowed-roles": [user.role],
         "x-hasura-default-role": user.role,
-        "x-hasura-user-id": user.id.toString(),
+        "x-hasura-user-id": user._id,
       },
     };
     const token = jwt.sign(payload, process.env.SECRET!, {
