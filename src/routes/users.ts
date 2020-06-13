@@ -263,6 +263,7 @@ router.post("/verify", async (req, res) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
             },
             body: JSON.stringify({
               query: `
