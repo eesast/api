@@ -10,6 +10,7 @@ import {
 } from "../helpers/htmlTemplates";
 import authenticate, { JwtPayload } from "../middlewares/authenticate";
 import IsEmail from "isemail";
+import fetch from "node-fetch";
 
 const router = express.Router();
 
@@ -258,6 +259,25 @@ router.post("/verify", async (req, res) => {
             return res.status(200).end();
           }
         } else if (type === "regular") {
+          await fetch(`${process.env.API_URL}/v1/graphql`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: `
+                mutation InsertUser($_id: String!) {
+                  insert_user_one(object: {_id: $_id}) {
+                    _id
+                  }
+                }
+              `,
+              variables: {
+                _id: user._id,
+              },
+            }),
+          });
+
           user.update({ emailVerified: true }, (err) => {
             if (err) {
               console.error(err);
