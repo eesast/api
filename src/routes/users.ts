@@ -125,7 +125,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).end();
     }
 
-    if (!user.emailVerified) {
+    if (user.role !== "teacher" && !user.emailVerified) {
       return res.status(401).send("401 Unauthorized: Email not verified");
     }
 
