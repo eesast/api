@@ -57,12 +57,8 @@ router.get("/*", async (req, res) => {
 
   const url = oss.signatureUrl(path.substr(1), { response });
 
-  if (req.accepts("application/json")) {
-    res.status(200).json({ location: url });
-  } else {
-    res.location(url);
-    res.status(303).end();
-  }
+  res.location(url);
+  res.status(303).end();
 });
 
 export default router;
