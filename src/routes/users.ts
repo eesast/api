@@ -401,6 +401,7 @@ router.post("/actions/user_by_role", hasura, async (req, res) => {
         query: `
           query GetUsersByIds($ids: [String!]) {
             user(where: {_id: {_in: $ids}}) {
+              _id
               name
               department
             }
