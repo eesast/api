@@ -11,6 +11,7 @@ import {
 import authenticate, { JwtPayload } from "../middlewares/authenticate";
 import IsEmail from "isemail";
 import fetch from "node-fetch";
+import hasura from "../middlewares/hasura";
 
 const router = express.Router();
 
@@ -376,5 +377,57 @@ router.post("/reset", async (req, res) => {
     return res.status(422).send("422 Unprocessable Entity: Wrong action");
   }
 });
+
+router.post(
+  "/actions/user_by_role",
+  hasura(["student", "teacher", "counselor", "root"]),
+  async (req, res) => {
+    const { role } = req.body.input;
+
+    if (role !== "teacher") {
+      return res.status(403).json({
+        message: "403 Forbidden: Selection by this role not allowed",
+        code: "403",
+      });
+    }
+
+    try {
+      const users = await User.find({ role });
+
+      const response = await fetch(`${process.env.API_URL}/v1/graphql`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
+        },
+        body: JSON.stringify({
+          query: `
+          query GetUsersByIds($ids: [String!]) {
+            user(where: {_id: {_in: $ids}}) {
+              name
+              department
+            }
+          }
+        `,
+          variables: {
+            ids: users.map((u) => u._id),
+          },
+        }),
+      });
+
+      const usersByRole = await response.json();
+
+      if (usersByRole?.data?.user) {
+        return res.status(200).json(usersByRole?.data?.user);
+      } else {
+        console.error(usersByRole?.errors);
+        return res.status(500).end();
+      }
+    } catch (err) {
+      console.error(err);
+      return res.status(500).end();
+    }
+  }
+);
 
 export default router;
