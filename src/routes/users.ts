@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import express from "express";
 import jwt from "jsonwebtoken";
+import Email from "../models/email";
 import User from "../models/user";
 import recaptcha from "../middlewares/recaptcha";
 import { sendEmail } from "../helpers";
@@ -253,8 +254,10 @@ router.post("/verify", async (req, res) => {
 
         if (type === "tsinghua") {
           if (user.role === "user") {
+            const email = Email.findOne({ email: payload.tsinghuaEmail });
+            const role = email ? "EEsenior" : "student";
             user.update(
-              { role: "student", tsinghuaEmail: payload.tsinghuaEmail },
+              { role, tsinghuaEmail: payload.tsinghuaEmail },
               (err) => {
                 if (err) {
                   console.error(err);
