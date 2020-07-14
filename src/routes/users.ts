@@ -9,7 +9,7 @@ import {
   resetPasswordTemplate,
 } from "../helpers/htmlTemplates";
 import authenticate, { JwtPayload } from "../middlewares/authenticate";
-import IsEmail from "isemail";
+import { validateEmail, validatePassword } from "../helpers/validate";
 import fetch from "node-fetch";
 import hasura from "../middlewares/hasura";
 
@@ -22,11 +22,11 @@ router.post("/", recaptcha, async (req, res) => {
     return res.status(422).send("422 Unprocessable Entity: Missing form data");
   }
 
-  if (!IsEmail.validate(email)) {
+  if (!validateEmail(email)) {
     return res.status(422).send("422 Unprocessable Entity: Invalid email");
   }
 
-  if (password.length < 12) {
+  if (!validatePassword(password)) {
     return res.status(422).send("422 Unprocessable Entity: Password too short");
   }
 
@@ -190,6 +190,11 @@ router.post("/verify", async (req, res) => {
 
       try {
         const { tsinghuaEmail } = req.body;
+        if (!validateEmail(tsinghuaEmail)) {
+          return res
+            .status(422)
+            .send("422 Unprocessable Entity: Invalid Tsinghua email");
+        }
         const token = jwt.sign(
           {
             email: req.auth.user.email,
@@ -248,14 +253,17 @@ router.post("/verify", async (req, res) => {
 
         if (type === "tsinghua") {
           if (user.role === "user") {
-            user.update({ role: "student" }, (err) => {
-              if (err) {
-                console.error(err);
-                return res.status(500).end();
-              } else {
-                return res.status(200).end();
+            user.update(
+              { role: "student", tsinghuaEmail: payload.tsinghuaEmail },
+              (err) => {
+                if (err) {
+                  console.error(err);
+                  return res.status(500).end();
+                } else {
+                  return res.status(200).end();
+                }
               }
-            });
+            );
           } else {
             return res.status(200).end();
           }
