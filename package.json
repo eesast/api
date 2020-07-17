@@ -11,7 +11,7 @@
     "typecheck": "tsc --noUnusedLocals"
   },
   "dependencies": {
-    "@babel/runtime": "7.10.4",
+    "@babel/runtime": "7.10.5",
     "ali-oss": "6.9.1",
     "bcrypt": "5.0.0",
     "cors": "2.8.5",
@@ -27,15 +27,15 @@
     "nodemailer": "6.4.10"
   },
   "devDependencies": {
-    "@babel/cli": "7.10.4",
-    "@babel/core": "7.10.4",
-    "@babel/node": "7.10.4",
+    "@babel/cli": "7.10.5",
+    "@babel/core": "7.10.5",
+    "@babel/node": "7.10.5",
     "@babel/plugin-proposal-class-properties": "7.10.4",
     "@babel/plugin-proposal-nullish-coalescing-operator": "7.10.4",
     "@babel/plugin-proposal-numeric-separator": "7.10.4",
     "@babel/plugin-proposal-object-rest-spread": "7.10.4",
     "@babel/plugin-proposal-optional-chaining": "7.10.4",
-    "@babel/plugin-transform-runtime": "7.10.4",
+    "@babel/plugin-transform-runtime": "7.10.5",
     "@babel/preset-env": "7.10.4",
     "@babel/preset-typescript": "7.10.4",
     "@types/ali-oss": "6.0.5",
