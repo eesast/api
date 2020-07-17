@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@babel/runtime": "7.10.5",
-    "ali-oss": "6.9.1",
+    "ali-oss": "6.10.0",
     "bcrypt": "5.0.0",
     "cors": "2.8.5",
     "debug": "4.1.1",
