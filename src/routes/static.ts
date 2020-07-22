@@ -40,7 +40,7 @@ router.get("/*", async (req, res) => {
      * now allow any tsinghua email verified user to access "/"
      */
     await new Promise((resolve) =>
-      authenticate(["student", "teacher", "counselor", "root"])(
+      authenticate(["student", "teacher", "counselor", "root", "EEsenior"])(
         req,
         res,
         resolve
