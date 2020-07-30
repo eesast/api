@@ -254,7 +254,7 @@ router.post("/verify", async (req, res) => {
 
         if (type === "tsinghua") {
           if (user.role === "user") {
-            const email = Email.findOne({ email: payload.tsinghuaEmail });
+            const email = await Email.findOne({ email: payload.tsinghuaEmail });
             const role = email ? "EEsenior" : "student";
             user.update(
               { role, tsinghuaEmail: payload.tsinghuaEmail },
