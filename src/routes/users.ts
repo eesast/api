@@ -142,7 +142,7 @@ router.post("/login", async (req, res) => {
       },
     };
     const token = jwt.sign(payload, process.env.SECRET!, {
-      expiresIn: "12h",
+      expiresIn: "24h",
     });
     return res
       .status(200)
