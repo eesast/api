@@ -55,9 +55,9 @@ router.get("/*", async (req, res) => {
     "content-disposition": `attachment; filename=${filename}`,
   };
 
-  const url = oss.signatureUrl(path.substr(1), { response });
+  const url = oss.signatureUrl(path.substr(1), { response }) as string;
 
-  res.location(url);
+  res.location(url.replace(process.env.OSS_URL!, process.env.STATIC_URL!));
   res.status(303).end();
 });
 
