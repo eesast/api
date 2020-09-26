@@ -46,7 +46,7 @@ export const getOSS = async () => {
       stsToken: auth.SecurityToken,
       bucket: "eesast",
       cname: true,
-      endpoint: process.env.STATIC_URL,
+      endpoint: process.env.OSS_URL,
       secure: true,
     });
     return oss;
