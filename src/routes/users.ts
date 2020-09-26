@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import Email from "../models/email";
 import User from "../models/user";
 import recaptcha from "../middlewares/recaptcha";
-import { sendEmail } from "../helpers";
+import { sendEmail } from "../helpers/email";
 import {
   verifyEmailTemplate,
   resetPasswordTemplate,
