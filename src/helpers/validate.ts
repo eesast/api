@@ -16,11 +16,11 @@ export const validateEmail = (email: string, tsinghua = false) => {
 };
 
 /**
- * 12 length minimum password
- * with at least one lowercase, one uppercase, one special character and one number respectively
+ * 8 length minimum password
+ * with at least one lowercase, one uppercase, and one number respectively
  */
 export const validatePassword = (password: string) => {
-  return /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{12,}$/.test(
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d!@#$%^&*]{8,}$/.test(
     password
   );
 };
