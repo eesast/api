@@ -89,6 +89,7 @@ router.put("/", authenticate(), async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
+      console.error(new Error("User does not exist"));
       return res.status(500).end();
     }
 
@@ -249,6 +250,7 @@ router.post("/verify", async (req, res) => {
         const user = await User.findOne({ email: payload.email });
 
         if (!user) {
+          console.error(new Error("User does not exist"));
           return res.status(500).end();
         }
 
@@ -368,6 +370,7 @@ router.post("/reset", async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) {
+          console.error(new Error("User does not exist"));
           return res.status(500).end();
         }
 
