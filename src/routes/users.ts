@@ -13,6 +13,7 @@ import authenticate, { JwtPayload } from "../middlewares/authenticate";
 import { validateEmail, validatePassword } from "../helpers/validate";
 import fetch from "node-fetch";
 import hasura from "../middlewares/hasura";
+import type { MongoError } from "mongodb";
 
 const router = express.Router();
 
@@ -28,7 +29,9 @@ router.post("/", recaptcha, async (req, res) => {
   }
 
   if (!validatePassword(password)) {
-    return res.status(422).send("422 Unprocessable Entity: Password too short");
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Password does not match pattern");
   }
 
   try {
@@ -68,7 +71,12 @@ router.post("/", recaptcha, async (req, res) => {
     return res.status(201).end();
   } catch (err) {
     console.error(err);
-    return res.status(500).end();
+
+    if ((err as MongoError).code === 11000) {
+      return res.status(409).send("409 Conflict: User already exists");
+    } else {
+      return res.status(500).end();
+    }
   }
 });
 
@@ -81,6 +89,12 @@ router.put("/", authenticate(), async (req, res) => {
       .send("422 Unprocessable Entity: Missing new password");
   }
 
+  if (!validatePassword(password)) {
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Password does not match pattern");
+  }
+
   try {
     const saltRounds = 10;
     const hash = await bcrypt.hash(password, saltRounds);
@@ -89,8 +103,7 @@ router.put("/", authenticate(), async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      console.error(new Error("User does not exist"));
-      return res.status(500).end();
+      return res.status(404).send("404 Not Found: User does not exist");
     }
 
     user.update({ password: hash }, (err) => {
@@ -120,7 +133,8 @@ router.post("/login", async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).send("404 Not Found: User does not exist");
+      // 没有 recaptcha 保护，不提示“用户不存在”
+      return res.status(401).end();
     }
 
     const valid = await bcrypt.compare(password, user.password);
@@ -162,7 +176,14 @@ router.post("/verify", async (req, res) => {
 
     if (type === "regular") {
       const { email } = req.body;
+
       try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+          return res.status(404).send("404 Not Found: User does not exist");
+        }
+
         const token = jwt.sign(
           {
             email,
@@ -250,25 +271,35 @@ router.post("/verify", async (req, res) => {
         const user = await User.findOne({ email: payload.email });
 
         if (!user) {
-          console.error(new Error("User does not exist"));
-          return res.status(500).end();
+          return res.status(404).send("404 Not Found: User does not exist");
         }
 
         if (type === "tsinghua") {
           if (user.role === "user") {
             const email = await Email.findOne({ email: payload.tsinghuaEmail });
             const role = email ? "EEsenior" : "student";
-            user.update(
-              { role, tsinghuaEmail: payload.tsinghuaEmail },
-              (err) => {
-                if (err) {
-                  console.error(err);
-                  return res.status(500).end();
-                } else {
-                  return res.status(200).end();
+
+            try {
+              user.update(
+                { role, tsinghuaEmail: payload.tsinghuaEmail },
+                (err) => {
+                  if (err) {
+                    console.error(err);
+                    return res.status(500).end();
+                  } else {
+                    return res.status(200).end();
+                  }
                 }
+              );
+            } catch (e) {
+              if ((e as MongoError).code === 11000) {
+                return res
+                  .status(409)
+                  .send(
+                    "409 Conflict: Tsinghua email has already been associated with another user"
+                  );
               }
-            );
+            }
           } else {
             return res.status(200).end();
           }
@@ -321,6 +352,12 @@ router.post("/reset", async (req, res) => {
     await new Promise((resolve) => recaptcha(req, res, resolve));
 
     const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).send("404 Not Found: User does not exist");
+    }
+
     const token = jwt.sign(
       {
         email,
@@ -363,6 +400,12 @@ router.post("/reset", async (req, res) => {
           .send("422 Unprocessable Entity: Missing new password");
       }
 
+      if (!validatePassword(password)) {
+        return res
+          .status(422)
+          .send("422 Unprocessable Entity: Password does not match pattern");
+      }
+
       try {
         const saltRounds = 10;
         const hash = await bcrypt.hash(password, saltRounds);
@@ -370,8 +413,7 @@ router.post("/reset", async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) {
-          console.error(new Error("User does not exist"));
-          return res.status(500).end();
+          return res.status(404).send("404 Not Found: User does not exist");
         }
 
         user.update({ password: hash }, (err) => {
