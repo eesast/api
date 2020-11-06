@@ -21,7 +21,7 @@
     "html-to-text": "5.1.1",
     "isemail": "3.2.0",
     "jsonwebtoken": "8.5.1",
-    "mongoose": "5.10.11",
+    "mongoose": "5.10.13",
     "morgan": "1.10.0",
     "node-fetch": "2.6.1",
     "nodemailer": "6.4.14"
@@ -46,7 +46,7 @@
     "@types/html-to-text": "5.1.2",
     "@types/jsonwebtoken": "8.5.0",
     "@types/mongodb": "3.5.33",
-    "@types/mongoose": "5.7.36",
+    "@types/mongoose": "5.7.37",
     "@types/morgan": "1.9.2",
     "@types/node-fetch": "2.5.7",
     "@types/nodemailer": "6.4.0",
