@@ -106,7 +106,7 @@ router.put("/", authenticate(), async (req, res) => {
       return res.status(404).send("404 Not Found: User does not exist");
     }
 
-    user.update({ password: hash }, (err) => {
+    user.update({ password: hash }, null, (err) => {
       if (err) {
         console.error(err);
         return res.status(500).end();
@@ -282,6 +282,7 @@ router.post("/verify", async (req, res) => {
             try {
               user.update(
                 { role, tsinghuaEmail: payload.tsinghuaEmail },
+                null,
                 (err) => {
                   if (err) {
                     console.error(err);
@@ -324,7 +325,7 @@ router.post("/verify", async (req, res) => {
             }),
           });
 
-          user.update({ emailVerified: true }, (err) => {
+          user.update({ emailVerified: true }, null, (err) => {
             if (err) {
               console.error(err);
               return res.status(500).end();
@@ -416,7 +417,7 @@ router.post("/reset", async (req, res) => {
           return res.status(404).send("404 Not Found: User does not exist");
         }
 
-        user.update({ password: hash }, (err) => {
+        user.update({ password: hash }, null, (err) => {
           if (err) {
             console.error(err);
             return res.status(500).end();
