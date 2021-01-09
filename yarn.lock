@@ -1251,10 +1251,10 @@ ajv@^7.0.2:
     require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
-ali-oss@6.12.0:
-  version "6.12.0"
-  resolved "https://registry.yarnpkg.com/ali-oss/-/ali-oss-6.12.0.tgz#2bc744cad569aee741e3b3968207761fbb2d21a4"
-  integrity sha512-sNlGo7xExBII/hyO7mIhQm0ZpE7t2+PnRCiX+WHr2efkperlhKyk5dHqGhHCF00rTGMk1DmAmNWV4ygovEGTHA==
+ali-oss@6.13.1:
+  version "6.13.1"
+  resolved "https://registry.yarnpkg.com/ali-oss/-/ali-oss-6.13.1.tgz#4593db300daf8c7d7478e2bc30425bcd0c000bff"
+  integrity sha512-mQlp6d57Vc9gA9JnkQvaaoThLJ9gyyVEV/G9l8axMED91vP/njck7Nzv3YFH8zli9WYS2EO/dDE5oV2QiKbHpQ==
   dependencies:
     address "^1.0.0"
     agentkeepalive "^3.4.1"
