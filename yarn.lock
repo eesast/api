@@ -955,10 +955,10 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@types/ali-oss@6.0.6":
-  version "6.0.6"
-  resolved "https://registry.yarnpkg.com/@types/ali-oss/-/ali-oss-6.0.6.tgz#5c824536005f584b80897ee077cf301e5da76fb0"
-  integrity sha512-FK+aoeAGFC7n7oWW8tnpSxi3lr86Fc0ImIZ+ivknErd75gd0ewCPME4Hm7Y3FArdECCYNHPqVc/Z+24/dNQ5Cw==
+"@types/ali-oss@6.0.7":
+  version "6.0.7"
+  resolved "https://registry.yarnpkg.com/@types/ali-oss/-/ali-oss-6.0.7.tgz#e3cc05f5989f1084ccef2ae1709d9b0bd168c3c0"
+  integrity sha512-Fjtn8fa/IxayxbMC5JdS/Bp8YC2s65ylxb0J002gXCP0uzBKwutQwyz1GpULmO10AWPjN6LpxWl81gCGXnQvVQ==
 
 "@types/bcrypt@3.0.0":
   version "3.0.0"
