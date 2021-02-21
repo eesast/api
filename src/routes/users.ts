@@ -484,4 +484,48 @@ router.post("/actions/user_by_role", hasura, async (req, res) => {
   }
 });
 
+router.put("/role", authenticate(["root"]), async (req, res) => {
+  const { _ids, role } = req.body;
+
+  try {
+    await User.updateMany(
+      { _id: { $in: _ids } },
+      { $set: { role: role } },
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).end();
+        } else {
+          return res.status(200).end();
+        }
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    return res.status(500).end();
+  }
+});
+
+router.put("/role/:objectId", authenticate(["root"]), async (req, res) => {
+  const { role } = req.body;
+
+  try {
+    await User.findByIdAndUpdate(
+      req.params.objectId,
+      { $set: { role: role } },
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).end();
+        } else {
+          return res.status(200).end();
+        }
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    return res.status(500).end();
+  }
+});
+
 export default router;
