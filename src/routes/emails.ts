@@ -82,6 +82,8 @@ router.post("/events", hasura, async (req, res) => {
             break;
           }
         }
+
+        return res.status(200).end();
         break;
       } catch (e) {
         console.error(e);
