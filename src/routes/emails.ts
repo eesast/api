@@ -1,12 +1,19 @@
 import express from "express";
-import fetch from "node-fetch";
+import { GraphQLClient, gql } from "graphql-request";
 import { sendEmail } from "../helpers/email";
 import { newMentorApplicationTemplate } from "../helpers/htmlTemplates";
 import hasura from "../middlewares/hasura";
 
 const router = express.Router();
 
-router.post("/", hasura, async (req, res) => {
+router.post("/events", hasura, async (req, res) => {
+  const client = new GraphQLClient(`${process.env.HASURA_URL}/v1/graphql`, {
+    headers: {
+      "Content-Type": "application/json",
+      "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
+    },
+  });
+
   const data = req.body?.event?.data?.new;
   const table = req.body?.table?.name;
   const op = req.body?.event?.op;
@@ -20,54 +27,38 @@ router.post("/", hasura, async (req, res) => {
       try {
         const studentId = data.student_id;
         const mentorId = data.mentor_id;
-        let response = await fetch(`${process.env.HASURA_URL}/v1/graphql`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
-          },
-          body: JSON.stringify({
-            query: `
-          query GetUserName($_id: String!) {
-            user(where: {_id: {_eq: $_id}}) {
-              name
+        let response = await client.request(
+          gql`
+            query GetUserName($_id: String!) {
+              user(where: { _id: { _eq: $_id } }) {
+                name
+              }
             }
-          }
           `,
-            variables: {
-              _id: studentId,
-            },
-          }),
-        });
-        let json = await response.json();
-        const studentName = json?.data?.user[0]?.name;
+          {
+            _id: studentId,
+          }
+        );
+        const studentName = response?.user[0]?.name;
         if (!studentName) {
           return res.status(404).send("404 Not Found: Student does not exist");
         }
 
-        response = await fetch(`${process.env.HASURA_URL}/v1/graphql`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
-          },
-          body: JSON.stringify({
-            query: `
-          query GetUserNameEmail($_id: String!) {
-            user(where: {_id: {_eq: $_id}}) {
-              name
-              email
+        response = await client.request(
+          gql`
+            query GetUserNameEmail($_id: String!) {
+              user(where: { _id: { _eq: $_id } }) {
+                name
+                email
+              }
             }
-          }
           `,
-            variables: {
-              _id: mentorId,
-            },
-          }),
-        });
-        json = await response.json();
-        const mentorName = json?.data?.user[0]?.name;
-        const mentorEmail = json?.data?.user[0]?.email;
+          {
+            _id: mentorId,
+          }
+        );
+        const mentorName = response?.user[0]?.name;
+        const mentorEmail = response?.user[0]?.email;
         if (!mentorName) {
           return res.status(404).send("404 Not Found: Teacher does not exist");
         }

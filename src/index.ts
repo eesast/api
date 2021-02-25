@@ -4,6 +4,11 @@ import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
 
+// // Use for dev
+// import path from "path";
+// dotenv.config({
+//   path: path.resolve(process.cwd(), ".env.local"),
+// });
 dotenv.config();
 const debug = Debug("eesast-api");
 const databaseUrl =
