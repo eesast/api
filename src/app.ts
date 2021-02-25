@@ -3,7 +3,7 @@ import express from "express";
 import logger from "morgan";
 import staticRouter from "./routes/static";
 import userRouter from "./routes/users";
-import docRouter from "./routes/docs";
+import emailRouter from "./routes/emails";
 
 const app = express();
 
@@ -29,6 +29,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/static", staticRouter);
 app.use("/users", userRouter);
-app.use("/docs", docRouter);
+app.use("/emails", emailRouter);
 
 export default app;
