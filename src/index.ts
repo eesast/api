@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
+import { GraphQLClient } from "graphql-request";
 
 // // Use for dev
 // import path from "path";
@@ -40,6 +41,16 @@ db.on("error", (error) => {
 db.once("open", () => {
   debug("Database connected");
 });
+
+export const client = new GraphQLClient(
+  `${process.env.HASURA_URL}/v1/graphql`,
+  {
+    headers: {
+      "Content-Type": "application/json",
+      "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
+    },
+  }
+);
 
 const port = normalizePort(process.env.PORT || "28888");
 app.set("port", port);
