@@ -4,6 +4,7 @@ import logger from "morgan";
 import staticRouter from "./routes/static";
 import userRouter from "./routes/users";
 import emailRouter from "./routes/emails";
+import codeRouter from "./routes/code";
 
 const app = express();
 
@@ -30,5 +31,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/static", staticRouter);
 app.use("/users", userRouter);
 app.use("/emails", emailRouter);
+app.use("/code", codeRouter);
 
 export default app;
