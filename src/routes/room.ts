@@ -15,77 +15,98 @@ const router = express.Router();
 //network, server, client, run shell to clear network
 router.post("/", async (req, res) => {
   const room_id = req.body.room_id;
-  const docker =
-    process.env.DOCKER === "remote"
-      ? new Docker({
-          host: process.env.DOCKER_URL,
-          port: process.env.DOCKER_PORT,
-        })
-      : new Docker();
+  const user_id = req.body.user_id;
   try {
-    const query_teams = await client.request(
+    const query_if_manager = await client.request(
       gql`
-        query MyQuery($_eq: uuid!) {
-          thuai_room_team_aggregate(where: { room_id: { _eq: $_eq } }) {
-            nodes {
-              thuai_team_id
-            }
+        query query_is_manager($manager_id: String!) {
+          thuai_manager_by_pk(manager_id: $manager_id) {
+            manager_id
           }
         }
       `,
-      {
-        _eq: room_id,
-      }
+      { manager_id: user_id }
     );
-    const teams = query_teams.thuai_room_team_aggregate.nodes;
-    if (teams.length != 2) {
-      res.status(400).send("team unsufficient!");
-    }
-    try {
-      await docker.createNetwork({
-        Name: `THUAI4_room_${room_id}`,
-      });
-    } catch (err) {
-      return res.status(400).send("can't create network");
-    }
-
-    try {
-      const container_server = await docker.createContainer({
-        Image: process.env.SERVERIMAGE,
-        AttachStdin: false,
-        AttachStdout: false,
-        AttachStderr: false,
-        name: `THUAI4_room_server_${room_id}`,
-        HostConfig: {
-          NetworkMode: `THUAI4_room_${room_id}`,
-          AutoRemove: true,
-        },
-        StopTimeout: parseInt(process.env.MAX_DOCKER_TIMEOUT as string),
-        Cmd: [""],
-      });
-      await container_server.start();
-    } catch (err) {
-      return res.status(400).send(`can't create server ${room_id}`);
-    }
-
-    for (let ii = 0; ii < 2; ++ii) {
+    const is_manager = query_if_manager.thuai_manager_by_pk != null;
+    if (is_manager) {
+      console.log("dosomething");
+      return res.status(200).send("ok");
+    } else {
+      const docker =
+        process.env.DOCKER === "remote"
+          ? new Docker({
+              host: process.env.DOCKER_URL,
+              port: process.env.DOCKER_PORT,
+            })
+          : new Docker();
       try {
-        const container_client = await docker.createContainer({
-          Image: "eesast/thuai_client",
-          AttachStdin: false,
-          AttachStdout: false,
-          AttachStderr: false,
-          name: `THUAI4_room_client${ii}_${room_id}`,
-          HostConfig: {
-            NetworkMode: `THUAI4_room_${room_id}`,
-            AutoRemove: true,
-          },
-          StopTimeout: parseInt(process.env.MAX_DOCKER_TIMEOUT as string),
-          Cmd: [""],
-        });
-        await container_client.start();
+        const query_teams = await client.request(
+          gql`
+            query MyQuery($_eq: uuid!) {
+              thuai_room_team_aggregate(where: { room_id: { _eq: $_eq } }) {
+                nodes {
+                  thuai_team_id
+                }
+              }
+            }
+          `,
+          {
+            _eq: room_id,
+          }
+        );
+        const teams = query_teams.thuai_room_team_aggregate.nodes;
+        if (teams.length != 2) {
+          res.status(400).send("team unsufficient!");
+        }
+        try {
+          await docker.createNetwork({
+            Name: `THUAI4_room_${room_id}`,
+          });
+        } catch (err) {
+          return res.status(400).send("can't create network");
+        }
+
+        try {
+          const container_server = await docker.createContainer({
+            Image: process.env.SERVERIMAGE,
+            AttachStdin: false,
+            AttachStdout: false,
+            AttachStderr: false,
+            name: `THUAI4_room_server_${room_id}`,
+            HostConfig: {
+              NetworkMode: `THUAI4_room_${room_id}`,
+              AutoRemove: true,
+            },
+            StopTimeout: parseInt(process.env.MAX_DOCKER_TIMEOUT as string),
+            Cmd: [""],
+          });
+          await container_server.start();
+        } catch (err) {
+          return res.status(400).send(`can't create server ${room_id}`);
+        }
+
+        for (let ii = 0; ii < 2; ++ii) {
+          try {
+            const container_client = await docker.createContainer({
+              Image: "eesast/thuai_client",
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `THUAI4_room_client${ii}_${room_id}`,
+              HostConfig: {
+                NetworkMode: `THUAI4_room_${room_id}`,
+                AutoRemove: true,
+              },
+              StopTimeout: parseInt(process.env.MAX_DOCKER_TIMEOUT as string),
+              Cmd: [""],
+            });
+            await container_client.start();
+          } catch (err) {
+            return res.status(400).send(`can't create client${ii} ${room_id}`);
+          }
+        }
       } catch (err) {
-        return res.status(400).send(`can't create client${ii} ${room_id}`);
+        return res.status(400).send(err);
       }
     }
   } catch (err) {
