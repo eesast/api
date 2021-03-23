@@ -528,4 +528,19 @@ router.put("/role/:objectId", authenticate(["root"]), async (req, res) => {
   }
 });
 
+router.post("/details", authenticate(["root"]), async (req, res) => {
+  const { tsinghuaEmail } = req.body;
+
+  try {
+    const user = await User.findOne(
+      { tsinghuaEmail: tsinghuaEmail },
+      "-__v -password"
+    );
+    return res.json(user);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).end();
+  }
+});
+
 export default router;
