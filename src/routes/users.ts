@@ -529,13 +529,17 @@ router.put("/role/:objectId", authenticate(["root"]), async (req, res) => {
 });
 
 router.post("/details", authenticate(["root"]), async (req, res) => {
-  const { tsinghuaEmail } = req.body;
+  const { tsinghuaEmail, email } = req.body;
+
+  if (!tsinghuaEmail && !email) {
+    return res.status(422).send("Missing email");
+  }
 
   try {
-    const user = await User.findOne(
-      { tsinghuaEmail: tsinghuaEmail },
-      "-__v -password"
-    );
+    const user = tsinghuaEmail
+      ? await User.findOne({ tsinghuaEmail: tsinghuaEmail }, "-__v -password")
+      : await User.findOne({ email: email }, "-__v -password");
+
     return res.json(user);
   } catch (err) {
     console.error(err);
