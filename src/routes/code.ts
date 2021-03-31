@@ -105,7 +105,7 @@ router.post("/compile", async (req, res) => {
             for (const code_key in player_code) {
               try {
                 await fs.writeFile(
-                  `/data/thuai4/${team_id}/AI${i}.cpp`,
+                  `/data/thuai4/${team_id}/player${i}.cpp`,
                   player_code[code_key],
                   "utf-8"
                 );
@@ -125,7 +125,9 @@ router.post("/compile", async (req, res) => {
             try {
               const containerList = await docker.listContainers();
               containerList.forEach((containerInfo) => {
-                if (containerInfo.Names.includes(`THUAI_Compiler_${team_id}`)) {
+                if (
+                  containerInfo.Names.includes(`/THUAI_Compiler_${team_id}`)
+                ) {
                   containerRunning = true;
                 }
               });
@@ -141,7 +143,9 @@ router.post("/compile", async (req, res) => {
                   AttachStdin: false,
                   AttachStdout: false,
                   AttachStderr: false,
-                  StopTimeout: 20,
+                  StopTimeout: parseInt(
+                    process.env.MAX_COMPILER_TIMEOUT as string
+                  ),
                   name: `THUAI_Compiler_${team_id}`,
                 });
 
@@ -163,7 +167,7 @@ router.post("/compile", async (req, res) => {
       return res.status(200).send("ok!");
     });
   } catch (err) {
-    console.log(err);
+    return res.send(err);
   }
 });
 
