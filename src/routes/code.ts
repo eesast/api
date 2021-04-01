@@ -11,7 +11,7 @@ const router = express.Router();
 /**
  * POST compile code of team_id
  * @param token (user_id)
- * @param {uuid} req.body.user_id
+ * @param {uuid} req.body.team_id
  */
 // query whether is manager, query whether is in team
 // docker暂时使用THUAI3,命名为`THUAI_Compiler_${team_id}_player${i}`，数据卷挂在/data/thuai4/${team_id}/player${i}
@@ -62,8 +62,20 @@ router.post("/compile", async (req, res) => {
           //uncomment this to allow anyone in team to compile
           const query_in_team = await client.request(
             gql`
-              query MyQuery($team_id: uuid!, $user_id: String!) {
-                team_member_by_pk(user_id: $user_id, team_id: $team_id) {
+              query MyQuery($team_id: uuid, $user_id: String) {
+                thuai(
+                  where: {
+                    _and: [
+                      { team_id: { _eq: $team_id } }
+                      {
+                        _or: [
+                          { team_leader: { _eq: $user_id } }
+                          { team_members: { user_id: { _eq: $user_id } } }
+                        ]
+                      }
+                    ]
+                  }
+                ) {
                   team_id
                 }
               }
@@ -73,7 +85,8 @@ router.post("/compile", async (req, res) => {
               user_id: user_id,
             }
           );
-          const is_in_team = query_in_team.team_id != null;
+          console.log(query_in_team);
+          const is_in_team = query_in_team.thuai.length != 0;
           //end comment
 
           if (is_in_team) {
@@ -126,7 +139,7 @@ router.post("/compile", async (req, res) => {
               const containerList = await docker.listContainers();
               containerList.forEach((containerInfo) => {
                 if (
-                  containerInfo.Names.includes(`/THUAI_Compiler_${team_id}`)
+                  containerInfo.Names.includes(`/THUAI4_Compiler_${team_id}`)
                 ) {
                   containerRunning = true;
                 }
@@ -134,19 +147,16 @@ router.post("/compile", async (req, res) => {
 
               if (!containerRunning) {
                 const container = await docker.createContainer({
-                  Image: process.env.COMPILEIMAGE,
+                  Image: process.env.COMPILER_IMAGE,
                   HostConfig: {
                     Binds: [`/data/thuai4/${team_id}/:/usr/local/mnt`],
                     AutoRemove: true,
                   },
-                  Cmd: ["sh", "/usr/local/CAPI/compile.sh"],
                   AttachStdin: false,
                   AttachStdout: false,
                   AttachStderr: false,
-                  StopTimeout: parseInt(
-                    process.env.MAX_COMPILER_TIMEOUT as string
-                  ),
-                  name: `THUAI_Compiler_${team_id}`,
+                  //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
+                  name: `THUAI4_Compiler_${team_id}`,
                 });
 
                 await container.start();

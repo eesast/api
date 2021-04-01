@@ -51,8 +51,13 @@ router.post("/", async (req, res) => {
               query MyQuery($_eq: uuid!, $_eq1: String) {
                 thuai_room_team(
                   where: {
-                    thuai_team: { team_members: { user_id: { _eq: $_eq1 } } }
                     room_id: { _eq: $_eq }
+                    thuai_team: {
+                      _or: [
+                        { team_leader: { _eq: $_eq1 } }
+                        { team_members: { user_id: { _eq: $_eq1 } } }
+                      ]
+                    }
                   }
                 ) {
                   thuai_team_id
@@ -137,7 +142,9 @@ router.post("/", async (req, res) => {
                     NetworkMode: `THUAI4_room_${room_id}`,
                     AutoRemove: true,
                   },
-                  //StopTimeout: parseInt(process.env.MAX_SERVER_TIMEOUT as string), //没用
+                  StopTimeout: parseInt(
+                    process.env.MAX_SERVER_TIMEOUT as string
+                  ), //没用
                   //Cmd: [process.env.MAX_SERVER_TIMEOUT as string],
                 });
                 await container_server.start();
@@ -164,7 +171,9 @@ router.post("/", async (req, res) => {
                       AutoRemove: true,
                       //Binds:[]
                     },
-                    //StopTimeout: parseInt(process.env.MAX_CLIENT_TIMEOUT as string),
+                    StopTimeout: parseInt(
+                      process.env.MAX_CLIENT_TIMEOUT as string
+                    ),
                     Cmd: [
                       `${roomIp}`,
                       process.env.MAX_CLIENT_TIMEOUT as string,
