@@ -1023,10 +1023,10 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
 
-"@types/ali-oss@6.0.7":
-  version "6.0.7"
-  resolved "https://registry.yarnpkg.com/@types/ali-oss/-/ali-oss-6.0.7.tgz#e3cc05f5989f1084ccef2ae1709d9b0bd168c3c0"
-  integrity sha512-Fjtn8fa/IxayxbMC5JdS/Bp8YC2s65ylxb0J002gXCP0uzBKwutQwyz1GpULmO10AWPjN6LpxWl81gCGXnQvVQ==
+"@types/ali-oss@6.0.8":
+  version "6.0.8"
+  resolved "https://registry.yarnpkg.com/@types/ali-oss/-/ali-oss-6.0.8.tgz#55ff45aba7e61e97998109932c1334db7bce9ea6"
+  integrity sha512-uXTUrMoYJK9a2iebOzEqUHnJ9Wz1ebh+XlghjXd1KM/E3zxt6qjbj0A5p/bGudwtW8zrEWWTdjTv+tSweD2FmQ==
 
 "@types/bcrypt@3.0.0":
   version "3.0.0"
@@ -1334,10 +1334,10 @@ ajv@^7.0.2:
     require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
-ali-oss@6.13.2:
-  version "6.13.2"
-  resolved "https://registry.yarnpkg.com/ali-oss/-/ali-oss-6.13.2.tgz#ebd965b935bb8f436c5c5ef0fc03fd228fbf00a7"
-  integrity sha512-85z+2Cd3ydCmdw/l6oFkaMmyswPVXm2r6a8GI+738s7O6YsDHDSogQ04joymUT2gdFNVWHYWTmXWLKEkD19eEQ==
+ali-oss@6.15.2:
+  version "6.15.2"
+  resolved "https://registry.yarnpkg.com/ali-oss/-/ali-oss-6.15.2.tgz#276c3bdff5f89460ac9feac8d1d2a0bc32a18d6c"
+  integrity sha512-sLB3a2Q6BvD4fNfHO4a0uuVn+5dlFaWUE/tExFk8bNMTevNGb4hH419kyvTSvKsO8FGLIhyezdi2NVhLHwhPqA==
   dependencies:
     address "^1.0.0"
     agentkeepalive "^3.4.1"
