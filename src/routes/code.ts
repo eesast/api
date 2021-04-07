@@ -108,7 +108,7 @@ router.post("/compile", async (req, res) => {
             let i = 1;
             const player_code = result.thuai_code_by_pk;
             try {
-              await fs.mkdir(`/data/thuai4/${team_id}/`, {
+              await fs.mkdir(`/data/thuai4/${team_id}/player`, {
                 recursive: true,
                 mode: 0o775,
               });
