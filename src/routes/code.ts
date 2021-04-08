@@ -112,13 +112,17 @@ router.post("/compile", async (req, res) => {
                 recursive: true,
                 mode: 0o775,
               });
+              await fs.mkdir(`/data/thuai4/${team_id}/cpp`, {
+                recursive: true,
+                mode: 0o775,
+              });
             } catch (err) {
               return res.status(400).send("can't mkdir");
             }
             for (const code_key in player_code) {
               try {
                 await fs.writeFile(
-                  `/data/thuai4/${team_id}/player${i}.cpp`,
+                  `/data/thuai4/${team_id}/cpp/player${i}.cpp`,
                   player_code[code_key],
                   "utf-8"
                 );
