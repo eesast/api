@@ -4,6 +4,8 @@ import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
+import { queue_element } from "./middlewares/docker_queue";
+import docker_cron from "./middlewares/docker_queue";
 
 // // Use for dev
 // import path from "path";
@@ -52,7 +54,8 @@ export const client = new GraphQLClient(
   }
 );
 
-//export const docker_queue:string[] = [];
+export const docker_queue: queue_element[] = [];
+docker_cron();
 
 const port = normalizePort(process.env.PORT || "28888");
 app.set("port", port);

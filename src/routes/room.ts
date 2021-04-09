@@ -2,10 +2,9 @@ import express from "express";
 import Docker from "dockerode";
 import { gql } from "graphql-request";
 import { client } from "..";
-//import {docker_queue} from "..";
+import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
 import { JwtPayload } from "../middlewares/authenticate";
-//import shell from "child_process";
 
 const router = express.Router();
 
@@ -75,13 +74,6 @@ router.post("/", async (req, res) => {
           } catch (err) {
             return res.status(400).send(err);
           }
-          const docker =
-            process.env.DOCKER === "remote"
-              ? new Docker({
-                  host: process.env.DOCKER_URL,
-                  port: process.env.DOCKER_PORT,
-                })
-              : new Docker();
           try {
             //查询参赛队伍
             const query_teams = await client.request(
@@ -103,85 +95,12 @@ router.post("/", async (req, res) => {
               res.status(400).send("team not exist or unsufficient");
             }
 
-            try {
-              const existing_networks = await docker.listNetworks();
-              if (
-                !existing_networks.filter(
-                  (elem) => elem.Name === `THUAI4_room_${room_id}`
-                ).length
-              ) {
-                await docker.createNetwork({
-                  Name: `THUAI4_room_${room_id}`,
-                });
-              }
-            } catch (err) {
-              return res.status(400).send("can't create network");
-            }
-
-            let containerRunning = false;
-            const containerList = await docker.listContainers();
-            containerList.forEach((containerInfo) => {
-              if (
-                containerInfo.Names.includes(
-                  `/THUAI4_room_server_${room_id}`
-                ) ||
-                containerInfo.Names.includes(`/THUAI4_room_client_${room_id}`)
-              ) {
-                containerRunning = true;
-              }
+            docker_queue.push({
+              room_id: room_id,
+              team_id_1: teams[0].thuai_team_id,
+              team_id_2: teams[1].thuai_team_id,
             });
-            if (!containerRunning) {
-              try {
-                const container_server = await docker.createContainer({
-                  Image: process.env.SERVER_IMAGE,
-                  Tty: true,
-                  AttachStdin: false,
-                  AttachStdout: false,
-                  AttachStderr: false,
-                  name: `THUAI4_room_server_${room_id}`,
-                  HostConfig: {
-                    NetworkMode: `THUAI4_room_${room_id}`,
-                    AutoRemove: true,
-                  },
-                  Cmd: [process.env.MAX_SERVER_TIMEOUT as string, "2", "4"],
-                });
-                await container_server.start();
-              } catch (err) {
-                return res.status(400).send(`can't create server ${room_id}`);
-              }
-
-              const network = docker.getNetwork(`THUAI4_room_${room_id}`);
-              const netInfo = (await network.inspect()) as Docker.NetworkInspectInfo;
-              const roomIp = Object.values(
-                netInfo.Containers!
-              )[0].IPv4Address.split("/")[0];
-
-              try {
-                const container_client = await docker.createContainer({
-                  Image: process.env.AGENTCLIENT_IMAGE,
-                  AttachStdin: false,
-                  AttachStdout: false,
-                  AttachStderr: false,
-                  name: `THUAI4_room_client_${room_id}`,
-                  HostConfig: {
-                    NetworkMode: `THUAI4_room_${room_id}`,
-                    AutoRemove: true,
-                    Binds: [
-                      `/data/thuai4/${teams[0].thuai_team_id}/player:/usr/local/mnt/player1`,
-                      `/data/thuai4/${teams[1].thuai_team_id}/player:/usr/local/mnt/player2`,
-                    ],
-                  },
-                  Cmd: [`${roomIp}`, process.env.MAX_CLIENT_TIMEOUT as string],
-                });
-                await container_client.start();
-              } catch (err) {
-                return res.status(400).send(`can't create client ${room_id}`);
-              }
-
-              return res.status(200).send("all ok");
-            } else {
-              return res.status(400).send("container running");
-            }
+            return res.status(200).send("Joined queue!");
           } catch (err) {
             return res.status(400).send(err);
           }
