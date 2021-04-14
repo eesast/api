@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { docker_queue } from "..";
 import Docker from "dockerode";
+import jwt from "jsonwebtoken";
 
 export interface queue_element {
   room_id: string;
@@ -77,6 +78,25 @@ const docker_cron = () => {
           });
           if (!containerRunning) {
             try {
+              const serverToken = jwt.sign(
+                {
+                  room_id: `${queue_front.room_id}`,
+                  teams: [
+                    {
+                      team_alias: 0,
+                      team_id: queue_front.team_id_1,
+                    },
+                    {
+                      team_alias: 1,
+                      team_id: queue_front.team_id_2,
+                    },
+                  ],
+                },
+                process.env.secret!,
+                {
+                  expiresIn: "10m",
+                }
+              );
               const container_server = await docker.createContainer({
                 Image: process.env.SERVER_IMAGE,
                 Tty: true,
@@ -88,7 +108,12 @@ const docker_cron = () => {
                   NetworkMode: `THUAI4_room_${queue_front.room_id}`,
                   AutoRemove: true,
                 },
-                Cmd: [process.env.MAX_SERVER_TIMEOUT as string, "2", "4"],
+                Cmd: [
+                  process.env.MAX_SERVER_TIMEOUT as string,
+                  "2",
+                  "4",
+                  `${serverToken}`,
+                ],
               });
               await container_server.start();
             } catch (err) {

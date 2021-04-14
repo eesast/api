@@ -6,6 +6,7 @@ import userRouter from "./routes/users";
 import emailRouter from "./routes/emails";
 import codeRouter from "./routes/code";
 import roomRouter from "./routes/room";
+import contestRouter from "./routes/contest";
 
 const app = express();
 
@@ -34,5 +35,6 @@ app.use("/users", userRouter);
 app.use("/emails", emailRouter);
 app.use("/code", codeRouter);
 app.use("/room", roomRouter);
+app.use("/contest", contestRouter);
 
 export default app;
