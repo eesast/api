@@ -5,6 +5,7 @@ import { client } from "..";
 import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
 import { JwtPayload } from "../middlewares/authenticate";
+import * as fs from "fs/promises";
 
 const router = express.Router();
 
@@ -166,6 +167,39 @@ router.delete("/", async (req, res) => {
       return res.status(400).send(err);
     }
   });
+});
+
+/**
+ * GET playback file
+ * @param {uuid} id
+ */
+router.get("/:room_id", async (req, res) => {
+  try {
+    const room_id = req.params.room_id;
+    const query_room = await client.request(
+      gql`
+        query MyQuery($room_id: uuid!) {
+          thuai_room_by_pk(room_id: $room_id) {
+            room_id
+          }
+        }
+      `,
+      { room_id: room_id }
+    );
+    if (query_room.thuai_room_by_pk.length == 0)
+      return res.status(400).send("room does not exist");
+    const root_location = "/data/thuai4_playback/";
+    try {
+      await fs.access(root_location + `${room_id}.plb`);
+      return res.status(200).sendFile(root_location + `${room_id}.plb`);
+    } catch (err) {
+      if (err.code == "ENOENT")
+        return res.status(404).send("404:File does not exist");
+      return res.status(400).send(err);
+    }
+  } catch (err) {
+    return res.status(404).send(err);
+  }
 });
 
 export default router;
