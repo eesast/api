@@ -171,6 +171,7 @@ router.delete("/", async (req, res) => {
 
 /**
  * GET playback file
+ * 文件在/data/thuai4_playback/${room_id}.plb
  * @param {uuid} id
  */
 router.get("/:room_id", async (req, res) => {

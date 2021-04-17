@@ -107,6 +107,9 @@ const docker_cron = () => {
                 name: `THUAI4_room_server_${queue_front.room_id}`,
                 HostConfig: {
                   NetworkMode: `THUAI4_room_${queue_front.room_id}`,
+                  Binds: [
+                    `/data/thuai4_playback/${queue_front.room_id}/:/usr/local/mnt`,
+                  ],
                   AutoRemove: true,
                 },
                 Cmd: [
