@@ -19,10 +19,24 @@ interface ReqResult {
 }
 
 function calculateScore(current_score: number[], increment: number[]) {
-  increment.forEach((value: number, index: number) => {
-    current_score[index] += value;
+  const softmax = (array: number[]) => {
+    const exp = array.map((x) => Math.exp(x));
+    const sum = eval(exp.join("+"));
+    return exp.map((x) => x / sum);
+  };
+
+  const reasonableSoftmax = (array: number[], k = 5) => {
+    const temp = array.map((x) => (x ? (k * x) / eval(array.join("+")) : 0));
+    return softmax(temp);
+  };
+
+  const predict = reasonableSoftmax(current_score, 8);
+  const actual = reasonableSoftmax(increment, 4);
+  const updateScores = current_score.map((score, idx) => {
+    return Math.round(score + 150 * (actual[idx] - predict[idx]));
   });
-  return current_score;
+
+  return updateScores;
 }
 
 /**

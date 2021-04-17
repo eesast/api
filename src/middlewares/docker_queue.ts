@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { docker_queue } from "..";
 import Docker from "dockerode";
 import jwt from "jsonwebtoken";
+import { JwtServerPayload } from "../routes/contest";
 
 export interface queue_element {
   room_id: string;
@@ -80,7 +81,7 @@ const docker_cron = () => {
             try {
               const serverToken = jwt.sign(
                 {
-                  room_id: `${queue_front.room_id}`,
+                  room_id: queue_front.room_id,
                   teams: [
                     {
                       team_alias: 0,
@@ -91,8 +92,8 @@ const docker_cron = () => {
                       team_id: queue_front.team_id_2,
                     },
                   ],
-                },
-                process.env.secret!,
+                } as JwtServerPayload,
+                process.env.SECRET!,
                 {
                   expiresIn: "10m",
                 }

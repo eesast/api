@@ -8,6 +8,10 @@ import { client } from "..";
 
 const router = express.Router();
 
+interface JwtCompilerPayload {
+  team_id: string;
+}
+
 /**
  * POST compile code of team_id
  * @param token (user_id)
@@ -150,8 +154,18 @@ router.post("/compile", async (req, res) => {
               });
 
               if (!containerRunning) {
+                const compiler_token = jwt.sign(
+                  {
+                    team_id: team_id,
+                  } as JwtCompilerPayload,
+                  process.env.SECRET!,
+                  {
+                    expiresIn: "10m",
+                  }
+                );
                 const container = await docker.createContainer({
                   Image: process.env.COMPILER_IMAGE,
+                  Env: [`COMPILER_TOKEN=${compiler_token}`],
                   HostConfig: {
                     Binds: [`/data/thuai4/${team_id}/:/usr/local/mnt`],
                     AutoRemove: true,
@@ -162,6 +176,23 @@ router.post("/compile", async (req, res) => {
                   //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
                   name: `THUAI4_Compiler_${team_id}`,
                 });
+
+                await client.request(
+                  gql`
+                    mutation MyMutation($team_id: uuid!, $status: String) {
+                      update_thuai_by_pk(
+                        pk_columns: { team_id: $team_id }
+                        _set: { status: $status }
+                      ) {
+                        status
+                      }
+                    }
+                  `,
+                  {
+                    team_id: team_id,
+                    status: "compiling",
+                  }
+                );
 
                 await container.start();
               }
@@ -182,6 +213,56 @@ router.post("/compile", async (req, res) => {
     });
   } catch (err) {
     return res.send(err);
+  }
+});
+
+/**
+ * PUT compile info
+ */
+router.put("/compileInfo", async (req, res) => {
+  try {
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      return res.status(401).send("401 Unauthorized: Missing token");
+    }
+
+    const token = authHeader.substring(7);
+    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+      if (err || !decoded) {
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
+      }
+
+      const payload = decoded as JwtCompilerPayload;
+      const team_id = payload.team_id;
+      const compile_status: string = req.body.compile_status;
+      if (compile_status != "compiled" && compile_status != "failed")
+        return res.status(400).send("error: implicit compile status");
+      try {
+        await client.request(
+          gql`
+            mutation MyMutation($team_id: uuid!, $status: String) {
+              update_thuai_by_pk(
+                pk_columns: { team_id: $team_id }
+                _set: { status: $status }
+              ) {
+                status
+              }
+            }
+          `,
+          {
+            team_id: team_id,
+            status: compile_status,
+          }
+        );
+        return res.status(200).send("compile_info ok!");
+      } catch (err) {
+        return res.status(400).send(err);
+      }
+    });
+  } catch (err) {
+    return res.status(400).send(err);
   }
 });
 
