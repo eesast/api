@@ -18,7 +18,6 @@ interface JwtCompilerPayload {
  * @param {uuid} req.body.team_id
  */
 // query whether is manager, query whether is in team
-// docker暂时使用THUAI3,命名为`THUAI_Compiler_${team_id}_player${i}`，数据卷挂在/data/thuai4/${team_id}/player${i}
 router.post("/compile", async (req, res) => {
   try {
     const team_id = req.body.team_id;
@@ -264,6 +263,97 @@ router.put("/compileInfo", async (req, res) => {
   } catch (err) {
     return res.status(400).send(err);
   }
+});
+
+/**
+ * GET compile logs
+ * @param {token}
+ * @param {string} team_id
+ */
+router.get("/logs", async (req, res) => {
+  const authHeader = req.get("Authorization");
+  if (!authHeader) {
+    return res.status(401).send("401 Unauthorized: Missing token");
+  }
+
+  const token = authHeader.substring(7);
+  return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+    if (err || !decoded) {
+      return res.status(401).send("401 Unauthorized: Token expired or invalid");
+    }
+
+    const payload = decoded as JwtPayload;
+    const user_id = payload._id;
+    const team_id = req.body.team_id;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($manager_id: String!) {
+          thuai_manager_by_pk(manager_id: $manager_id) {
+            manager_id
+          }
+        }
+      `,
+      { manager_id: user_id }
+    );
+    const is_manager = query_if_manager.thuai_manager_by_pk != null;
+    if (is_manager) {
+      const query_if_team_exists = await client.request(
+        gql`
+          query MyQuery($team_id: uuid!) {
+            thuai_by_pk(team_id: $team_id) {
+              team_id
+            }
+          }
+        `,
+        {
+          team_id: team_id,
+        }
+      );
+      const team_exists = query_if_team_exists.thuai_by_pk != null;
+      if (team_exists) {
+        try {
+          return res.status(200).sendFile(`/data/thuai4/${team_id}/out.log`);
+        } catch (err) {
+          return res.status(400).send(err);
+        }
+      } else return res.status(404).send("team not exists");
+    } else {
+      try {
+        const query_in_team = await client.request(
+          gql`
+            query MyQuery($team_id: uuid, $user_id: String) {
+              thuai(
+                where: {
+                  _and: [
+                    { team_id: { _eq: $team_id } }
+                    {
+                      _or: [
+                        { team_leader: { _eq: $user_id } }
+                        { team_members: { user_id: { _eq: $user_id } } }
+                      ]
+                    }
+                  ]
+                }
+              ) {
+                team_id
+              }
+            }
+          `,
+          {
+            team_id: team_id,
+            user_id: user_id,
+          }
+        );
+        const is_in_team = query_in_team.thuai.length != 0;
+        if (is_in_team) {
+          return res.status(200).sendFile(`/data/thuai4/${team_id}/out.log`);
+        } else
+          return res.status(401).send("401 Unauthorized:Permission denied");
+      } catch (err) {
+        return res.status(400).send(err);
+      }
+    }
+  });
 });
 
 //TODO: add manager clear docker containers manually

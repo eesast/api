@@ -98,6 +98,10 @@ const docker_cron = () => {
                   expiresIn: "10m",
                 }
               );
+              const url =
+                process.env.NODE_ENV == "production"
+                  ? "https://api.eesast.com/contest"
+                  : "http:127.0.0.1:28888/contest";
               const container_server = await docker.createContainer({
                 Image: process.env.SERVER_IMAGE,
                 Tty: true,
@@ -108,7 +112,7 @@ const docker_cron = () => {
                 HostConfig: {
                   NetworkMode: `THUAI4_room_${queue_front.room_id}`,
                   Binds: [
-                    `/data/thuai4_playback/${queue_front.room_id}/:/usr/local/mnt`,
+                    `/data/thuai4_playback/${queue_front.room_id}/:/usr/local/mnt`, //TODO:路径待定！
                   ],
                   AutoRemove: true,
                 },
@@ -116,6 +120,7 @@ const docker_cron = () => {
                   process.env.MAX_SERVER_TIMEOUT as string,
                   "2",
                   "4",
+                  `${url}`,
                   `${serverToken}`,
                 ],
               });
