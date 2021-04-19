@@ -270,7 +270,7 @@ router.put("/compileInfo", async (req, res) => {
  * @param {token}
  * @param {string} team_id
  */
-router.get("/logs", async (req, res) => {
+router.get("/logs/:team_id", async (req, res) => {
   const authHeader = req.get("Authorization");
   if (!authHeader) {
     return res.status(401).send("401 Unauthorized: Missing token");
@@ -284,7 +284,7 @@ router.get("/logs", async (req, res) => {
 
     const payload = decoded as JwtPayload;
     const user_id = payload._id;
-    const team_id = req.body.team_id;
+    const team_id = req.params.team_id;
     const query_if_manager = await client.request(
       gql`
         query query_is_manager($manager_id: String!) {
