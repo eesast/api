@@ -19,24 +19,55 @@ interface ReqResult {
 }
 
 function calculateScore(current_score: number[], increment: number[]) {
-  const softmax = (array: number[]) => {
-    const exp = array.map((x) => Math.exp(x));
-    const sum = eval(exp.join("+"));
-    return exp.map((x) => x / sum);
-  };
+  // \xfgg/
+  let reverse = false;
+  if (increment[0] < increment[1]) reverse = true;
+  else if (increment[0] == increment[1]) {
+    if (current_score[0] == current_score[1]) return current_score;
+    if (current_score[0] > current_score[1]) reverse = true;
+    else reverse = false;
+  }
+  if (reverse) {
+    current_score.reverse();
+    increment.reverse();
+  }
+  const resScore = [0, 0];
+  const deltaWeight = 80;
+  const delta = (current_score[0] - current_score[1]) / deltaWeight;
 
-  const reasonableSoftmax = (array: number[], k = 5) => {
-    const temp = array.map((x) => (x ? (k * x) / eval(array.join("+")) : 0));
-    return softmax(temp);
-  };
+  const firstnerGet = 8e-5;
+  const secondrGet = 5e-6;
 
-  const predict = reasonableSoftmax(current_score, 8);
-  const actual = reasonableSoftmax(increment, 4);
-  const updateScores = current_score.map((score, idx) => {
-    return Math.round(score + 150 * (actual[idx] - predict[idx]));
-  });
+  const deltaScore = 100.0; // 两队竞争分差超过多少时就认为非常大
+  const correctRate = (current_score[0] - current_score[1]) / 100; // 订正的幅度，值越小，势均力敌时改变越大
+  const correct =
+    0.5 *
+    (Math.tanh(
+      (increment[0] - increment[1] - deltaScore) / deltaScore - correctRate
+    ) +
+      1.0);
 
-  return updateScores;
+  resScore[0] =
+    current_score[0] +
+    Math.round(
+      increment[0] *
+        increment[0] *
+        firstnerGet *
+        (1 - Math.tanh(delta)) *
+        correct
+    );
+  resScore[1] =
+    current_score[1] -
+    Math.round(
+      (2500.0 - increment[1]) *
+        (2500.0 - increment[1]) *
+        secondrGet *
+        (1 - Math.tanh(delta)) *
+        correct
+    );
+
+  if (reverse) resScore.reverse();
+  return resScore;
 }
 
 /**
@@ -109,7 +140,10 @@ router.put("/", async (req, res) => {
             increment[value.team_id] = value.score;
           });
 
-          const updated_score = calculateScore(current_score, increment);
+          const updated_score = calculateScore(
+            current_score,
+            increment
+          ) as number[];
 
           for (let i = 0; i < 2; ++i) {
             await client.request(
