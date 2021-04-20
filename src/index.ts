@@ -3,6 +3,10 @@ import dotenv from "dotenv";
 import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
+import { GraphQLClient } from "graphql-request";
+import { queue_element } from "./middlewares/docker_queue";
+import docker_cron from "./middlewares/docker_queue";
+import fs from "fs";
 
 // // Use for dev
 // import path from "path";
@@ -41,6 +45,21 @@ db.once("open", () => {
   debug("Database connected");
 });
 
+export const client = new GraphQLClient(
+  `${process.env.HASURA_URL}/v1/graphql`,
+  {
+    headers: {
+      "Content-Type": "application/json",
+      "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
+    },
+  }
+);
+
+export const docker_queue: queue_element[] = JSON.parse(
+  fs.readFileSync("./queue_data.json").toString()
+);
+docker_cron();
+
 const port = normalizePort(process.env.PORT || "28888");
 app.set("port", port);
 
@@ -73,3 +92,12 @@ server.on("listening", () => {
   const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr!.port;
   debug("Listening on " + bind);
 });
+
+// server.addListener("close",()=>{
+//   try{
+//     fs.writeFileSync('./queue_data.json',docker_queue.toString());
+//     console.log("stop!");
+//   }catch(err){
+//     console.log(err);
+//   }
+// })
