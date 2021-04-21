@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
+import Docker from "dockerode";
 
 const router = express.Router();
 
@@ -164,6 +165,17 @@ router.put("/", async (req, res) => {
               }
             );
           }
+          const docker =
+            process.env.DOCKER === "remote"
+              ? new Docker({
+                  host: process.env.DOCKER_URL,
+                  port: process.env.DOCKER_PORT,
+                })
+              : new Docker();
+          const room_network = docker.getNetwork(
+            `THUAI4_room_${payload.room_id}`
+          );
+          await room_network.remove();
           return res.status(200).send("update ok!");
         } catch (err) {
           return res.status(400).send(err);
