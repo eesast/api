@@ -165,6 +165,22 @@ router.put("/", async (req, res) => {
               }
             );
           }
+          await client.request(
+            gql`
+              mutation MyMutation($room_id: uuid!, $status: Boolean) {
+                update_thuai_room_by_pk(
+                  pk_columns: { room_id: $room_id }
+                  _set: { status: $status }
+                ) {
+                  status
+                }
+              }
+            `,
+            {
+              room_id: payload.room_id,
+              status: true,
+            }
+          );
           const docker =
             process.env.DOCKER === "remote"
               ? new Docker({
