@@ -93,7 +93,7 @@ router.post("/", async (req, res) => {
             );
             const teams = query_teams.thuai_room_team_aggregate.nodes;
             if (teams.length != 2) {
-              res.status(400).send("team not exist or unsufficient");
+              res.status(400).send("队伍信息错误");
             }
 
             docker_queue.push({
@@ -196,8 +196,7 @@ router.get("/:room_id", async (req, res) => {
         .status(200)
         .sendFile(root_location + `${room_id}/${room_id}.plb`);
     } catch (err) {
-      if (err.code == "ENOENT")
-        return res.status(404).send("404:File does not exist");
+      if (err.code == "ENOENT") return res.status(404).send("文件不存在");
       return res.status(400).send(err);
     }
   } catch (err) {

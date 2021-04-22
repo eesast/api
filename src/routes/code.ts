@@ -120,7 +120,7 @@ router.post("/compile", async (req, res) => {
                 mode: 0o775,
               });
             } catch (err) {
-              return res.status(400).send("can't mkdir");
+              return res.status(400).send("服务器创建目录失败");
             }
             for (const code_key in player_code) {
               try {
@@ -130,7 +130,7 @@ router.post("/compile", async (req, res) => {
                   "utf-8"
                 );
               } catch (err) {
-                return res.status(400).send("can't write file");
+                return res.status(400).send("服务器写入文件失败");
               }
               ++i;
             }
@@ -199,9 +199,7 @@ router.post("/compile", async (req, res) => {
               return res.status(400).send(err);
             }
           } else {
-            return res
-              .status(401)
-              .send("Permission denied, you are not in the team.");
+            return res.status(401).send("当前用户不在队伍中");
           }
         } catch (err) {
           return res.status(400).send(err);
@@ -316,7 +314,7 @@ router.get("/logs/:team_id", async (req, res) => {
         } catch (err) {
           return res.status(400).send(err);
         }
-      } else return res.status(404).send("team not exists");
+      } else return res.status(404).send("队伍不存在！");
     } else {
       try {
         const query_in_team = await client.request(
