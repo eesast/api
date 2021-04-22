@@ -191,8 +191,10 @@ router.get("/:room_id", async (req, res) => {
       return res.status(400).send("room does not exist");
     const root_location = "/data/thuai4_playback/";
     try {
-      await fs.access(root_location + `${room_id}.plb`);
-      return res.status(200).sendFile(root_location + `${room_id}.plb`);
+      await fs.access(root_location + `${room_id}/${room_id}.plb`);
+      return res
+        .status(200)
+        .sendFile(root_location + `${room_id}/${room_id}.plb`);
     } catch (err) {
       if (err.code == "ENOENT")
         return res.status(404).send("404:File does not exist");
