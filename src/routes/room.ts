@@ -92,10 +92,7 @@ router.post("/", async (req, res) => {
               }
             );
             const teams = query_teams.thuai_room_team_aggregate.nodes;
-            if (
-              teams.length != 2 ||
-              teams[0].thuai_team_id == teams[1].thuai_team_id
-            ) {
+            if (teams.length != 2) {
               res.status(400).send("team not exist or unsufficient");
             }
 

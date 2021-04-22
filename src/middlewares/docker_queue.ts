@@ -3,6 +3,8 @@ import { docker_queue } from "..";
 import Docker from "dockerode";
 import jwt from "jsonwebtoken";
 import { JwtServerPayload } from "../routes/contest";
+import { gql } from "graphql-request";
+import { client } from "..";
 
 export interface queue_element {
   room_id: string;
@@ -49,6 +51,34 @@ const docker_cron = () => {
         for (let i = 0; i < available_num; ++i) {
           const queue_front = docker_queue.shift() as queue_element;
           try {
+            const query_if_compiled = await client.request(
+              gql`
+                query MyQuery($team_id_1: uuid!, $team_id_2: uuid!) {
+                  thuai(
+                    where: {
+                      _or: [
+                        { team_id: { _eq: $team_id_1 } }
+                        { team_id: { _eq: $team_id_2 } }
+                      ]
+                    }
+                  ) {
+                    status
+                  }
+                }
+              `,
+              {
+                team_id_1: queue_front.team_id_1,
+                team_id_2: queue_front.team_id_2,
+              }
+            );
+            const if_compiled_array = query_if_compiled.thuai;
+            let all_compiled = true;
+            if_compiled_array.forEach((element: { status: string }) => {
+              if (element.status != "compiled") all_compiled = false;
+            });
+
+            if (!all_compiled) continue;
+
             const existing_networks = await docker.listNetworks();
             if (
               !existing_networks.filter(
