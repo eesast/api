@@ -53,7 +53,7 @@ const docker_cron = () => {
           try {
             const query_if_compiled = await client.request(
               gql`
-                query MyQuery($team_id_1: uuid!, $team_id_2: uuid!) {
+                query query_if_compiled($team_id_1: uuid!, $team_id_2: uuid!) {
                   thuai(
                     where: {
                       _or: [

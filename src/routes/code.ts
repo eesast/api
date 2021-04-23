@@ -178,7 +178,10 @@ router.post("/compile", async (req, res) => {
 
                 await client.request(
                   gql`
-                    mutation MyMutation($team_id: uuid!, $status: String) {
+                    mutation update_compile_status(
+                      $team_id: uuid!
+                      $status: String
+                    ) {
                       update_thuai_by_pk(
                         pk_columns: { team_id: $team_id }
                         _set: { status: $status }
@@ -240,7 +243,7 @@ router.put("/compileInfo", async (req, res) => {
       try {
         await client.request(
           gql`
-            mutation MyMutation($team_id: uuid!, $status: String) {
+            mutation update_compile_status($team_id: uuid!, $status: String) {
               update_thuai_by_pk(
                 pk_columns: { team_id: $team_id }
                 _set: { status: $status }
@@ -347,7 +350,9 @@ router.get("/logs/:team_id", async (req, res) => {
         );
         const is_in_team = query_in_team.thuai.length != 0;
         if (is_in_team) {
-          return res.status(200).sendFile(`/data/thuai4/${team_id}/out.log`);
+          return res
+            .status(200)
+            .sendFile(`/data/thuai4/${team_id}/player/out.log`);
         } else
           return res.status(401).send("401 Unauthorized:Permission denied");
       } catch (err) {
