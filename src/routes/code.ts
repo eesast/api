@@ -65,7 +65,7 @@ router.post("/compile", async (req, res) => {
           //uncomment this to allow anyone in team to compile
           const query_in_team = await client.request(
             gql`
-              query MyQuery($team_id: uuid, $user_id: String) {
+              query query_if_in_team($team_id: uuid, $user_id: String) {
                 thuai(
                   where: {
                     _and: [
@@ -95,7 +95,7 @@ router.post("/compile", async (req, res) => {
           if (is_in_team) {
             const result = await client.request(
               gql`
-                query MyQuery($team_id: uuid!) {
+                query get_team_code($team_id: uuid!) {
                   thuai_code_by_pk(team_id: $team_id) {
                     code_1
                     code_2
@@ -120,7 +120,7 @@ router.post("/compile", async (req, res) => {
                 mode: 0o775,
               });
             } catch (err) {
-              return res.status(400).send("can't mkdir");
+              return res.status(400).send("服务器创建目录失败");
             }
             for (const code_key in player_code) {
               try {
@@ -130,7 +130,7 @@ router.post("/compile", async (req, res) => {
                   "utf-8"
                 );
               } catch (err) {
-                return res.status(400).send("can't write file");
+                return res.status(400).send("服务器写入文件失败");
               }
               ++i;
             }
@@ -199,9 +199,7 @@ router.post("/compile", async (req, res) => {
               return res.status(400).send(err);
             }
           } else {
-            return res
-              .status(401)
-              .send("Permission denied, you are not in the team.");
+            return res.status(401).send("当前用户不在队伍中");
           }
         } catch (err) {
           return res.status(400).send(err);
@@ -299,7 +297,7 @@ router.get("/logs/:team_id", async (req, res) => {
     if (is_manager) {
       const query_if_team_exists = await client.request(
         gql`
-          query MyQuery($team_id: uuid!) {
+          query query_team_exists($team_id: uuid!) {
             thuai_by_pk(team_id: $team_id) {
               team_id
             }
@@ -316,12 +314,12 @@ router.get("/logs/:team_id", async (req, res) => {
         } catch (err) {
           return res.status(400).send(err);
         }
-      } else return res.status(404).send("team not exists");
+      } else return res.status(404).send("队伍不存在！");
     } else {
       try {
         const query_in_team = await client.request(
           gql`
-            query MyQuery($team_id: uuid, $user_id: String) {
+            query query_in_team($team_id: uuid, $user_id: String) {
               thuai(
                 where: {
                   _and: [

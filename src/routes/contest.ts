@@ -95,7 +95,7 @@ router.put("/", async (req, res) => {
 
       const query_if_valid = await client.request(
         gql`
-          query MyQuery($_eq: uuid, $_in: [uuid!]) {
+          query query_if_valid($_eq: uuid, $_in: [uuid!]) {
             thuai_room_team(
               where: { room_id: { _eq: $_eq }, thuai_team_id: { _in: $_in } }
             ) {
@@ -123,7 +123,7 @@ router.put("/", async (req, res) => {
           for (let i = 0; i < 2; ++i) {
             const current_score_query = await client.request(
               gql`
-                query MyQuery($team_id: uuid!) {
+                query query_current_score($team_id: uuid!) {
                   thuai_by_pk(team_id: $team_id) {
                     score
                   }
@@ -140,16 +140,17 @@ router.put("/", async (req, res) => {
           game_result.forEach((value: ReqResult) => {
             increment[value.team_id] = value.score;
           });
-
+          console.log(`increment:${increment}`);
           const updated_score = calculateScore(
             current_score,
             increment
           ) as number[];
+          console.log(`updated_score:${updated_score}`);
 
           for (let i = 0; i < 2; ++i) {
             await client.request(
               gql`
-                mutation MyMutation($team_id: uuid!, $score: Int = 0) {
+                mutation update_score($team_id: uuid!, $score: Int = 0) {
                   update_thuai_by_pk(
                     pk_columns: { team_id: $team_id }
                     _set: { score: $score }
@@ -167,7 +168,7 @@ router.put("/", async (req, res) => {
           }
           await client.request(
             gql`
-              mutation MyMutation($room_id: uuid!, $status: Boolean) {
+              mutation update_room_status($room_id: uuid!, $status: Boolean) {
                 update_thuai_room_by_pk(
                   pk_columns: { room_id: $room_id }
                   _set: { status: $status }

@@ -50,7 +50,7 @@ router.post("/", async (req, res) => {
           try {
             //查询选手是否在房间里
             const query_if_in_room = gql`
-              query MyQuery($_eq: uuid!, $_eq1: String) {
+              query query_if_in_room($_eq: uuid!, $_eq1: String) {
                 thuai_room_team(
                   where: {
                     room_id: { _eq: $_eq }
@@ -79,7 +79,7 @@ router.post("/", async (req, res) => {
             //查询参赛队伍
             const query_teams = await client.request(
               gql`
-                query MyQuery($_eq: uuid!) {
+                query query_team_id($_eq: uuid!) {
                   thuai_room_team_aggregate(where: { room_id: { _eq: $_eq } }) {
                     nodes {
                       thuai_team_id
@@ -93,7 +93,7 @@ router.post("/", async (req, res) => {
             );
             const teams = query_teams.thuai_room_team_aggregate.nodes;
             if (teams.length != 2) {
-              res.status(400).send("team not exist or unsufficient");
+              res.status(400).send("队伍信息错误");
             }
 
             docker_queue.push({
@@ -179,7 +179,7 @@ router.get("/:room_id", async (req, res) => {
     const room_id = req.params.room_id;
     const query_room = await client.request(
       gql`
-        query MyQuery($room_id: uuid!) {
+        query query_room_id($room_id: uuid!) {
           thuai_room_by_pk(room_id: $room_id) {
             room_id
           }
@@ -196,8 +196,7 @@ router.get("/:room_id", async (req, res) => {
         .status(200)
         .sendFile(root_location + `${room_id}/${room_id}.plb`);
     } catch (err) {
-      if (err.code == "ENOENT")
-        return res.status(404).send("404:File does not exist");
+      if (err.code == "ENOENT") return res.status(404).send("文件不存在");
       return res.status(400).send(err);
     }
   } catch (err) {
