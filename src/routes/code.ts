@@ -311,7 +311,9 @@ router.get("/logs/:team_id", async (req, res) => {
       const team_exists = query_if_team_exists.thuai_by_pk != null;
       if (team_exists) {
         try {
-          return res.status(200).sendFile(`/data/thuai4/${team_id}/out.log`);
+          return res
+            .status(200)
+            .sendFile(`/data/thuai4/${team_id}/player/out.log`);
         } catch (err) {
           return res.status(400).send(err);
         }
