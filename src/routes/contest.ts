@@ -140,11 +140,12 @@ router.put("/", async (req, res) => {
           game_result.forEach((value: ReqResult) => {
             increment[value.team_id] = value.score;
           });
-
+          console.log(`increment:${increment}`);
           const updated_score = calculateScore(
             current_score,
             increment
           ) as number[];
+          console.log(`updated_score:${updated_score}`);
 
           for (let i = 0; i < 2; ++i) {
             await client.request(
