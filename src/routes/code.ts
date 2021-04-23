@@ -178,7 +178,10 @@ router.post("/compile", async (req, res) => {
 
                 await client.request(
                   gql`
-                    mutation MyMutation($team_id: uuid!, $status: String) {
+                    mutation update_compile_status(
+                      $team_id: uuid!
+                      $status: String
+                    ) {
                       update_thuai_by_pk(
                         pk_columns: { team_id: $team_id }
                         _set: { status: $status }
