@@ -11,7 +11,7 @@
     "typecheck": "tsc --noUnusedLocals"
   },
   "dependencies": {
-    "@types/node-cron": "^2.0.3",
+    "@types/node-cron": "2.0.3",
     "@babel/runtime": "7.13.10",
     "ali-oss": "6.15.2",
     "bcrypt": "5.0.1",
@@ -29,7 +29,7 @@
     "mongoose": "5.11.8",
     "morgan": "1.10.0",
     "multer": "1.4.2",
-    "node-cron": "^3.0.0",
+    "node-cron": "3.0.0",
     "node-fetch": "2.6.1",
     "nodemailer": "6.5.0"
   },
