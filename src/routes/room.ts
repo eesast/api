@@ -50,7 +50,7 @@ router.post("/", async (req, res) => {
           try {
             //查询选手是否在房间里
             const query_if_in_room = gql`
-              query MyQuery($_eq: uuid!, $_eq1: String) {
+              query query_if_in_room($_eq: uuid!, $_eq1: String) {
                 thuai_room_team(
                   where: {
                     room_id: { _eq: $_eq }
@@ -79,7 +79,7 @@ router.post("/", async (req, res) => {
             //查询参赛队伍
             const query_teams = await client.request(
               gql`
-                query MyQuery($_eq: uuid!) {
+                query query_team_id($_eq: uuid!) {
                   thuai_room_team_aggregate(where: { room_id: { _eq: $_eq } }) {
                     nodes {
                       thuai_team_id
@@ -179,7 +179,7 @@ router.get("/:room_id", async (req, res) => {
     const room_id = req.params.room_id;
     const query_room = await client.request(
       gql`
-        query MyQuery($room_id: uuid!) {
+        query query_room_id($room_id: uuid!) {
           thuai_room_by_pk(room_id: $room_id) {
             room_id
           }

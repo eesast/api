@@ -65,7 +65,7 @@ router.post("/compile", async (req, res) => {
           //uncomment this to allow anyone in team to compile
           const query_in_team = await client.request(
             gql`
-              query MyQuery($team_id: uuid, $user_id: String) {
+              query query_if_in_team($team_id: uuid, $user_id: String) {
                 thuai(
                   where: {
                     _and: [
@@ -95,7 +95,7 @@ router.post("/compile", async (req, res) => {
           if (is_in_team) {
             const result = await client.request(
               gql`
-                query MyQuery($team_id: uuid!) {
+                query get_team_code($team_id: uuid!) {
                   thuai_code_by_pk(team_id: $team_id) {
                     code_1
                     code_2
@@ -297,7 +297,7 @@ router.get("/logs/:team_id", async (req, res) => {
     if (is_manager) {
       const query_if_team_exists = await client.request(
         gql`
-          query MyQuery($team_id: uuid!) {
+          query query_team_exists($team_id: uuid!) {
             thuai_by_pk(team_id: $team_id) {
               team_id
             }
@@ -319,7 +319,7 @@ router.get("/logs/:team_id", async (req, res) => {
       try {
         const query_in_team = await client.request(
           gql`
-            query MyQuery($team_id: uuid, $user_id: String) {
+            query query_in_team($team_id: uuid, $user_id: String) {
               thuai(
                 where: {
                   _and: [
