@@ -234,6 +234,7 @@ router.put("/compileInfo", async (req, res) => {
       const payload = decoded as JwtCompilerPayload;
       const team_id = payload.team_id;
       const compile_status: string = req.body.compile_status;
+      console.log(`${team_id}:compile:${compile_status}`);
       if (compile_status != "compiled" && compile_status != "failed")
         return res.status(400).send("error: implicit compile status");
       try {
