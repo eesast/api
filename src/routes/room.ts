@@ -193,6 +193,7 @@ router.get("/:room_id", async (req, res) => {
     try {
       await fs.access(root_location + `${room_id}/${room_id}.plb`);
       res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Expires", 0);
       return res
         .status(200)
         .sendFile(root_location + `${room_id}/${room_id}.plb`, {
