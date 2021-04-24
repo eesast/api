@@ -195,7 +195,9 @@ router.get("/:room_id", async (req, res) => {
       res.setHeader("Cache-Control", "no-cache");
       return res
         .status(200)
-        .sendFile(root_location + `${room_id}/${room_id}.plb`);
+        .sendFile(root_location + `${room_id}/${room_id}.plb`, {
+          cacheControl: false,
+        });
     } catch (err) {
       if (err.code == "ENOENT") return res.status(404).send("文件不存在");
       return res.status(400).send(err);

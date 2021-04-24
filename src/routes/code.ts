@@ -350,10 +350,12 @@ router.get("/logs/:team_id", async (req, res) => {
         );
         const is_in_team = query_in_team.thuai.length != 0;
         if (is_in_team) {
-          res.setHeader("Cache-Control", "no-cache");
+          //res.setHeader("Cache-Control", "no-cache");
           return res
             .status(200)
-            .sendFile(`/data/thuai4/${team_id}/player/out.log`);
+            .sendFile(`/data/thuai4/${team_id}/player/out.log`, {
+              cacheControl: false,
+            });
         } else
           return res.status(401).send("401 Unauthorized:Permission denied");
       } catch (err) {
