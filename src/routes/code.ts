@@ -352,6 +352,7 @@ router.get("/logs/:team_id", async (req, res) => {
         if (is_in_team) {
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Expires", 0);
+          res.setHeader("Pragma", "no-cache");
           return res
             .status(200)
             .sendFile(`/data/thuai4/${team_id}/player/out.log`, {
