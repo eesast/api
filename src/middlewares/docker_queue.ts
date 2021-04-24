@@ -125,7 +125,7 @@ const docker_cron = () => {
                 } as JwtServerPayload,
                 process.env.SECRET!,
                 {
-                  expiresIn: "10m",
+                  expiresIn: "30m",
                 }
               );
               const url =
