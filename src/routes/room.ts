@@ -192,6 +192,7 @@ router.get("/:room_id", async (req, res) => {
     const root_location = "/data/thuai4_playback/";
     try {
       await fs.access(root_location + `${room_id}/${room_id}.plb`);
+      res.setHeader("Cache-Control", "no-cache");
       return res
         .status(200)
         .sendFile(root_location + `${room_id}/${room_id}.plb`);
