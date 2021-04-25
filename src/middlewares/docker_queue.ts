@@ -45,8 +45,6 @@ const docker_cron = () => {
           (max_container_num - existing_containers.length) / 2,
           docker_queue.length
         );
-        console.log("队列容量:", max_container_num);
-        console.log("等待:", available_num);
         if (available_num === 0) return;
         for (let i = 0; i < available_num; ++i) {
           const queue_front = docker_queue.shift() as queue_element;
@@ -195,10 +193,7 @@ const docker_cron = () => {
               console.log(err);
               continue;
             }
-
-            console.log("all ok");
           } else {
-            console.log("running");
             continue;
           }
         }

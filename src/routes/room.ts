@@ -197,7 +197,7 @@ router.get("/:room_id", async (req, res) => {
       res.set("Pragma", "no-cache");
       return res
         .status(200)
-        .sendFile(root_location + `${room_id}/${room_id}.plb`, {
+        .sendFile(root_location + `${room_id}/playback.thuaipb`, {
           cacheControl: false,
         });
     } catch (err) {
