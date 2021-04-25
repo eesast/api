@@ -191,7 +191,7 @@ router.get("/:room_id", async (req, res) => {
       return res.status(400).send("room does not exist");
     const root_location = "/data/thuai4_playback/";
     try {
-      await fs.access(root_location + `${room_id}/${room_id}.plb`);
+      await fs.access(root_location + `${room_id}/playback.thuaipb`);
       res.set("Cache-Control", "no-cache");
       res.set("Expires", "0");
       res.set("Pragma", "no-cache");
