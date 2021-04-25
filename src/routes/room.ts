@@ -192,14 +192,9 @@ router.get("/:room_id", async (req, res) => {
     const root_location = "/data/thuai4_playback/";
     try {
       await fs.access(root_location + `${room_id}/playback.thuaipb`);
-      res.set("Cache-Control", "no-cache");
-      res.set("Expires", "0");
-      res.set("Pragma", "no-cache");
       return res
         .status(200)
-        .sendFile(root_location + `${room_id}/playback.thuaipb`, {
-          cacheControl: false,
-        });
+        .sendFile(root_location + `${room_id}/playback.thuaipb`);
     } catch (err) {
       if (err.code == "ENOENT") return res.status(404).send("文件不存在");
       return res.status(400).send(err);
