@@ -155,6 +155,7 @@ const docker_cron = () => {
                 ],
               });
               await container_server.start();
+              console.log("line 158 : server started");
             } catch (err) {
               console.log(err);
               continue;
@@ -163,10 +164,12 @@ const docker_cron = () => {
             const network = docker.getNetwork(
               `THUAI4_room_${queue_front.room_id}`
             );
+            console.log("line 167 : network got");
             const netInfo = (await network.inspect()) as Docker.NetworkInspectInfo;
             const roomIp = Object.values(
               netInfo.Containers!
             )[0].IPv4Address.split("/")[0];
+            console.log(`line 172 : roomIp: ${roomIp}`);
 
             try {
               const container_client = await docker.createContainer({
@@ -185,7 +188,9 @@ const docker_cron = () => {
                 },
                 Cmd: [`${roomIp}`, process.env.MAX_CLIENT_TIMEOUT as string],
               });
+              console.log("line 191 : try to start client");
               await container_client.start();
+              console.log("line 193 : client started");
             } catch (err) {
               console.log(err);
               continue;
