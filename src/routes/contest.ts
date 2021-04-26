@@ -115,6 +115,7 @@ router.put("/", async (req, res) => {
           const team_id: string[] = [];
           const current_score: number[] = [];
           const increment: number[] = [];
+          const team_name: string[] = [];
           payload.teams.forEach(
             (value: { team_alias: number; team_id: string }) => {
               team_id[value.team_alias] = value.team_id;
@@ -126,6 +127,7 @@ router.put("/", async (req, res) => {
                 query query_current_score($team_id: uuid!) {
                   thuai_by_pk(team_id: $team_id) {
                     score
+                    team_name
                   }
                 }
               `,
@@ -134,6 +136,7 @@ router.put("/", async (req, res) => {
               }
             );
             current_score[i] = current_score_query.thuai_by_pk.score;
+            team_name[i] = current_score_query.thuai_by_pk.team_name;
           }
 
           const game_result = req.body.result as ReqResult[];
@@ -168,10 +171,14 @@ router.put("/", async (req, res) => {
           }
           await client.request(
             gql`
-              mutation update_room_status($room_id: uuid!, $status: Boolean) {
+              mutation update_room_status(
+                $room_id: uuid!
+                $status: Boolean
+                $result: String
+              ) {
                 update_thuai_room_by_pk(
                   pk_columns: { room_id: $room_id }
-                  _set: { status: $status }
+                  _set: { status: $status, result: $result }
                 ) {
                   status
                 }
@@ -180,6 +187,11 @@ router.put("/", async (req, res) => {
             {
               room_id: payload.room_id,
               status: true,
+              result: `${team_name[0]}: ${
+                updated_score[0] - current_score[0] > 0 ? "+" : ""
+              }${updated_score[0] - current_score[0]} , ${team_name[1]}: ${
+                updated_score[1] - current_score[1] > 0 ? "+" : ""
+              }${updated_score[1] - current_score[1]}`,
             }
           );
           const docker =
