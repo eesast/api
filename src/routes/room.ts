@@ -12,11 +12,13 @@ const router = express.Router();
 /**
  * @param token (user_id)
  * @param {uuid} room_id
+ * @param {boolean}team_seq
  */
 //network, server, client, run shell to clear network
 router.post("/", async (req, res) => {
   try {
     const room_id = req.body.room_id;
+    const team_seq = req.body.team_seq as boolean;
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -72,36 +74,47 @@ router.post("/", async (req, res) => {
             });
             if (if_in_room.thuai_room_team.length === 0)
               return res.status(400).send("permission denied: not in room");
-          } catch (err) {
-            return res.status(400).send(err);
-          }
-          try {
-            //查询参赛队伍
-            const query_teams = await client.request(
-              gql`
-                query query_team_id($_eq: uuid!) {
-                  thuai_room_team_aggregate(where: { room_id: { _eq: $_eq } }) {
-                    nodes {
-                      thuai_team_id
+            try {
+              const current_room_id =
+                if_in_room.thuai_room_team[0].thuai_team_id;
+              //查询参赛队伍
+              const query_teams = await client.request(
+                gql`
+                  query query_team_id($_eq: uuid!) {
+                    thuai_room_team_aggregate(
+                      where: { room_id: { _eq: $_eq } }
+                    ) {
+                      nodes {
+                        thuai_team_id
+                      }
                     }
                   }
+                `,
+                {
+                  _eq: room_id,
                 }
-              `,
-              {
-                _eq: room_id,
+              );
+              const teams = query_teams.thuai_room_team_aggregate.nodes;
+              if (teams.length != 2) {
+                res.status(400).send("队伍信息错误");
               }
-            );
-            const teams = query_teams.thuai_room_team_aggregate.nodes;
-            if (teams.length != 2) {
-              res.status(400).send("队伍信息错误");
-            }
 
-            docker_queue.push({
-              room_id: room_id,
-              team_id_1: teams[0].thuai_team_id,
-              team_id_2: teams[1].thuai_team_id,
-            });
-            return res.status(200).send("Joined queue!");
+              const team_withseq = ["", ""] as string[];
+              team_withseq[Number(team_seq)] = current_room_id;
+              team_withseq[1 - Number(team_seq)] =
+                current_room_id == teams[0].thuai_team_id
+                  ? teams[1].thuai_team_id
+                  : teams[0].thuai_team_id;
+
+              docker_queue.push({
+                room_id: room_id,
+                team_id_1: team_withseq[0],
+                team_id_2: team_withseq[1],
+              });
+              return res.status(200).send("Joined queue!");
+            } catch (err) {
+              return res.status(400).send(err);
+            }
           } catch (err) {
             return res.status(400).send(err);
           }
