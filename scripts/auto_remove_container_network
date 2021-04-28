@@ -1,0 +1,2 @@
+*/15 * * * * docker ps --format='{{.ID}}' | xargs -n 1 -r docker inspect -f '{{.ID}} {{.State.Running}} {{.State.StartedAt}}' | awk '$2 == "true" && $3 <= "'$(date -d 'now - 15 minutes' -Ins --utc | sed 's/+0000/Z/')'" { print $1 }' | xargs -r docker kill
+*/20 * * * * docker network prune -f --filter "until=15m"
