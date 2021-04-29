@@ -143,6 +143,7 @@ router.put("/", async (req, res) => {
           game_result.forEach((value: ReqResult) => {
             increment[value.team_id] = value.score;
           });
+          console.log(`original_score:${current_score}`);
           console.log(`increment:${increment}`);
           const updated_score = calculateScore(
             current_score,

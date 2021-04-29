@@ -45,24 +45,8 @@ router.post("/compile", async (req, res) => {
         { manager_id: user_id }
       );
       const is_manager = query_if_manager.thuai_manager_by_pk != null;
-      if (is_manager) {
-        console.log("to be continued");
-      } else {
+      if (!is_manager) {
         try {
-          //uncomment this to enable only team leader to compile
-          // const query_is_leader = await client.request(gql`
-          //   query MyQuery($team_id: uuid!) {
-          //     thuai_by_pk(team_id: $team_id) {
-          //       team_leader
-          //     }
-          //   }
-          // `,{
-          //   team_id:team_id
-          // });
-          // const is_in_team = (query_is_leader.thuai_by_pk.team_leader === user_id);
-          //end comment
-
-          //uncomment this to allow anyone in team to compile
           const query_in_team = await client.request(
             gql`
               query query_if_in_team($team_id: uuid, $user_id: String) {
@@ -88,125 +72,123 @@ router.post("/compile", async (req, res) => {
               user_id: user_id,
             }
           );
-          console.log(query_in_team);
           const is_in_team = query_in_team.thuai.length != 0;
           //end comment
+          if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
+        } catch (err) {
+          return res.status(400).send(err);
+        }
+      }
 
-          if (is_in_team) {
-            const result = await client.request(
+      try {
+        const result = await client.request(
+          gql`
+            query get_team_code($team_id: uuid!) {
+              thuai_code_by_pk(team_id: $team_id) {
+                code_1
+                code_2
+                code_3
+                code_4
+              }
+            }
+          `,
+          {
+            team_id: team_id,
+          }
+        );
+        let i = 1;
+        const player_code = result.thuai_code_by_pk;
+        try {
+          await fs.mkdir(`/data/thuai4/${team_id}/player`, {
+            recursive: true,
+            mode: 0o775,
+          });
+          await fs.mkdir(`/data/thuai4/${team_id}/cpp`, {
+            recursive: true,
+            mode: 0o775,
+          });
+        } catch (err) {
+          return res.status(400).send("服务器创建目录失败");
+        }
+        for (const code_key in player_code) {
+          try {
+            await fs.writeFile(
+              `/data/thuai4/${team_id}/cpp/player${i}.cpp`,
+              player_code[code_key],
+              "utf-8"
+            );
+          } catch (err) {
+            return res.status(400).send("服务器写入文件失败");
+          }
+          ++i;
+        }
+        const docker =
+          process.env.DOCKER === "remote"
+            ? new Docker({
+                host: process.env.DOCKER_URL,
+                port: process.env.DOCKER_PORT,
+              })
+            : new Docker();
+        let containerRunning = false;
+        try {
+          const containerList = await docker.listContainers();
+          containerList.forEach((containerInfo) => {
+            if (containerInfo.Names.includes(`/THUAI4_Compiler_${team_id}`)) {
+              containerRunning = true;
+            }
+          });
+
+          if (!containerRunning) {
+            const compiler_token = jwt.sign(
+              {
+                team_id: team_id,
+              } as JwtCompilerPayload,
+              process.env.SECRET!,
+              {
+                expiresIn: "10m",
+              }
+            );
+            const container = await docker.createContainer({
+              Image: process.env.COMPILER_IMAGE,
+              Env: [`COMPILER_TOKEN=${compiler_token}`],
+              HostConfig: {
+                Binds: [`/data/thuai4/${team_id}/:/usr/local/mnt`],
+                AutoRemove: true,
+              },
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
+              name: `THUAI4_Compiler_${team_id}`,
+            });
+
+            await client.request(
               gql`
-                query get_team_code($team_id: uuid!) {
-                  thuai_code_by_pk(team_id: $team_id) {
-                    code_1
-                    code_2
-                    code_3
-                    code_4
+                mutation update_compile_status(
+                  $team_id: uuid!
+                  $status: String
+                ) {
+                  update_thuai_by_pk(
+                    pk_columns: { team_id: $team_id }
+                    _set: { status: $status }
+                  ) {
+                    status
                   }
                 }
               `,
               {
                 team_id: team_id,
+                status: "compiling",
               }
             );
-            let i = 1;
-            const player_code = result.thuai_code_by_pk;
-            try {
-              await fs.mkdir(`/data/thuai4/${team_id}/player`, {
-                recursive: true,
-                mode: 0o775,
-              });
-              await fs.mkdir(`/data/thuai4/${team_id}/cpp`, {
-                recursive: true,
-                mode: 0o775,
-              });
-            } catch (err) {
-              return res.status(400).send("服务器创建目录失败");
-            }
-            for (const code_key in player_code) {
-              try {
-                await fs.writeFile(
-                  `/data/thuai4/${team_id}/cpp/player${i}.cpp`,
-                  player_code[code_key],
-                  "utf-8"
-                );
-              } catch (err) {
-                return res.status(400).send("服务器写入文件失败");
-              }
-              ++i;
-            }
-            const docker =
-              process.env.DOCKER === "remote"
-                ? new Docker({
-                    host: process.env.DOCKER_URL,
-                    port: process.env.DOCKER_PORT,
-                  })
-                : new Docker();
-            let containerRunning = false;
-            try {
-              const containerList = await docker.listContainers();
-              containerList.forEach((containerInfo) => {
-                if (
-                  containerInfo.Names.includes(`/THUAI4_Compiler_${team_id}`)
-                ) {
-                  containerRunning = true;
-                }
-              });
 
-              if (!containerRunning) {
-                const compiler_token = jwt.sign(
-                  {
-                    team_id: team_id,
-                  } as JwtCompilerPayload,
-                  process.env.SECRET!,
-                  {
-                    expiresIn: "10m",
-                  }
-                );
-                const container = await docker.createContainer({
-                  Image: process.env.COMPILER_IMAGE,
-                  Env: [`COMPILER_TOKEN=${compiler_token}`],
-                  HostConfig: {
-                    Binds: [`/data/thuai4/${team_id}/:/usr/local/mnt`],
-                    AutoRemove: true,
-                  },
-                  AttachStdin: false,
-                  AttachStdout: false,
-                  AttachStderr: false,
-                  //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
-                  name: `THUAI4_Compiler_${team_id}`,
-                });
-
-                await client.request(
-                  gql`
-                    mutation update_compile_status(
-                      $team_id: uuid!
-                      $status: String
-                    ) {
-                      update_thuai_by_pk(
-                        pk_columns: { team_id: $team_id }
-                        _set: { status: $status }
-                      ) {
-                        status
-                      }
-                    }
-                  `,
-                  {
-                    team_id: team_id,
-                    status: "compiling",
-                  }
-                );
-
-                await container.start();
-              }
-            } catch (err) {
-              return res.status(400).send(err);
-            }
-          } else {
-            return res.status(401).send("当前用户不在队伍中");
+            await container.start();
           }
         } catch (err) {
           return res.status(400).send(err);
         }
+      } catch (err) {
+        return res.status(400).send(err);
       }
 
       return res.status(200).send("ok!");
@@ -314,9 +296,14 @@ router.get("/logs/:team_id", async (req, res) => {
       const team_exists = query_if_team_exists.thuai_by_pk != null;
       if (team_exists) {
         try {
+          res.set("Cache-Control", "no-cache");
+          res.set("Expires", "0");
+          res.set("Pragma", "no-cache");
           return res
             .status(200)
-            .sendFile(`/data/thuai4/${team_id}/player/out.log`);
+            .sendFile(`/data/thuai4/${team_id}/player/out.log`, {
+              cacheControl: false,
+            });
         } catch (err) {
           return res.status(400).send(err);
         }
@@ -366,7 +353,5 @@ router.get("/logs/:team_id", async (req, res) => {
     }
   });
 });
-
-//TODO: add manager clear docker containers manually
 
 export default router;
