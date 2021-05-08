@@ -23,7 +23,7 @@
     "graphql": "15.5.0",
     "graphql-request": "3.4.0",
     "graphql-tag": "2.12.4",
-    "html-to-text": "6.0.0",
+    "html-to-text": "7.1.1",
     "isemail": "3.2.0",
     "jsonwebtoken": "8.5.1",
     "mongoose": "5.11.8",
