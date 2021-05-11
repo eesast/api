@@ -1,2 +1,4 @@
-*/15 * * * * docker ps --format='{{.ID}}' | xargs -n 1 -r docker inspect -f '{{.ID}} {{.State.Running}} {{.State.StartedAt}}' | awk '$2 == "true" && $3 <= "'$(date -d 'now - 15 minutes' -Ins --utc | sed 's/+0000/Z/')'" { print $1 }' | xargs -r docker kill
-*/20 * * * * docker network prune -f --filter "until=15m"
+*/3 * * * * docker ps --format='{{.ID}}' | xargs -n 1 -r docker inspect -f '{{.ID}} {{.State.Running}} {{.State.StartedAt}}' | awk '$2 == "true" && $3 <= "'$(date -d 'now - 12 minutes' -Ins --utc | sed 's/+0000/Z/')'" { print $1 }' | xargs -r docker kill
+*/5 * * * * docker network prune -f --filter "until=15m"
+*/15 2-6 12 5 * sudo /home/ubuntu/final/thuai_final.sh /home/ubuntu/final/final_list_demo 10
+30 6 12 5 * /home/ubuntu/final/calculate_score.sh /home/ubuntu/final/origin_list_demo
