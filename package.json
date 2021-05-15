@@ -46,7 +46,7 @@
     "@babel/preset-env": "7.14.2",
     "@babel/preset-typescript": "7.13.0",
     "@types/ali-oss": "6.0.8",
-    "@types/bcrypt": "3.0.1",
+    "@types/bcrypt": "5.0.0",
     "@types/cors": "2.8.10",
     "@types/debug": "4.1.5",
     "@types/dockerode": "3.2.3",
