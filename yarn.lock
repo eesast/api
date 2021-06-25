@@ -1119,10 +1119,10 @@
     "@types/qs" "*"
     "@types/serve-static" "*"
 
-"@types/html-to-text@6.0.0":
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/@types/html-to-text/-/html-to-text-6.0.0.tgz#71f05982784c06e3983f8aab6a825f1741a9e22d"
-  integrity sha512-MkE9pBbP8kXm6ReXDf2VbmWA0bC1svBzM0c76OdawqlUf2peGGsoHoLn/gv/Ldq/Sl9QJhbEQAj0qtQCkHWtEA==
+"@types/html-to-text@8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@types/html-to-text/-/html-to-text-8.0.0.tgz#95733e247fa4341c6a3b1ec820f800d158cfc9ec"
+  integrity sha512-sW+H3ByIvIPuZd599Id3nZAR3qc9jWf668V1aTEOTBmrYSAQsgXPNfZQpsLzPPh3gharrfEPq7ZbOhzkG57URA==
 
 "@types/json-schema@^7.0.3":
   version "7.0.7"
