@@ -48,7 +48,7 @@
     "@types/ali-oss": "6.0.8",
     "@types/bcrypt": "5.0.0",
     "@types/cors": "2.8.10",
-    "@types/debug": "4.1.5",
+    "@types/debug": "4.1.6",
     "@types/dockerode": "3.2.3",
     "@types/express": "4.17.12",
     "@types/html-to-text": "8.0.0",
