@@ -1166,10 +1166,10 @@
   dependencies:
     "@types/express" "*"
 
-"@types/node-cron@2.0.3":
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/@types/node-cron/-/node-cron-2.0.3.tgz#b5bb940523d265f6a36548856ec0c278ea5a35d6"
-  integrity sha512-gwBBGeY2XeYBLE0R01K9Sm2hvNcPGmoloL6aqthA3QmBB1GYXTHIJ42AGZL7bdXBRiwbRV8b6NB5iKpl20R3gw==
+"@types/node-cron@2.0.4":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@types/node-cron/-/node-cron-2.0.4.tgz#6d467440762e7d3539890d477b33670c020c458f"
+  integrity sha512-vXzgDRWCZpuut5wJVZtluEnkNhzGojYlyMch2c4kMj7H74L8xTLytVlgQzj+/17wfcjs49aJDFBDglFSGt7GeA==
   dependencies:
     "@types/tz-offset" "*"
 
