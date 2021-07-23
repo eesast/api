@@ -1158,10 +1158,10 @@
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.6.tgz#0b7018723084918a865eff99249c490505df2163"
   integrity sha512-7fDOJFA/x8B+sO1901BmHlf5dE1cxBU8mRXj8QOEDnn16hhGJv/IHxJtZhvsabZsIMn0eLIyeOKAeqSNJJYTpA==
 
-"@types/dockerode@3.2.5":
-  version "3.2.5"
-  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-3.2.5.tgz#776a97c7a6178ba21dae8893080dfec788c7bd74"
-  integrity sha512-YUXqvREQUdNTZPJGb+AxovTx7ik5yO3lK3QwCgu5Zl5svMIBG4itL654r98WO+GnlisG4/i/GQozM7S4JBPBGA==
+"@types/dockerode@3.2.6":
+  version "3.2.6"
+  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-3.2.6.tgz#b685140753f42a0670a60908d85e1779e75d5a75"
+  integrity sha512-rz50DbrfQGsKOlkLbkknXNyurl2z/yR0CmV/OhzPW3Ef3jbIGoIE+Rd+2UC17gNVrnDl+mpejCI7RqQNe2bEbw==
   dependencies:
     "@types/node" "*"
 
