@@ -1268,7 +1268,14 @@
   dependencies:
     mongodb "*"
 
-"@types/mongodb@3.6.20", "@types/mongodb@^3.5.27":
+"@types/mongodb@4.0.6":
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/@types/mongodb/-/mongodb-4.0.6.tgz#3732d725e6cdef0a5e95f2944af1dd9c79759371"
+  integrity sha512-XTbn1Z1j7fHzC1Vkd9LYO48lO2C581r+oRCi/KNzcTHIri7hEaya8r9vxoHJiKr+oeUWVK69+9xr84Mp+aReaw==
+  dependencies:
+    mongodb "*"
+
+"@types/mongodb@^3.5.27":
   version "3.6.20"
   resolved "https://registry.yarnpkg.com/@types/mongodb/-/mongodb-3.6.20.tgz#b7c5c580644f6364002b649af1c06c3c0454e1d2"
   integrity sha512-WcdpPJCakFzcWWD9juKoZbRtQxKIMYF/JIAM4JrNHrMcnJL6/a2NWjXxW7fo9hxboxxkg+icff8d7+WIEvKgYQ==
