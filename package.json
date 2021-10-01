@@ -11,7 +11,7 @@
     "typecheck": "tsc --noUnusedLocals"
   },
   "dependencies": {
-    "@types/node-cron": "2.0.5",
+    "@types/node-cron": "3.0.0",
     "@babel/runtime": "7.15.4",
     "ali-oss": "6.16.0",
     "bcrypt": "5.0.1",
