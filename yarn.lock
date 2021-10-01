@@ -1198,10 +1198,10 @@
   dependencies:
     "@types/express" "*"
 
-"@types/node-cron@2.0.4":
-  version "2.0.4"
-  resolved "https://registry.yarnpkg.com/@types/node-cron/-/node-cron-2.0.4.tgz#6d467440762e7d3539890d477b33670c020c458f"
-  integrity sha512-vXzgDRWCZpuut5wJVZtluEnkNhzGojYlyMch2c4kMj7H74L8xTLytVlgQzj+/17wfcjs49aJDFBDglFSGt7GeA==
+"@types/node-cron@2.0.5":
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/@types/node-cron/-/node-cron-2.0.5.tgz#e244709a86d32453c5a702ced35b53db683fbc8e"
+  integrity sha512-rQ4kduTmgW11tbtx0/RsoybYHHPu4Vxw5v5ZS5qUKNerlEAI8r8P1F5UUZ2o2HTvzG759sbFxuRuqWxU8zc+EQ==
   dependencies:
     "@types/tz-offset" "*"
 
