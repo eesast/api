@@ -16,7 +16,7 @@
     "ali-oss": "6.17.1",
     "bcrypt": "5.0.1",
     "cors": "2.8.5",
-    "debug": "4.3.3",
+    "debug": "4.3.4",
     "dockerode": "3.3.1",
     "dotenv": "16.0.0",
     "express": "4.17.3",
