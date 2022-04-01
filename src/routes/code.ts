@@ -5,9 +5,11 @@ import jwt from "jsonwebtoken";
 import { JwtPayload } from "../middlewares/authenticate";
 import { gql } from "graphql-request";
 import { client } from "..";
-//import { policy, getOSS } from "../helpers/oss";
+import { getOSS } from "../helpers/oss";
 
 const router = express.Router();
+const contest_id = "238b4737-c882-43c3-877b-a96fba5640e0"; //id of THUAI5
+const base_directory = process.env.DOCKER === "remote" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
 
 interface JwtCompilerPayload {
   team_id: string;
@@ -37,28 +39,29 @@ router.post("/compile", async (req, res) => {
       const user_id = payload._id;
       const query_if_manager = await client.request(
         gql`
-          query query_is_manager($manager_id: String!) {
-            thuai_manager(where: {manager_id: {_eq: $manager_id}}) {
-              manager_id
+          query query_is_manager($contest_id: uuid, $user_id: String) {
+            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
+              user_id
             }
           }
         `,
-        { manager_id: user_id }
+        { contest_id: contest_id, user_id: user_id }
       );
-      const is_manager = query_if_manager.thuai_manager_by_pk != null;
+      const is_manager = query_if_manager.contest_manager != null;
       if (!is_manager) {
         try {
           const query_in_team = await client.request(
             gql`
-              query query_if_in_team($team_id: uuid, $user_id: String) {
-                thuai(
+              query query_if_in_team($team_id: uuid, $user_id: String, $contest_id: uuid) {
+                contest_team(
                   where: {
                     _and: [
+                      { contest_id: { _eq: $contest_id } }
                       { team_id: { _eq: $team_id } }
                       {
                         _or: [
                           { team_leader: { _eq: $user_id } }
-                          { team_members: { user_id: { _eq: $user_id } } }
+                          { contest_team_members: { user_id: { _eq: $user_id } } }
                         ]
                       }
                     ]
@@ -68,13 +71,9 @@ router.post("/compile", async (req, res) => {
                 }
               }
             `,
-            {
-              team_id: team_id,
-              user_id: user_id,
-            }
+            {contest_id: contest_id, team_id: team_id, user_id: user_id}
           );
-          const is_in_team = query_in_team.thuai.length != 0;
-          //end comment
+          const is_in_team = query_in_team.contest_team.length != 0;
           if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
         } catch (err) {
           return res.status(400).send(err);
@@ -82,44 +81,32 @@ router.post("/compile", async (req, res) => {
       }
 
       try {
-        //const oss = await getOSS();
-        const result = await client.request(
-          gql`
-            query get_team_code($team_id: uuid!) {
-              thuai_code(where: {team_id: {_eq: $team_id}}) {
-                code_1
-                code_2
-                code_3
-                code_4
-              }
-            }
-          `,
-          {
-            team_id: team_id,
-          }
-        );
-        let i = 1;
-        const player_code = result.thuai_code[0];
         try {
-          await fs.mkdir(`/mnt/d/软件部/thuai5/${team_id}`, {
+          await fs.mkdir(`${base_directory}/${team_id}`, {
             recursive: true,
             mode: 0o775,
           });
         } catch (err) {
-          return res.status(400).send("服务器创建目录失败");
+          return res.status(400).send("文件存储目录创建失败");
         }
-        for (const code_key in player_code) {
-          try {
-            await fs.writeFile(
-              `/mnt/d/软件部/thuai5/${team_id}/player${i}.cpp`,
-              player_code[code_key],
-              "utf-8"
-            );
-          } catch (err) {
-            return res.status(400).send("服务器写入文件失败");
-          }
-          ++i;
+        if (process.env.STORAGE === "OSS") try {
+          const oss = await getOSS();
+          oss.get(`/thuai5/${team_id}/player1.cpp`, `${base_directory}/${team_id}/player1.cpp`);
+          oss.get(`/thuai5/${team_id}/player2.cpp`, `${base_directory}/${team_id}/player2.cpp`);
+          oss.get(`/thuai5/${team_id}/player3.cpp`, `${base_directory}/${team_id}/player3.cpp`);
+          oss.get(`/thuai5/${team_id}/player4.cpp`, `${base_directory}/${team_id}/player4.cpp`);
+        } catch (e) {
+          return res.status(400).send(`OSS选手代码下载失败:${e}`);
         }
+        else if (process.env.STORAGE === "local") try {
+          await fs.copyFile("/mnt/d/软件部/test/code/player1.cpp", `${base_directory}/${team_id}/player1.cpp`);
+          await fs.copyFile("/mnt/d/软件部/test/code/player2.cpp", `${base_directory}/${team_id}/player2.cpp`);
+          await fs.copyFile("/mnt/d/软件部/test/code/player3.cpp", `${base_directory}/${team_id}/player3.cpp`);
+          await fs.copyFile("/mnt/d/软件部/test/code/player4.cpp", `${base_directory}/${team_id}/player4.cpp`);
+        } catch (e) {
+          return res.status(400).send(`本地文件复制失败:${e}`);
+        }
+
         const docker =
           process.env.DOCKER === "remote"
             ? new Docker({
@@ -150,7 +137,7 @@ router.post("/compile", async (req, res) => {
               Image: process.env.COMPILER_IMAGE_DEV,
               Env: [`COMPILER_TOKEN=${compiler_token}`],
               HostConfig: {
-                Binds: [`/mnt/d/软件部/thuai5/${team_id}:/usr/local/mnt`],
+                Binds: [`${base_directory}/${team_id}:/usr/local/mnt`],
                 AutoRemove: false,
                 NetworkMode: "host"
               },
@@ -166,8 +153,9 @@ router.post("/compile", async (req, res) => {
                 mutation update_compile_status(
                   $team_id: uuid!
                   $status: String
+                  $contest_id: uuid
                 ) {
-                  update_thuai(where: {team_id: {_eq: $team_id}}, _set: {status: $status}) {
+                  update_contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}, _set: {status: $status}) {
                     returning {
                       status
                     }
@@ -175,11 +163,11 @@ router.post("/compile", async (req, res) => {
                 }
               `,
               {
+                contest_id: contest_id,
                 team_id: team_id,
                 status: "compiling",
               }
             );
-
             await container.start();
           }
         } catch (err) {
@@ -188,7 +176,6 @@ router.post("/compile", async (req, res) => {
       } catch (err) {
         return res.status(400).send(err);
       }
-
       return res.status(200).send("ok!");
     });
   } catch (err) {
@@ -223,16 +210,16 @@ router.put("/compileInfo", async (req, res) => {
       try {
         await client.request(
           gql`
-            mutation update_compile_status($team_id: uuid!, $status: String) {
-              update_thuai_by_pk(
-                pk_columns: { team_id: $team_id }
-                _set: { status: $status }
-              ) {
-                status
+            mutation update_compile_status($team_id: uuid!, $status: String, $contest_id: uuid) {
+              update_contest_team(where: {_and: [{contest_id: {_eq: $contest_id}}, {team_id: {_eq: $team_id}}]}, _set: {status: $status}) {
+                returning {
+                  status
+                }
               }
             }
           `,
           {
+            contest_id: contest_id,
             team_id: team_id,
             status: compile_status,
           }
@@ -252,12 +239,11 @@ router.put("/compileInfo", async (req, res) => {
  * @param {token}
  * @param {string} team_id
  */
-router.get("/logs/:team_id/:player_id", async (req, res) => {
+router.get("/logs/:team_id", async (req, res) => {
   const authHeader = req.get("Authorization");
   if (!authHeader) {
     return res.status(401).send("401 Unauthorized: Missing token");
   }
-
   const token = authHeader.substring(7);
   return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
     if (err || !decoded) {
@@ -267,32 +253,29 @@ router.get("/logs/:team_id/:player_id", async (req, res) => {
     const payload = decoded as JwtPayload;
     const user_id = payload._id;
     const team_id = req.params.team_id;
-    const player_id = req.params.player_id;
     const query_if_manager = await client.request(
       gql`
-        query query_is_manager($manager_id: String!) {
-          thuai_manager(where: {manager_id: {_eq: $manager_id}}) {
-            manager_id
+        query query_is_manager($contest_id: uuid, $user_id: String) {
+          contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
+            user_id
           }
         }
       `,
-      { manager_id: user_id }
+      { contest_id: contest_id, user_id: user_id }
     );
-    const is_manager = query_if_manager.thuai_manager_by_pk != null;
+    const is_manager = query_if_manager.contest_manager != null;
     if (is_manager) {
       const query_if_team_exists = await client.request(
         gql`
-          query query_team_exists($team_id: uuid!) {
-            thuai(where: {team_id: {_eq: $team_id}}) {
+          query query_team_exists($contest_id: uuid, $team_id: uuid!) {
+            contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}) {
               team_id
             }
           }
         `,
-        {
-          team_id: team_id,
-        }
+        { contest_id: contest_id, team_id: team_id }
       );
-      const team_exists = query_if_team_exists.thuai_by_pk != null;
+      const team_exists = query_if_team_exists.contest_team != null;
       if (team_exists) {
         try {
           res.set("Cache-Control", "no-cache");
@@ -300,7 +283,7 @@ router.get("/logs/:team_id/:player_id", async (req, res) => {
           res.set("Pragma", "no-cache");
           return res
             .status(200)
-            .sendFile(`/mnt/d/软件部/thuai5/${team_id}/build_log${player_id}`, {
+            .sendFile(`${base_directory}/${team_id}/compile_log.txt`, {
               cacheControl: false,
             });
         } catch (err) {
@@ -311,15 +294,16 @@ router.get("/logs/:team_id/:player_id", async (req, res) => {
       try {
         const query_in_team = await client.request(
           gql`
-            query query_in_team($team_id: uuid, $user_id: String) {
-              thuai(
+            query query_if_in_team($team_id: uuid, $user_id: String, $contest_id: uuid) {
+              contest_team(
                 where: {
                   _and: [
+                    { contest_id: { _eq: $contest_id } }
                     { team_id: { _eq: $team_id } }
                     {
                       _or: [
                         { team_leader: { _eq: $user_id } }
-                        { team_members: { user_id: { _eq: $user_id } } }
+                        { contest_team_members: { user_id: { _eq: $user_id } } }
                       ]
                     }
                   ]
@@ -330,6 +314,7 @@ router.get("/logs/:team_id/:player_id", async (req, res) => {
             }
           `,
           {
+            contest_id: contest_id,
             team_id: team_id,
             user_id: user_id,
           }
@@ -341,7 +326,7 @@ router.get("/logs/:team_id/:player_id", async (req, res) => {
           res.set("Pragma", "no-cache");
           return res
             .status(200)
-            .sendFile(`/mnt/d/软件部/thuai5/${team_id}/build_log${player_id}`, {
+            .sendFile(`${base_directory}/${team_id}/compile_log.txt`, {
               cacheControl: false,
             });
         } else
