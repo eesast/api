@@ -11,8 +11,8 @@
     "typecheck": "tsc --noUnusedLocals"
   },
   "dependencies": {
-    "@types/node-cron": "3.0.1",
     "@babel/runtime": "7.17.8",
+    "@types/node-cron": "3.0.1",
     "ali-oss": "6.17.1",
     "bcrypt": "5.0.1",
     "cors": "2.8.5",
@@ -26,6 +26,7 @@
     "html-to-text": "8.1.0",
     "isemail": "3.2.0",
     "jsonwebtoken": "8.5.1",
+    "mathjs": "^10.4.3",
     "mongoose": "5.11.8",
     "morgan": "1.10.0",
     "multer": "1.4.4",

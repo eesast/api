@@ -8,12 +8,41 @@ import { client } from "..";
 import { getOSS } from "../helpers/oss";
 
 const router = express.Router();
-const contest_id = "238b4737-c882-43c3-877b-a96fba5640e0"; //id of THUAI5
 const base_directory = process.env.DOCKER === "remote" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
 
 interface JwtCompilerPayload {
   team_id: string;
 }
+
+router.post("/testoss", async (req, res) => {
+  try {
+    const oss = await getOSS();
+    if (req.body.mode == "listsub") {
+      const result = await oss.list({
+        prefix: req.body.str1,  //'THUAI5/'
+        delimiter: req.body.str2    //'/'
+      });
+      result.prefixes.forEach((subDir: any) => {
+        console.log('SubDir: %s', subDir);
+      });
+      result.objects.forEach((obj: any) => {
+        console.log('Object: %s', obj.name);
+      });
+    }
+    else if (req.body.mode == "upload") {
+      let result = await oss.put(req.body.str1, req.body.str2);
+      console.log(result);
+    }
+    else if (req.body.mode == "delete") {
+      let result = await oss.delete(req.body.str1);
+      console.log(result);
+    }
+    return res.status(200);
+  } catch (e) {
+    return res.status(400).send(`failed: ${e}`);
+  }
+})
+
 
 /**
  * POST compile code of team_id
@@ -45,7 +74,7 @@ router.post("/compile", async (req, res) => {
             }
           }
         `,
-        { contest_id: contest_id, user_id: user_id }
+        { contest_id: process.env.GAMEID, user_id: user_id }
       );
       const is_manager = query_if_manager.contest_manager != null;
       if (!is_manager) {
@@ -71,7 +100,7 @@ router.post("/compile", async (req, res) => {
                 }
               }
             `,
-            {contest_id: contest_id, team_id: team_id, user_id: user_id}
+            {contest_id: process.env.GAMEID, team_id: team_id, user_id: user_id}
           );
           const is_in_team = query_in_team.contest_team.length != 0;
           if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
@@ -89,22 +118,14 @@ router.post("/compile", async (req, res) => {
         } catch (err) {
           return res.status(400).send("文件存储目录创建失败");
         }
-        if (process.env.STORAGE === "OSS") try {
+        try {
           const oss = await getOSS();
-          oss.get(`/thuai5/${team_id}/player1.cpp`, `${base_directory}/${team_id}/player1.cpp`);
-          oss.get(`/thuai5/${team_id}/player2.cpp`, `${base_directory}/${team_id}/player2.cpp`);
-          oss.get(`/thuai5/${team_id}/player3.cpp`, `${base_directory}/${team_id}/player3.cpp`);
-          oss.get(`/thuai5/${team_id}/player4.cpp`, `${base_directory}/${team_id}/player4.cpp`);
-        } catch (e) {
-          return res.status(400).send(`OSS选手代码下载失败:${e}`);
-        }
-        else if (process.env.STORAGE === "local") try {
-          await fs.copyFile("/mnt/d/软件部/test/code/player1.cpp", `${base_directory}/${team_id}/player1.cpp`);
-          await fs.copyFile("/mnt/d/软件部/test/code/player2.cpp", `${base_directory}/${team_id}/player2.cpp`);
-          await fs.copyFile("/mnt/d/软件部/test/code/player3.cpp", `${base_directory}/${team_id}/player3.cpp`);
-          await fs.copyFile("/mnt/d/软件部/test/code/player4.cpp", `${base_directory}/${team_id}/player4.cpp`);
-        } catch (e) {
-          return res.status(400).send(`本地文件复制失败:${e}`);
+          oss.get(`/THUAI5/${team_id}/player1.cpp`, `${base_directory}/${team_id}/player1.cpp`);
+          oss.get(`/THUAI5/${team_id}/player2.cpp`, `${base_directory}/${team_id}/player2.cpp`);
+          oss.get(`/THUAI5/${team_id}/player3.cpp`, `${base_directory}/${team_id}/player3.cpp`);
+          oss.get(`/THUAI5/${team_id}/player4.cpp`, `${base_directory}/${team_id}/player4.cpp`);
+        } catch (err) {
+          return res.status(400).send(`OSS选手代码下载失败:${err}`);
         }
 
         const docker =
@@ -124,6 +145,10 @@ router.post("/compile", async (req, res) => {
           });
 
           if (!containerRunning) {
+            const url =
+                process.env.NODE_ENV == "production"
+                  ? "https://api.eesast.com/code/compileInfo"
+                  : "http://localhost:28888/code/compileInfo";
             const compiler_token = jwt.sign(
               {
                 team_id: team_id,
@@ -134,11 +159,14 @@ router.post("/compile", async (req, res) => {
               }
             );
             const container = await docker.createContainer({
-              Image: process.env.COMPILER_IMAGE_DEV,
-              Env: [`COMPILER_TOKEN=${compiler_token}`],
+              Image: process.env.COMPILER_IMAGE,
+              Env: [
+                `URL=${url}`,
+                `TOKEN=${compiler_token}`
+              ],
               HostConfig: {
                 Binds: [`${base_directory}/${team_id}:/usr/local/mnt`],
-                AutoRemove: false,
+                AutoRemove: true,
                 NetworkMode: "host"
               },
               AttachStdin: false,
@@ -163,7 +191,7 @@ router.post("/compile", async (req, res) => {
                 }
               `,
               {
-                contest_id: contest_id,
+                contest_id: process.env.GAMEID,
                 team_id: team_id,
                 status: "compiling",
               }
@@ -219,7 +247,7 @@ router.put("/compileInfo", async (req, res) => {
             }
           `,
           {
-            contest_id: contest_id,
+            contest_id: process.env.GAMEID,
             team_id: team_id,
             status: compile_status,
           }
@@ -261,7 +289,7 @@ router.get("/logs/:team_id", async (req, res) => {
           }
         }
       `,
-      { contest_id: contest_id, user_id: user_id }
+      { contest_id: process.env.GAMEID, user_id: user_id }
     );
     const is_manager = query_if_manager.contest_manager != null;
     if (is_manager) {
@@ -273,7 +301,7 @@ router.get("/logs/:team_id", async (req, res) => {
             }
           }
         `,
-        { contest_id: contest_id, team_id: team_id }
+        { contest_id: process.env.GAMEID, team_id: team_id }
       );
       const team_exists = query_if_team_exists.contest_team != null;
       if (team_exists) {
@@ -314,7 +342,7 @@ router.get("/logs/:team_id", async (req, res) => {
             }
           `,
           {
-            contest_id: contest_id,
+            contest_id: process.env.GAMEID,
             team_id: team_id,
             user_id: user_id,
           }
