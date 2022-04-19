@@ -31,9 +31,9 @@ function calculateScore(competitionScore: number[], orgScore: number[]) {
     [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
   }
 
-  let resScore = [];
+  const resScore = [];
   const deltaWeight = 90.0;
-  let delta = (orgScore[0] - orgScore[1]) / deltaWeight;
+  const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
   const firstnerGet = 3e-4;
   const secondrGet = 1e-4;
   const deltaScore = 100.0;
@@ -91,7 +91,7 @@ router.put("/", async (req, res) => {
         try {
           const current_score: number[] = [];
           const increment: number[] = [];
-          const team_name: String[] = [];
+          const team_name: string[] = [];
           for (let i = 0; i < 2; ++i) {
             const current_score_query = await client.request(
               gql`

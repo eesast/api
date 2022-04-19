@@ -14,36 +14,6 @@ interface JwtCompilerPayload {
   team_id: string;
 }
 
-router.post("/testoss", async (req, res) => {
-  try {
-    const oss = await getOSS();
-    if (req.body.mode == "listsub") {
-      const result = await oss.list({
-        prefix: req.body.str1,  //'THUAI5/'
-        delimiter: req.body.str2    //'/'
-      });
-      result.prefixes.forEach((subDir: any) => {
-        console.log('SubDir: %s', subDir);
-      });
-      result.objects.forEach((obj: any) => {
-        console.log('Object: %s', obj.name);
-      });
-    }
-    else if (req.body.mode == "upload") {
-      let result = await oss.put(req.body.str1, req.body.str2);
-      console.log(result);
-    }
-    else if (req.body.mode == "delete") {
-      let result = await oss.delete(req.body.str1);
-      console.log(result);
-    }
-    return res.status(200);
-  } catch (e) {
-    return res.status(400).send(`failed: ${e}`);
-  }
-})
-
-
 /**
  * POST compile code of team_id
  * @param token (user_id)
