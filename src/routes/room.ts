@@ -7,7 +7,7 @@ import { JwtPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 
 const router = express.Router();
-const base_directory = process.env.DOCKER === "remote" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
 
 /**
  * @param token (user_id)

@@ -8,7 +8,7 @@ import { client } from "..";
 import { getOSS } from "../helpers/oss";
 
 const router = express.Router();
-const base_directory = process.env.DOCKER === "remote" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
 
 interface JwtCompilerPayload {
   team_id: string;

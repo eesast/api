@@ -12,7 +12,7 @@ export interface queue_element {
   team_id_2: string;
 }
 
-const base_directory = process.env.NODE_ENV === "development" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
 
 const docker_cron = () => {
   // cron.schedule("*/10 * * * * *", async () => {
