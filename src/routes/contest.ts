@@ -2,16 +2,13 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
-import Docker from "dockerode";
+import mathjs from "mathjs";
 
 const router = express.Router();
 
 export interface JwtServerPayload {
   room_id: string;
-  teams: {
-    team_alias: number;
-    team_id: string;
-  }[];
+  team_ids: string[];
 }
 
 interface ReqResult {
@@ -19,55 +16,36 @@ interface ReqResult {
   score: number;
 }
 
-function calculateScore(current_score: number[], increment: number[]) {
-  // \xfgg/
+const PHI = (x: any) => {return mathjs.erf(x / mathjs.sqrt(2))};
+
+function calculateScore(competitionScore: number[], orgScore: number[]) {
   let reverse = false;
-  if (increment[0] < increment[1]) reverse = true;
-  else if (increment[0] == increment[1]) {
-    if (current_score[0] == current_score[1]) return current_score;
-    if (current_score[0] > current_score[1]) reverse = true;
+  if (competitionScore[0] < competitionScore[1]) reverse = true;
+  else if (competitionScore[0] == competitionScore[1]) {
+    if (orgScore[0] == orgScore[1]) return orgScore;
+    if (orgScore[0] > orgScore[1]) reverse = true;
     else reverse = false;
   }
   if (reverse) {
-    current_score.reverse();
-    increment.reverse();
+    [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
+    [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
   }
-  const resScore = [0, 0];
-  const deltaWeight = 80;
-  const delta = (current_score[0] - current_score[1]) / deltaWeight;
 
-  const firstnerGet = 8e-5;
-  const secondrGet = 5e-6;
+  const resScore = [];
+  const deltaWeight = 90.0;
+  const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
+  const firstnerGet = 3e-4;
+  const secondrGet = 1e-4;
+  const deltaScore = 100.0;
+  const correctRate = (orgScore[0] - orgScore[1]) / 100.0;
+  const correct = 0.5 * (PHI((competitionScore[0] - competitionScore[1] - deltaScore) / deltaScore - correctRate) + 1.0);
 
-  const deltaScore = 100.0; // 两队竞争分差超过多少时就认为非常大
-  const correctRate = (current_score[0] - current_score[1]) / 100; // 订正的幅度，值越小，势均力敌时改变越大
-  const correct =
-    0.5 *
-    (Math.tanh(
-      (increment[0] - increment[1] - deltaScore) / deltaScore - correctRate
-    ) +
-      1.0);
-
-  resScore[0] =
-    current_score[0] +
-    Math.round(
-      increment[0] *
-        increment[0] *
-        firstnerGet *
-        (1 - Math.tanh(delta)) *
-        correct
-    );
-  resScore[1] =
-    current_score[1] -
-    Math.round(
-      (2500.0 - increment[1]) *
-        (2500.0 - increment[1]) *
-        secondrGet *
-        (1 - Math.tanh(delta)) *
-        correct
-    );
-
-  if (reverse) resScore.reverse();
+  resScore[0] = orgScore[0] + mathjs.round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - PHI(delta)) * correct);
+  if (competitionScore[1] < 1000)
+      resScore[1] = orgScore[1] - mathjs.round((1000.0 - competitionScore[1]) * (1000.0 - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct);
+  else
+      resScore[1] = orgScore[1];
+  if (reverse) [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
   return resScore;
 }
 
@@ -95,117 +73,94 @@ router.put("/", async (req, res) => {
 
       const query_if_valid = await client.request(
         gql`
-          query query_if_valid($_eq: uuid, $_in: [uuid!]) {
-            thuai_room_team(
-              where: { room_id: { _eq: $_eq }, thuai_team_id: { _in: $_in } }
-            ) {
-              room_id
+          query query_if_valid($room_id: uuid, $team_id: [uuid!]) {
+            contest_room_team(where: {_and: {room_id: {_eq: $room_id}, team_id: {_in: $team_id}}}) {
+              team_id
             }
           }
         `,
         {
-          _eq: payload.room_id,
-          _in: [payload.teams[0].team_id, payload.teams[1].team_id],
+          room_id: payload.room_id,
+          team_id: [payload.team_ids[0], payload.team_ids[1]]
         }
       );
-      if (query_if_valid.thuai_room_team.length != 2)
-        return res.status(400).send("room-team invalid");
+      if (query_if_valid.contest_room_team.length != 2){
+        return res.status(400).send("room-team mismatch or invalid");
+      }
       else {
         try {
-          const team_id: string[] = [];
           const current_score: number[] = [];
           const increment: number[] = [];
           const team_name: string[] = [];
-          payload.teams.forEach(
-            (value: { team_alias: number; team_id: string }) => {
-              team_id[value.team_alias] = value.team_id;
-            }
-          );
           for (let i = 0; i < 2; ++i) {
             const current_score_query = await client.request(
               gql`
-                query query_current_score($team_id: uuid!) {
-                  thuai_by_pk(team_id: $team_id) {
+                query query_current_score($contest_id: uuid!, $team_id: uuid!) {
+                  contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}) {
                     score
                     team_name
                   }
                 }
               `,
               {
-                team_id: team_id[i],
+                team_id: payload.team_ids[i],
+                contest_id: process.env.GAMEID
               }
             );
-            current_score[i] = current_score_query.thuai_by_pk.score;
-            team_name[i] = current_score_query.thuai_by_pk.team_name;
+            current_score[i] = current_score_query.contest_team.score;
+            team_name[i] = current_score_query.contest_team.team_name;
+            if (current_score[i] == null) current_score[i] = 0;
           }
 
           const game_result = req.body.result as ReqResult[];
           game_result.forEach((value: ReqResult) => {
             increment[value.team_id] = value.score;
           });
-          console.log(`original_score:${current_score}`);
-          console.log(`increment:${increment}`);
+
           const updated_score = calculateScore(
-            current_score,
-            increment
+            increment,
+            current_score
           ) as number[];
-          console.log(`updated_score:${updated_score}`);
 
           for (let i = 0; i < 2; ++i) {
             await client.request(
               gql`
-                mutation update_score($team_id: uuid!, $score: Int = 0) {
-                  update_thuai_by_pk(
-                    pk_columns: { team_id: $team_id }
-                    _set: { score: $score }
-                  ) {
-                    team_id
-                    score
+                mutation update_score($contest_id: uuid!, $team_id: uuid!, $score: String) {
+                  update_contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}, _set: {score: $score}) {
+                    returning {
+                      score
+                    }
                   }
                 }
               `,
               {
-                team_id: team_id[i],
-                score: updated_score[i],
+                team_id: payload.team_ids[i],
+                score: String(updated_score[i]),
+                contest_id: process.env.GAMEID
               }
             );
           }
           await client.request(
             gql`
-              mutation update_room_status(
-                $room_id: uuid!
-                $status: Boolean
-                $result: String
-              ) {
-                update_thuai_room_by_pk(
-                  pk_columns: { room_id: $room_id }
-                  _set: { status: $status, result: $result }
-                ) {
-                  status
+              mutation update_room_status($contest_id: uuid!, $room_id: uuid!, $status: Boolean, $result: String) {
+                update_contest_room(where: {_and: {contest_id: {_eq: $contest_id}, room_id: {_eq: $room_id}}}, _set: {status: $status, result: $result}) {
+                  returning {
+                    status
+                  }
                 }
               }
             `,
             {
+              contest_id: process.env.GAMEID,
               room_id: payload.room_id,
               status: true,
               result: `${team_name[0]}: ${
                 updated_score[0] - current_score[0] > 0 ? "+" : ""
               }${updated_score[0] - current_score[0]} , ${team_name[1]}: ${
                 updated_score[1] - current_score[1] > 0 ? "+" : ""
-              }${updated_score[1] - current_score[1]}`,
+              }${updated_score[1] - current_score[1]}`
             }
           );
-          const docker =
-            process.env.DOCKER === "remote"
-              ? new Docker({
-                  host: process.env.DOCKER_URL,
-                  port: process.env.DOCKER_PORT,
-                })
-              : new Docker();
-          const room_network = docker.getNetwork(
-            `THUAI4_room_${payload.room_id}`
-          );
-          await room_network.remove();
           return res.status(200).send("update ok!");
         } catch (err) {
           return res.status(400).send(err);
@@ -213,7 +168,6 @@ router.put("/", async (req, res) => {
       }
     });
   } catch (err) {
-    console.log(err);
     return res.status(400).send(err);
   }
 });
