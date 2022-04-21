@@ -34,27 +34,27 @@ router.post("/", async (req, res) => {
       const user_id = payload._id;
 
       try {
-        const query_if_manager = await client.request(
-          gql`
-            query query_is_manager($contest_id: uuid, $user_id: String) {
-              contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
-                user_id
-              }
-            }
-          `,
-          {
-            contest_id: process.env.GAMEID,
-            user_id: user_id
-          }
-        );
-        const is_manager = query_if_manager.contest_manager.length != 0;
+        // const query_if_manager = await client.request(
+        //   gql`
+        //     query query_is_manager($contest_id: uuid, $user_id: String) {
+        //       contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
+        //         user_id
+        //       }
+        //     }
+        //   `,
+        //   {
+        //     contest_id: process.env.GAMEID,
+        //     user_id: user_id
+        //   }
+        // );
+        //const is_manager = query_if_manager.contest_manager.length != 0;
+        const is_manager = false;
         if (is_manager) {
           console.log("dosomething");
           return res.status(200).send("ok");
         } else {
           try {
             //查询选手是否在房间里
-            console.log(room_id);
             const if_in_room = await client.request(
               gql`
                 query query_if_in_room($room_id: uuid!, $user_id: String) {
