@@ -34,14 +34,16 @@ function calculateScore(competitionScore: number[], orgScore: number[]) {
   const resScore = [];
   const deltaWeight = 90.0;
   const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
-  const firstnerGet = 3e-4;
-  const secondrGet = 1e-4;
+  const firstnerGet = 1e-4;
+  const secondrGet = 7e-5;
+  const possibleMaxScore = 1500.0;
+
   const deltaScore = 100.0;
   const correctRate = (orgScore[0] - orgScore[1]) / 100.0;
   const correct = 0.5 * (PHI((competitionScore[0] - competitionScore[1] - deltaScore) / deltaScore - correctRate) + 1.0);
 
   resScore[0] = orgScore[0] + mathjs.round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - PHI(delta)) * correct);
-  if (competitionScore[1] < 1000)
+  if (competitionScore[1] < possibleMaxScore)
       resScore[1] = orgScore[1] - mathjs.round((1000.0 - competitionScore[1]) * (1000.0 - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct);
   else
       resScore[1] = orgScore[1];
