@@ -236,8 +236,9 @@ router.put("/compileInfo", async (req, res) => {
  * GET compile logs
  * @param {token}
  * @param {string} team_id
+ * @param {number} usr_seq
  */
-router.get("/logs/:team_id", async (req, res) => {
+router.get("/logs/:team_id/:usr_seq", async (req, res) => {
   const authHeader = req.get("Authorization");
   if (!authHeader) {
     return res.status(401).send("401 Unauthorized: Missing token");
@@ -251,6 +252,7 @@ router.get("/logs/:team_id", async (req, res) => {
     const payload = decoded as JwtPayload;
     const user_id = payload._id;
     const team_id = req.params.team_id;
+    const usr_seq = req.params.usr_seq;
     const query_if_manager = await client.request(
       gql`
         query query_is_manager($contest_id: uuid, $user_id: String) {
@@ -281,7 +283,7 @@ router.get("/logs/:team_id", async (req, res) => {
           res.set("Pragma", "no-cache");
           return res
             .status(200)
-            .sendFile(`${base_directory}/${team_id}/compile_log.txt`, {
+            .sendFile(`${base_directory}/${team_id}/compile_log${usr_seq}.txt`, {
               cacheControl: false,
             });
         } catch (err) {
@@ -324,7 +326,7 @@ router.get("/logs/:team_id", async (req, res) => {
           res.set("Pragma", "no-cache");
           return res
             .status(200)
-            .sendFile(`${base_directory}/${team_id}/compile_log.txt`, {
+            .sendFile(`${base_directory}/${team_id}/compile_log${usr_seq}.txt`, {
               cacheControl: false,
             });
         } else
