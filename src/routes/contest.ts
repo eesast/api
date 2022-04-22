@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
-import mathjs from "mathjs";
+import {erf, sqrt, round} from "mathjs";
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ interface ReqResult {
   score: number;
 }
 
-const PHI = (x: any) => {return mathjs.erf(x / mathjs.sqrt(2))};
+const PHI = (x: any) => {return erf(x / sqrt(2))};
 
 function calculateScore(competitionScore: number[], orgScore: number[]) {
   let reverse = false;
@@ -30,23 +30,20 @@ function calculateScore(competitionScore: number[], orgScore: number[]) {
     [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
     [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
   }
-
   const resScore = [];
   const deltaWeight = 90.0;
   const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
   const firstnerGet = 1e-4;
   const secondrGet = 7e-5;
   const possibleMaxScore = 1500.0;
-
   const deltaScore = 100.0;
   const correctRate = (orgScore[0] - orgScore[1]) / 100.0;
   const correct = 0.5 * (PHI((competitionScore[0] - competitionScore[1] - deltaScore) / deltaScore - correctRate) + 1.0);
-
-  resScore[0] = orgScore[0] + mathjs.round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - PHI(delta)) * correct);
+  resScore.push(orgScore[0] + round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - PHI(delta)) * correct));
   if (competitionScore[1] < possibleMaxScore)
-      resScore[1] = orgScore[1] - mathjs.round((1000.0 - competitionScore[1]) * (1000.0 - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct);
+      resScore.push(orgScore[1] - round((1000.0 - competitionScore[1]) * (1000.0 - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct));
   else
-      resScore[1] = orgScore[1];
+      resScore.push(orgScore[1]);
   if (reverse) [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
   return resScore;
 }
@@ -107,24 +104,21 @@ router.put("/", async (req, res) => {
               `,
               {
                 team_id: payload.team_ids[i],
-                contest_id: process.env.GAMEID
+                contest_id: process.env.GAME_ID
               }
             );
             current_score[i] = current_score_query.contest_team.score;
             team_name[i] = current_score_query.contest_team.team_name;
-            if (current_score[i] == null) current_score[i] = 0;
+            if (current_score[i] == null) current_score[i] = 200;
           }
-
           const game_result = req.body.result as ReqResult[];
           game_result.forEach((value: ReqResult) => {
             increment[value.team_id] = value.score;
           });
-
           const updated_score = calculateScore(
             increment,
             current_score
           ) as number[];
-
           for (let i = 0; i < 2; ++i) {
             await client.request(
               gql`
@@ -139,7 +133,7 @@ router.put("/", async (req, res) => {
               {
                 team_id: payload.team_ids[i],
                 score: String(updated_score[i]),
-                contest_id: process.env.GAMEID
+                contest_id: process.env.GAME_ID
               }
             );
           }
@@ -154,7 +148,7 @@ router.put("/", async (req, res) => {
               }
             `,
             {
-              contest_id: process.env.GAMEID,
+              contest_id: process.env.GAME_ID,
               room_id: payload.room_id,
               status: true,
               result: `${team_name[0]}: ${
@@ -166,13 +160,11 @@ router.put("/", async (req, res) => {
           );
           return res.status(200).send("update ok!");
         } catch (err) {
-          console.log(err);
           return res.status(400).send(err);
         }
       }
     });
   } catch (err) {
-    console.log(err);
     return res.status(400).send(err);
   }
 });
