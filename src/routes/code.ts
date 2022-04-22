@@ -44,11 +44,9 @@ router.post("/compile", async (req, res) => {
             }
           }
         `,
-        { contest_id: process.env.GAMEID, user_id: user_id }
+        { contest_id: process.env.GAME_ID, user_id: user_id }
       );
-      console.log(query_if_manager.contest_manager);
-      const is_manager = query_if_manager.contest_manager != null;
-      console.log(is_manager);
+      const is_manager = query_if_manager.contest_manager.lenth != 0;
       if (!is_manager) {
         try {
           const query_in_team = await client.request(
@@ -72,7 +70,7 @@ router.post("/compile", async (req, res) => {
                 }
               }
             `,
-            {contest_id: process.env.GAMEID, team_id: team_id, user_id: user_id}
+            {contest_id: process.env.GAME_ID, team_id: team_id, user_id: user_id}
           );
           const is_in_team = query_in_team.contest_team.length != 0;
           if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
@@ -163,7 +161,7 @@ router.post("/compile", async (req, res) => {
                 }
               `,
               {
-                contest_id: process.env.GAMEID,
+                contest_id: process.env.GAME_ID,
                 team_id: team_id,
                 status: "compiling",
               }
@@ -219,7 +217,7 @@ router.put("/compileInfo", async (req, res) => {
             }
           `,
           {
-            contest_id: process.env.GAMEID,
+            contest_id: process.env.GAME_ID,
             team_id: team_id,
             status: compile_status,
           }
@@ -263,7 +261,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
           }
         }
       `,
-      { contest_id: process.env.GAMEID, user_id: user_id }
+      { contest_id: process.env.GAME_ID, user_id: user_id }
     );
     const is_manager = query_if_manager.contest_manager != null;
     if (is_manager) {
@@ -275,7 +273,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
             }
           }
         `,
-        { contest_id: process.env.GAMEID, team_id: team_id }
+        { contest_id: process.env.GAME_ID, team_id: team_id }
       );
       const team_exists = query_if_team_exists.contest_team != null;
       if (team_exists) {
@@ -316,7 +314,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
             }
           `,
           {
-            contest_id: process.env.GAMEID,
+            contest_id: process.env.GAME_ID,
             team_id: team_id,
             user_id: user_id,
           }

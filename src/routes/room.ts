@@ -43,7 +43,7 @@ router.post("/", async (req, res) => {
         //     }
         //   `,
         //   {
-        //     contest_id: process.env.GAMEID,
+        //     contest_id: process.env.GAME_ID,
         //     user_id: user_id
         //   }
         // );

@@ -47,7 +47,7 @@ const docker_cron = () => {
                 }
               `,
               {
-                contest_id: process.env.GAMEID,
+                contest_id: process.env.GAME_ID,
                 team_id: [queue_front.team_id_1, queue_front.team_id_2]
               }
             );
