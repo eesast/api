@@ -3766,9 +3766,9 @@ make-dir@^3.0.0, make-dir@^3.1.0:
   dependencies:
     semver "^6.0.0"
 
-mathjs@^10.4.3:
+mathjs@10.4.3:
   version "10.4.3"
-  resolved "https://registry.npmmirror.com/mathjs/-/mathjs-10.4.3.tgz#456ae944204809e8e8266ff265b1ef724d03f90e"
+  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-10.4.3.tgz#456ae944204809e8e8266ff265b1ef724d03f90e"
   integrity sha512-C50lWorCOplBec9Ik5fzhHuOx4G4+mtdz3r1G2I1/r8yj+CpYFXLXNqTdg59oKmIF1tKcIzpxlC4s2dGL7f3pg==
   dependencies:
     "@babel/runtime" "^7.17.8"
