@@ -15,19 +15,6 @@ export interface queue_element {
 const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
 
 const docker_cron = () => {
-  // cron.schedule("*/10 * * * * *", async () => {
-  //   const docker =
-  //     process.env.DOCKER === "remote"
-  //       ? new Docker({
-  //           host: process.env.DOCKER_URL,
-  //           port: process.env.DOCKER_PORT,
-  //         })
-  //       : new Docker();
-  //   await docker.pruneNetworks({
-  //     filters:'{"until":"5m"}'
-  //   });
-  // });
-  // 上面这个本来打算实现自动删除一定时间的network的，但是不知为何 filter 怎么也用不好，所以目前只能使用 crontab 来做。求大佬来帮忙想办法orz
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME} * * * * *`, async () => {
     const max_container_num = parseInt(process.env.MAX_CONTAINERS as string);
     const docker =
