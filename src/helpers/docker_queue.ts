@@ -95,7 +95,6 @@ const docker_cron = () => {
                 AttachStderr: false,
                 name: `THUAI5_runner_${queue_front.room_id}`,
                 HostConfig: {
-                  NetworkMode: "host",
                   Binds: [
                     `${base_directory}/playback/${queue_front.room_id}/:/usr/local/playback`,
                     `${base_directory}/${queue_front.team_id_1}/:/usr/local/team1`,
