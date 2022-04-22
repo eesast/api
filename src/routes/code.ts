@@ -46,7 +46,9 @@ router.post("/compile", async (req, res) => {
         `,
         { contest_id: process.env.GAMEID, user_id: user_id }
       );
+      console.log(query_if_manager.contest_manager);
       const is_manager = query_if_manager.contest_manager != null;
+      console.log(is_manager);
       if (!is_manager) {
         try {
           const query_in_team = await client.request(

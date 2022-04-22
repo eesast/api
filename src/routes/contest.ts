@@ -87,6 +87,7 @@ router.put("/", async (req, res) => {
         }
       );
       if (query_if_valid.contest_room_team.length != 2){
+        console.log("room-team mismatch or invalid");
         return res.status(400).send("room-team mismatch or invalid");
       }
       else {
@@ -165,11 +166,13 @@ router.put("/", async (req, res) => {
           );
           return res.status(200).send("update ok!");
         } catch (err) {
+          console.log(err);
           return res.status(400).send(err);
         }
       }
     });
   } catch (err) {
+    console.log(err);
     return res.status(400).send(err);
   }
 });
