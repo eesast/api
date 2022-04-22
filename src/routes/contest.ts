@@ -107,8 +107,8 @@ router.put("/", async (req, res) => {
                 contest_id: process.env.GAME_ID
               }
             );
-            current_score[i] = current_score_query.contest_team.score;
-            team_name[i] = current_score_query.contest_team.team_name;
+            current_score[i] = current_score_query.contest_team[0].score;
+            team_name[i] = current_score_query.contest_team[0].team_name;
             if (current_score[i] == null) current_score[i] = 200;
           }
           const game_result = req.body.result as ReqResult[];
