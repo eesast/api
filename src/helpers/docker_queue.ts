@@ -10,6 +10,7 @@ export interface queue_element {
   room_id: string;
   team_id_1: string;
   team_id_2: string;
+  mode: number;
 }
 
 const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
@@ -87,7 +88,7 @@ const docker_cron = () => {
               const url =
                 process.env.NODE_ENV == "production"
                   ? "https://api.eesast.com/contest"
-                  : "http://localhost:28888/contest";
+                  : "http://172.17.0.1:28888/contest";
               const container_runner = await docker.createContainer({
                 Image: process.env.RUNNER_IMAGE,
                 AttachStdin: false,
@@ -104,7 +105,8 @@ const docker_cron = () => {
                 },
                 Env: [
                   `URL=${url}`,
-                  `TOKEN=${serverToken}`
+                  `TOKEN=${serverToken}`,
+                  `MODE=${queue_front.mode}`
                 ]
               });
               await container_runner.start();

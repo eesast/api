@@ -118,7 +118,7 @@ router.post("/compile", async (req, res) => {
             const url =
                 process.env.NODE_ENV == "production"
                   ? "https://api.eesast.com/code/compileInfo"
-                  : "http://localhost:28888/code/compileInfo";
+                  : "http://172.17.0.1:28888/code/compileInfo";
             const compiler_token = jwt.sign(
               {
                 team_id: team_id,
