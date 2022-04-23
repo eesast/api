@@ -116,7 +116,7 @@ router.put("/", async (req, res) => {
         const team_name: string[] = [];
         for (let i = 0; i < 2; ++i) {
           switch (req.body.mode) {
-            case 0:
+            case 0: {
               const current_score_query0 = await client.request(
                 gql`
                   query query_current_score($contest_id: uuid!, $team_id: uuid!) {
@@ -135,7 +135,8 @@ router.put("/", async (req, res) => {
               else current_score[i] = Number(current_score_query0.contest_team[0].score);
               team_name[i] = current_score_query0.contest_team[0].team_name;
               break;
-            case 1:
+            }
+            case 1: {
               const current_score_query1 = await client.request(
                 gql`
                   query query_current_score($contest_id: uuid!, $team_id: uuid!) {
@@ -152,6 +153,7 @@ router.put("/", async (req, res) => {
               if (current_score_query1.contest_team[0].score == null) current_score[i] = 200;
               else current_score[i] = Number(current_score_query1.contest_team[0].score);
               break;
+            }
           }
         }
         const game_result = req.body.result as ReqResult[];
@@ -161,7 +163,7 @@ router.put("/", async (req, res) => {
         const updated_score = req.body.mode == 0 ? calculateScore0(competitionScore, current_score) as number[] : calculateScore1(competitionScore, current_score) as number[];
         for (let i = 0; i < 2; ++i) {
           switch (req.body.mode) {
-            case 0:
+            case 0: {
               await client.request(
                 gql`
                   mutation update_score($contest_id: uuid!, $team_id: uuid!, $score: String) {
@@ -179,7 +181,8 @@ router.put("/", async (req, res) => {
                 }
               );
               break;
-            case 1:
+            }
+            case 1: {
               await client.request(
                 gql`
                   mutation update_score($contest_id: uuid!, $team_id: uuid!, $score: String) {
@@ -197,6 +200,7 @@ router.put("/", async (req, res) => {
                 }
               );
               break;
+            }
           }
         }
         if (req.body.mode == 0) await client.request(
