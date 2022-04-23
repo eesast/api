@@ -105,10 +105,72 @@ router.post("/", async (req, res) => {
 });
 
 /**
+ * @param token (user_id)
+ * @param {uuid} team_id1
+ * @param {uuid} team_id2
+ */
+router.post("/assign", async (req, res) => {
+  try{
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      return res.status(401).send("401 Unauthorized: Missing token");
+    }
+    const token = authHeader.substring(7);
+    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+      if (err || !decoded) {
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
+      }
+      const payload = decoded as JwtPayload;
+      const user_id = payload._id;
+      const query_if_manager = await client.request(
+        gql`
+          query query_is_manager($contest_id: uuid, $user_id: String) {
+            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
+              user_id
+            }
+          }
+        `,
+        { contest_id: process.env.GAME_ID, user_id: user_id }
+      );
+      const is_manager = query_if_manager.contest_manager.lenth != 0;
+      if (!is_manager) {
+        return res
+        .status(400)
+        .send("Permission Denied: Need Permission Elevation");
+      }
+      const query_valid_teams = await client.request(
+        gql`
+          query query_valid_teams($contest_id: uuid) {
+            contest_team(where: {contest_id: {_eq: $contest_id}, status: {_eq: "compiled"}}) {
+              team_id
+            }
+          }
+        `,
+        { contest_id: process.env.GAME_ID }
+      );
+      const valid_team_ids = query_valid_teams.contest_team;
+      if (!valid_team_ids.includes(req.body.team_id1) || !valid_team_ids.includes(req.body.team_id2))
+        return res.status(400).send("requested team not compiled");
+      docker_queue.push({
+        room_id: `${req.body.team_id1}--vs--${req.body.team_id2}`,
+        team_id_1: req.body.team_id1,
+        team_id_2: req.body.team_id2,
+        mode: 1
+      });
+    })
+  }
+  catch (err) {
+    return res.status(400).send(err);
+  }
+});
+
+/**
  * GET playback file
  * @param {uuid} id
  */
-router.get("/:room_id", async (req, res) => {
+ router.get("/:room_id", async (req, res) => {
   try {
     const room_id = req.params.room_id;
     const query_room = await client.request(

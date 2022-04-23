@@ -272,7 +272,7 @@ router.post("/", async (req, res) => {
       }
       const query_valid_teams = await client.request(
         gql`
-          query query_is_manager($contest_id: uuid) {
+          query query_valid_teams($contest_id: uuid) {
             contest_team(where: {contest_id: {_eq: $contest_id}, status: {_eq: "compiled"}}) {
               team_id
             }
