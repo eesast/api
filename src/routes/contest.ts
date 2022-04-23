@@ -237,6 +237,7 @@ router.put("/", async (req, res) => {
 /**
  * POST launch contest
  * @param token
+ * @param mode 0代表单循环赛，1代表双循环赛，2代表测试比赛
  */
 router.post("/", async (req, res) => {
   try{
@@ -280,14 +281,57 @@ router.post("/", async (req, res) => {
         { contest_id: process.env.GAME_ID }
       );
       const valid_team_ids = query_valid_teams.contest_team;
-      for (let i = 0; i < 1; i++) {
-        for (let j = i + 1; j < 2; j++) {
-          docker_queue.push({
-            room_id: `Num.${i}--vs--Num.${j}`,
-            team_id_1: valid_team_ids[i].team_id,
-            team_id_2: valid_team_ids[j].team_id,
-            mode: 1
-          });
+      switch (req.body.mode) {
+        case 0: {
+          for (let i = 0; i < valid_team_ids.length; i++) {
+            for (let j = i + 1; j < valid_team_ids.length; j++) {
+              docker_queue.push({
+                room_id: `Num.${i}--vs--Num.${j}`,
+                team_id_1: valid_team_ids[i].team_id,
+                team_id_2: valid_team_ids[j].team_id,
+                mode: 1
+              });
+            }
+          }
+          break;
+        }
+        case 1: {
+          for (let i = 0; i < valid_team_ids.length; i++) {
+            for (let j = i + 1; j < valid_team_ids.length; j++) {
+              docker_queue.push({
+                room_id: `Num.${i}--vs--Num.${j}`,
+                team_id_1: valid_team_ids[i].team_id,
+                team_id_2: valid_team_ids[j].team_id,
+                mode: 1
+              });
+              docker_queue.push({
+                room_id: `Num.${j}--vs--Num.${i}`,
+                team_id_1: valid_team_ids[j].team_id,
+                team_id_2: valid_team_ids[i].team_id,
+                mode: 1
+              });
+            }
+          }
+          break;
+        }
+        case 2: {
+          for (let i = 0; i < Math.min(valid_team_ids.length, 3); i++) {
+            for (let j = i + 1; j < Math.min(valid_team_ids.length, 3); j++) {
+              docker_queue.push({
+                room_id: `Num.${i}--vs--Num.${j}`,
+                team_id_1: valid_team_ids[i].team_id,
+                team_id_2: valid_team_ids[j].team_id,
+                mode: 1
+              });
+              docker_queue.push({
+                room_id: `Num.${j}--vs--Num.${i}`,
+                team_id_1: valid_team_ids[j].team_id,
+                team_id_2: valid_team_ids[i].team_id,
+                mode: 1
+              });
+            }
+          }
+          break;
         }
       }
       return res.status(200).send("Tournament started!");
