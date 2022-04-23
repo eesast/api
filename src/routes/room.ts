@@ -34,93 +34,70 @@ router.post("/", async (req, res) => {
       const user_id = payload._id;
 
       try {
-        // const query_if_manager = await client.request(
-        //   gql`
-        //     query query_is_manager($contest_id: uuid, $user_id: String) {
-        //       contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
-        //         user_id
-        //       }
-        //     }
-        //   `,
-        //   {
-        //     contest_id: process.env.GAME_ID,
-        //     user_id: user_id
-        //   }
-        // );
-        //const is_manager = query_if_manager.contest_manager.length != 0;
-        const is_manager = false;
-        if (is_manager) {
-          console.log("dosomething");
-          return res.status(200).send("ok");
-        } else {
+          //查询选手是否在房间里
+          const if_in_room = await client.request(
+            gql`
+              query query_if_in_room($room_id: uuid!, $user_id: String) {
+                contest_room_team(where: {_and: {room_id: {_eq: $room_id}, contest_team: {_or: [{team_leader: {_eq: $user_id}}, {contest_team_members: {user_id: {_eq: $user_id}}}]}}}) {
+                  team_id
+                }
+              }
+            `,
+            {
+              room_id: room_id,
+              user_id: user_id
+            }
+          );
+          if (if_in_room.contest_room_team.length === 0)
+            return res.status(400).send("permission denied: not in room");
           try {
-            //查询选手是否在房间里
-            const if_in_room = await client.request(
+            const current_team_id =
+              if_in_room.contest_room_team[0].team_id;
+            //查询参赛队伍
+            const query_teams = await client.request(
               gql`
-                query query_if_in_room($room_id: uuid!, $user_id: String) {
-                  contest_room_team(where: {_and: {room_id: {_eq: $room_id}, contest_team: {_or: [{team_leader: {_eq: $user_id}}, {contest_team_members: {user_id: {_eq: $user_id}}}]}}}) {
+                query query_teams($room_id: uuid!) {
+                  contest_room_team(where: {room_id: {_eq: $room_id}}) {
                     team_id
                   }
                 }
               `,
               {
-                room_id: room_id,
-                user_id: user_id
+                room_id: room_id
               }
             );
-            if (if_in_room.contest_room_team.length === 0)
-              return res.status(400).send("permission denied: not in room");
-            try {
-              const current_team_id =
-                if_in_room.contest_room_team[0].team_id;
-              //查询参赛队伍
-              const query_teams = await client.request(
-                gql`
-                  query query_teams($room_id: uuid!) {
-                    contest_room_team(where: {room_id: {_eq: $room_id}}) {
-                      team_id
-                    }
-                  }
-                `,
-                {
-                  room_id: room_id
-                }
-              );
-              const teams = query_teams.contest_room_team;
-              if (teams.length != 2) {
-                res.status(400).send("队伍信息错误");
-              }
-
-              const team_withseq = ["", ""] as string[];
-              team_withseq[Number(team_seq)] = current_team_id;
-              team_withseq[1 - Number(team_seq)] =
-                current_team_id == teams[0].team_id ? teams[1].team_id : teams[0].team_id;
-
-              try {
-                await fs.mkdir(`${base_directory}/playback/${room_id}`, {
-                  recursive: true,
-                  mode: 0o775,
-                });
-              } catch (err) {
-                return res.status(400).send("文件存储目录创建失败");
-              }
-
-              docker_queue.push({
-                room_id: room_id,
-                team_id_1: team_withseq[0],
-                team_id_2: team_withseq[1],
-              });
-              return res.status(200).send("Joined queue!");
-            } catch (err) {
-              return res.status(400).send(err);
+            const teams = query_teams.contest_room_team;
+            if (teams.length != 2) {
+              res.status(400).send("队伍信息错误");
             }
+
+            const team_withseq = ["", ""] as string[];
+            team_withseq[Number(team_seq)] = current_team_id;
+            team_withseq[1 - Number(team_seq)] =
+              current_team_id == teams[0].team_id ? teams[1].team_id : teams[0].team_id;
+
+            try {
+              await fs.mkdir(`${base_directory}/playback/${room_id}`, {
+                recursive: true,
+                mode: 0o775,
+              });
+            } catch (err) {
+              return res.status(400).send("文件存储目录创建失败");
+            }
+
+            docker_queue.push({
+              room_id: room_id,
+              team_id_1: team_withseq[0],
+              team_id_2: team_withseq[1],
+              mode: 0
+            });
+            return res.status(200).send("Joined queue!");
           } catch (err) {
             return res.status(400).send(err);
           }
+        } catch (err) {
+          return res.status(400).send(err);
         }
-      } catch (err) {
-        return res.status(400).send(err);
-      }
     });
   } catch (err) {
     return res.status(400).send(err);
