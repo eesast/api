@@ -171,23 +171,21 @@ router.post("/assign", async (req, res) => {
  * @param {uuid} id
  * @param {int} mode 0代表存在实际room的对战，1代表不存在实际room的对战
  */
-router.get("/:room_id/:mode", async (req, res) => {
+router.get("/:room_id", async (req, res) => {
   try {
     const room_id = req.params.room_id;
-    if (req.params.mode == "0") {
-      const query_room = await client.request(
-        gql`
-          query query_room($room_id: uuid!) {
-            contest_room(where: {room_id: {_eq: $room_id}}) {
-              room_id
-            }
+    const query_room = await client.request(
+      gql`
+        query query_room($room_id: uuid!) {
+          contest_room(where: {room_id: {_eq: $room_id}}) {
+            room_id
           }
-        `,
-        { room_id: room_id }
-      );
-      if (query_room.contest_room.length == 0)
-        return res.status(400).send("room does not exist");
-    }
+        }
+      `,
+      { room_id: room_id }
+    );
+    if (query_room.contest_room.length == 0)
+      return res.status(400).send("room does not exist");
     try {
       await fs.access(`${base_directory}/playback/${room_id}/video.thuaipb`);
       res.setHeader(
