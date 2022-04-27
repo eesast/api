@@ -107,7 +107,8 @@ const docker_cron = () => {
                   `URL=${url}`,
                   `TOKEN=${serverToken}`,
                   `MODE=${queue_front.mode}`
-                ]
+                ],
+                Cmd: ["-m 6g"]
               });
               await container_runner.start();
               console.log("runnner started");
