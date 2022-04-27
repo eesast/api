@@ -169,6 +169,7 @@ router.post("/assign", async (req, res) => {
 /**
  * GET playback file
  * @param {uuid} id
+ * @param {int} mode 0代表存在实际room的对战，1代表不存在实际room的对战
  */
 router.get("/:room_id", async (req, res) => {
   try {
