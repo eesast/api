@@ -50,7 +50,11 @@ function calculateScore0(competitionScore: number[], orgScore: number[]) {
       resScore.push(orgScore[1] - round((possibleMaxScore - competitionScore[1]) * (possibleMaxScore - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct));
   else
       resScore.push(orgScore[1]);
-  if (reverse) [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
+  if (reverse) {
+    [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
+    [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
+    [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
+  }
   return resScore;
 }
 
@@ -64,9 +68,13 @@ function calculateScore1(competitionScore: number[], orgScore: number[]) {
     const resScore = [];
     const delta = competitionScore[0] - competitionScore[1];
     const addScore = scale_sigmoid(delta);
-    resScore.push(orgScore[0] + addScore);
+    resScore.push(orgScore[0] + round(addScore));
     resScore.push(orgScore[1]);
-    if (reverse) [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
+    if (reverse) {
+      [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
+      [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
+      [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
+    }
     return resScore;
 }
 
@@ -74,6 +82,7 @@ function calculateScore1(competitionScore: number[], orgScore: number[]) {
  * PUT update teams' score
  * @param token
  * @param {ReqResult[]} result
+ * @param mode 0代表存在room的对战，1代表不存在room的对战
  */
 router.put("/", async (req, res) => {
   try {
@@ -89,7 +98,7 @@ router.put("/", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-
+      if (req.body.mode != 0 && req.body.mode != 1) return res.status(400).send("Wrong mode code!");
       const payload = decoded as JwtServerPayload;
       if (req.body.mode == 0) {
         const query_if_valid = await client.request(
@@ -106,7 +115,6 @@ router.put("/", async (req, res) => {
           }
         );
         if (query_if_valid.contest_room_team.length != 2){
-          console.log("room-team mismatch or invalid");
           return res.status(400).send("room-team mismatch or invalid");
         }
       }
@@ -150,8 +158,8 @@ router.put("/", async (req, res) => {
                   contest_id: process.env.GAME_ID
                 }
               );
-              if (current_score_query1.contest_team[0].score == null) current_score[i] = 200;
-              else current_score[i] = Number(current_score_query1.contest_team[0].score);
+              if (current_score_query1.contest_team[0].contest_score == null) current_score[i] = 200;
+              else current_score[i] = Number(current_score_query1.contest_team[0].contest_score);
               break;
             }
           }
@@ -203,7 +211,7 @@ router.put("/", async (req, res) => {
             }
           }
         }
-        if (req.body.mode == 0) await client.request(
+        if (req.body.mode == 0) await client.request(   //存在room
           gql`
             mutation update_room_status($contest_id: uuid!, $room_id: uuid!, $status: Boolean, $result: String) {
               update_contest_room(where: {_and: {contest_id: {_eq: $contest_id}, room_id: {_eq: $room_id}}}, _set: {status: $status, result: $result}) {
