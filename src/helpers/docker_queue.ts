@@ -108,7 +108,7 @@ const docker_cron = () => {
                   `URL=${url}`,
                   `TOKEN=${serverToken}`,
                   `MODE=${queue_front.mode}`,
-                  `MAP=${queue_front.map == 0 ? process.env.NODE_ENV + "oldmap.txt" : process.env.NODE_ENV + "newmap.txt"}`
+                  `MAP=${queue_front.map == 0 ? base_directory + "oldmap.txt" : base_directory + "newmap.txt"}`
                 ],
                 Cmd: ["-m 6g"]
               });
