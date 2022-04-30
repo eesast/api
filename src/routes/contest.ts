@@ -297,6 +297,7 @@ router.post("/", async (req, res) => {
                 room_id: `Num.${i}--vs--Num.${j}`,
                 team_id_1: valid_team_ids[i].team_id,
                 team_id_2: valid_team_ids[j].team_id,
+                map: 1,
                 mode: 1
               });
             }
@@ -310,12 +311,14 @@ router.post("/", async (req, res) => {
                 room_id: `Num.${i}--vs--Num.${j}`,
                 team_id_1: valid_team_ids[i].team_id,
                 team_id_2: valid_team_ids[j].team_id,
+                map: 1,
                 mode: 1
               });
               docker_queue.push({
                 room_id: `Num.${j}--vs--Num.${i}`,
                 team_id_1: valid_team_ids[j].team_id,
                 team_id_2: valid_team_ids[i].team_id,
+                map: 1,
                 mode: 1
               });
             }
@@ -329,12 +332,14 @@ router.post("/", async (req, res) => {
                 room_id: `Num.${i}--vs--Num.${j}`,
                 team_id_1: valid_team_ids[i].team_id,
                 team_id_2: valid_team_ids[j].team_id,
+                map: 1,
                 mode: 1
               });
               docker_queue.push({
                 room_id: `Num.${j}--vs--Num.${i}`,
                 team_id_1: valid_team_ids[j].team_id,
                 team_id_2: valid_team_ids[i].team_id,
+                map: 1,
                 mode: 1
               });
             }
