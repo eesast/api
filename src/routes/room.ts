@@ -13,6 +13,7 @@ const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' :
  * @param token (user_id)
  * @param {uuid} room_id
  * @param {boolean} team_seq
+ * @param {number} map
  */
 
 router.post("/", async (req, res) => {
@@ -20,6 +21,7 @@ router.post("/", async (req, res) => {
     console.log("needed");
     const room_id = req.body.room_id;
     const team_seq = req.body.team_seq as boolean;
+    const map = req.body.map as number;
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -90,6 +92,7 @@ router.post("/", async (req, res) => {
               room_id: room_id,
               team_id_1: team_withseq[0],
               team_id_2: team_withseq[1],
+              map: map,
               mode: 0
             });
             return res.status(200).send("Joined queue!");
@@ -153,15 +156,16 @@ router.post("/assign", async (req, res) => {
         { contest_id: process.env.GAME_ID }
       );
       const valid_team_ids = query_valid_teams.contest_team;
-      console.log(valid_team_ids);
-      if (!valid_team_ids.includes(req.body.team_id1) || !valid_team_ids.includes(req.body.team_id2))
+      if (valid_team_ids.find((item: any) => item.team_id == req.body.team_id1) == undefined || valid_team_ids.find((item: any) => item.team_id == req.body.team_id2) == undefined)
         return res.status(400).send("requested team not compiled");
       docker_queue.push({
         room_id: `${req.body.team_id1}--vs--${req.body.team_id2}`,
         team_id_1: req.body.team_id1,
         team_id_2: req.body.team_id2,
+        map: 1,
         mode: 1
       });
+      return res.status(200).send("successfully assigned!");
     })
   }
   catch (err) {

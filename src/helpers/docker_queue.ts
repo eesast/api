@@ -10,6 +10,7 @@ export interface queue_element {
   room_id: string;
   team_id_1: string;
   team_id_2: string;
+  map: number;
   mode: number;
 }
 
@@ -106,7 +107,8 @@ const docker_cron = () => {
                 Env: [
                   `URL=${url}`,
                   `TOKEN=${serverToken}`,
-                  `MODE=${queue_front.mode}`
+                  `MODE=${queue_front.mode}`,
+                  `MAP=${queue_front.map == 0 ? base_directory + "oldmap.txt" : base_directory + "newmap.txt"}`
                 ],
                 Cmd: ["-m 6g"]
               });
