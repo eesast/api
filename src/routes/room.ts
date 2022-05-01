@@ -17,6 +17,7 @@ const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' :
 
 router.post("/", async (req, res) => {
   try {
+    console.log("needed");
     const room_id = req.body.room_id;
     const team_seq = req.body.team_seq as boolean;
     const authHeader = req.get("Authorization");
@@ -110,6 +111,7 @@ router.post("/", async (req, res) => {
  * @param {uuid} team_id2
  */
 router.post("/assign", async (req, res) => {
+  console.log("needed");
   try{
     const authHeader = req.get("Authorization");
     if (!authHeader) {
@@ -151,6 +153,7 @@ router.post("/assign", async (req, res) => {
         { contest_id: process.env.GAME_ID }
       );
       const valid_team_ids = query_valid_teams.contest_team;
+      console.log(valid_team_ids);
       if (!valid_team_ids.includes(req.body.team_id1) || !valid_team_ids.includes(req.body.team_id2))
         return res.status(400).send("requested team not compiled");
       docker_queue.push({

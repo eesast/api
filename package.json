@@ -93,5 +93,6 @@
       "src/**/*.test.ts"
     ],
     "exec": "babel-node --extensions \".ts\" --config-file \"./.babelrc\" src/index.ts"
-  }
+  },
+  "version": "0.0.0"
 }

@@ -1,14 +1,14 @@
 import express from "express";
 import Docker from "dockerode";
-import * as fs from "fs/promises";
+import fs  from "fs/promises";
 import jwt from "jsonwebtoken";
 import { JwtPayload } from "../middlewares/authenticate";
 import { gql } from "graphql-request";
 import { client } from "..";
 import { getOSS } from "../helpers/oss";
-
+import fStream from 'fs';
 const router = express.Router();
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/mnt/d/软件部/thuai5/';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/home/li-yr/';
 
 interface JwtCompilerPayload {
   team_id: string;
@@ -78,7 +78,6 @@ router.post("/compile", async (req, res) => {
           return res.status(400).send(err);
         }
       }
-
       try {
         try {
           await fs.mkdir(`${base_directory}/${team_id}`, {
@@ -90,14 +89,21 @@ router.post("/compile", async (req, res) => {
         }
         try {
           const oss = await getOSS();
-          oss.get(`/THUAI5/${team_id}/player1.cpp`, `${base_directory}/${team_id}/player1.cpp`);
-          oss.get(`/THUAI5/${team_id}/player2.cpp`, `${base_directory}/${team_id}/player2.cpp`);
-          oss.get(`/THUAI5/${team_id}/player3.cpp`, `${base_directory}/${team_id}/player3.cpp`);
-          oss.get(`/THUAI5/${team_id}/player4.cpp`, `${base_directory}/${team_id}/player4.cpp`);
+          const result1 = await oss.getStream(`/THUAI5/${team_id}/player1.cpp`);
+          const result2 = await oss.getStream(`/THUAI5/${team_id}/player2.cpp`);
+          const result3 = await oss.getStream(`/THUAI5/${team_id}/player3.cpp`);
+          const result4 = await oss.getStream(`/THUAI5/${team_id}/player4.cpp`);
+          const writeStream1 = fStream.createWriteStream(`${base_directory}/${team_id}/player1.cpp`);
+          result1.stream.pipe(writeStream1);
+          const writeStream2 = fStream.createWriteStream(`${base_directory}/${team_id}/player2.cpp`);
+          result2.stream.pipe(writeStream2);
+          const writeStream3 = fStream.createWriteStream(`${base_directory}/${team_id}/player3.cpp`);
+          result3.stream.pipe(writeStream3);
+          const writeStream4 = fStream.createWriteStream(`${base_directory}/${team_id}/player4.cpp`);
+          result4.stream.pipe(writeStream4);
         } catch (err) {
           return res.status(400).send(`OSS选手代码下载失败:${err}`);
         }
-
         const docker =
           process.env.DOCKER === "remote"
             ? new Docker({
@@ -113,7 +119,6 @@ router.post("/compile", async (req, res) => {
               containerRunning = true;
             }
           });
-
           if (!containerRunning) {
             const url =
                 process.env.NODE_ENV == "production"
@@ -145,7 +150,6 @@ router.post("/compile", async (req, res) => {
               //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
               name: `THUAI5_Compiler_${team_id}`
             });
-
             await client.request(
               gql`
                 mutation update_compile_status(
