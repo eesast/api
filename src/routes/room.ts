@@ -18,6 +18,7 @@ const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' :
 
 router.post("/", async (req, res) => {
   try {
+    console.log("needed");
     const room_id = req.body.room_id;
     const team_seq = req.body.team_seq as boolean;
     const map = req.body.map as number;
@@ -113,6 +114,7 @@ router.post("/", async (req, res) => {
  * @param {uuid} team_id2
  */
 router.post("/assign", async (req, res) => {
+  console.log("needed");
   try{
     const authHeader = req.get("Authorization");
     if (!authHeader) {
