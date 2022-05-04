@@ -99,6 +99,7 @@ const docker_cron = () => {
                 HostConfig: {
                   Binds: [
                     `${base_directory}/playback/${queue_front.room_id}/:/usr/local/playback`,
+                    `${base_directory}/map/:/usr/local/map`,
                     `${base_directory}/${queue_front.team_id_1}/:/usr/local/team1`,
                     `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
                   ],
