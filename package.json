@@ -18,7 +18,7 @@
     "cors": "2.8.5",
     "debug": "4.3.4",
     "dockerode": "3.3.1",
-    "dotenv": "16.0.0",
+    "dotenv": "16.0.1",
     "express": "4.17.3",
     "graphql": "16.3.0",
     "graphql-request": "4.2.0",
@@ -32,7 +32,7 @@
     "multer": "1.4.4",
     "node-cron": "3.0.0",
     "node-fetch": "2.6.7",
-    "nodemailer": "6.7.4"
+    "nodemailer": "6.7.5"
   },
   "devDependencies": {
     "@babel/cli": "7.17.10",
@@ -50,7 +50,7 @@
     "@types/bcrypt": "5.0.0",
     "@types/cors": "2.8.12",
     "@types/debug": "4.1.7",
-    "@types/dockerode": "3.3.8",
+    "@types/dockerode": "3.3.9",
     "@types/express": "4.17.13",
     "@types/html-to-text": "8.1.0",
     "@types/jsonwebtoken": "8.5.8",
@@ -63,7 +63,7 @@
     "@typescript-eslint/eslint-plugin": "5.3.1",
     "@typescript-eslint/parser": "5.3.1",
     "cross-env": "7.0.3",
-    "eslint": "8.14.0",
+    "eslint": "8.15.0",
     "eslint-config-prettier": "6.15.0",
     "husky": "7.0.4",
     "lint-staged": "12.3.8",
