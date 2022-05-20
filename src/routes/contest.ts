@@ -4,7 +4,7 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
 import { JwtPayload } from "../middlewares/authenticate";
-import { erf, sqrt, round, exp } from "mathjs";
+import { erf, sqrt, round, log10 } from "mathjs";
 
 const router = express.Router();
 
@@ -19,11 +19,8 @@ interface ReqResult {
 }
 
 const PHI = (x: any) => {return erf(x / sqrt(2))};
-const scale_sigmoid = (x: number) => {
-  if(x <= 0) return 0;
-  return (1.0 / (1 + exp(-x / 200.0)) - 0.5) * 200.0 * 2;
-}
 
+// 天梯用算法
 function calculateScore0(competitionScore: number[], orgScore: number[]) {
   let reverse = false;
   if (competitionScore[0] < competitionScore[1]) reverse = true;
@@ -58,17 +55,33 @@ function calculateScore0(competitionScore: number[], orgScore: number[]) {
   return resScore;
 }
 
+// 跑比赛用算法
+const maxScore = 100;
+function WinScore(delta: number, winnerGameScore: number) { // 根据游戏得分差值，与绝对分数，决定最后的加分
+    const deltaRate = 0.035;
+    const scoreRate = 2e-5;
+    // 赢者至少加 half of maxScore，平局只加 a quarter of maxScore
+    // 差值引入非线性，差值越大非线性贡献的分数越多；绝对分数只用线性
+    const score = maxScore / 2 + (deltaRate + log10(delta) / maxScore + winnerGameScore * scoreRate) * delta;
+    return score < maxScore ? score : maxScore;
+}
+
 function calculateScore1(competitionScore: number[], orgScore: number[]) {
     let reverse = false;
     if (competitionScore[0] < competitionScore[1]) reverse = true;
-    if (reverse) {
+    else if (competitionScore[0] == competitionScore[1]) { // 平局，两边加quarter of maxScore
+        orgScore[0] += maxScore / 4;
+        orgScore[1] += maxScore / 4;
+        return orgScore;
+    }
+    if (reverse) {   // 如果需要换，换两者的顺序
       [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
       [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
     }
     const resScore = [];
     const delta = competitionScore[0] - competitionScore[1];
-    const addScore = scale_sigmoid(delta);
-    resScore.push(orgScore[0] + round(addScore));
+    const addScore = WinScore(delta, competitionScore[0]);
+    resScore.push(orgScore[0] + addScore);
     resScore.push(orgScore[1]);
     if (reverse) {
       [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
@@ -122,6 +135,7 @@ router.put("/", async (req, res) => {
         const current_score: number[] = [];
         const competitionScore: number[] = [];
         const team_name: string[] = [];
+        const contest_times: number[] = [];
         for (let i = 0; i < 2; ++i) {
           switch (req.body.mode) {
             case 0: {
@@ -150,6 +164,7 @@ router.put("/", async (req, res) => {
                   query query_current_score($contest_id: uuid!, $team_id: uuid!) {
                     contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}) {
                       contest_score
+                      status2
                     }
                   }
                 `,
@@ -160,6 +175,8 @@ router.put("/", async (req, res) => {
               );
               if (current_score_query1.contest_team[0].contest_score == null) current_score[i] = 200;
               else current_score[i] = Number(current_score_query1.contest_team[0].contest_score);
+              if (current_score_query1.contest_team[0].status2 == null) contest_times[i] = 0;
+              else contest_times[i] = Number(current_score_query1.contest_team[0].status2);
               break;
             }
           }
@@ -193,8 +210,8 @@ router.put("/", async (req, res) => {
             case 1: {
               await client.request(
                 gql`
-                  mutation update_score($contest_id: uuid!, $team_id: uuid!, $score: String) {
-                    update_contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}, _set: {contest_score: $score}) {
+                  mutation update_score($contest_id: uuid!, $team_id: uuid!, $score: String, $status2: String) {
+                    update_contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}, _set: {contest_score: $score, status2: $status2}) {
                       returning {
                         contest_score
                       }
@@ -204,6 +221,7 @@ router.put("/", async (req, res) => {
                 {
                   team_id: payload.team_ids[i],
                   score: `${updated_score[i]}`,
+                  status2: `${contest_times[i] + 1}`,
                   contest_id: process.env.GAME_ID
                 }
               );
@@ -297,7 +315,7 @@ router.post("/", async (req, res) => {
                 room_id: `Num.${i}--vs--Num.${j}`,
                 team_id_1: valid_team_ids[i].team_id,
                 team_id_2: valid_team_ids[j].team_id,
-                map: 1,
+                map: 0,
                 mode: 1
               });
             }
@@ -305,6 +323,24 @@ router.post("/", async (req, res) => {
           break;
         }
         case 1: {
+          for (let i = 0; i < valid_team_ids.length; i++) {
+            for (let j = i + 1; j < valid_team_ids.length; j++) {
+              docker_queue.push({
+                room_id: `Num.${i}--vs--Num.${j}`,
+                team_id_1: valid_team_ids[i].team_id,
+                team_id_2: valid_team_ids[j].team_id,
+                map: 0,
+                mode: 1
+              });
+              docker_queue.push({
+                room_id: `Num.${j}--vs--Num.${i}`,
+                team_id_1: valid_team_ids[j].team_id,
+                team_id_2: valid_team_ids[i].team_id,
+                map: 0,
+                mode: 1
+              });
+            }
+          }
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
               docker_queue.push({
@@ -326,8 +362,8 @@ router.post("/", async (req, res) => {
           break;
         }
         case 2: {
-          for (let i = 0; i < Math.min(valid_team_ids.length, 3); i++) {
-            for (let j = i + 1; j < Math.min(valid_team_ids.length, 3); j++) {
+          for (let i = 0; i < 3; i++) {
+            for (let j = i + 1; j < 3; j++) {
               docker_queue.push({
                 room_id: `Num.${i}--vs--Num.${j}`,
                 team_id_1: valid_team_ids[i].team_id,
