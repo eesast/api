@@ -4,6 +4,7 @@ import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
+// import { weekly_cron, weekly_init } from "./routes/weekly";
 // import { queue_element } from "./helpers/docker_queue";
 // import docker_cron from "./helpers/docker_queue";
 // import fs from "fs";
@@ -60,6 +61,9 @@ export const client = new GraphQLClient(
 // //   fs.readFileSync("/data/queue_data.json").toString()
 // // );
 // docker_cron();
+
+// weekly_cron();
+// weekly_init();
 
 const port = normalizePort(process.env.PORT || "28888");
 app.set("port", port);
