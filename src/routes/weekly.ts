@@ -11,13 +11,14 @@ const router = express.Router();
 // var items: any = [];
 
 // 微信公众平台验证
-router.get("/:signature/:timestamp/:nonce/:echostr", async (req, res) => {
+router.get("/", async (req, res) => {
     try {
-        const signature = req.params.signature;
-        const timestamp = req.params.timestamp;
-        const nonce = req.params.nonce
-        const echostr = req.params.echostr
+        const signature = req.query.signature;
+        const timestamp = req.query.timestamp;
+        const nonce = req.query.nonce;
+        const echostr = req.query.echostr;
         const token = process.env.WX_TOKEN;
+        console.log(signature, timestamp, nonce, echostr);
         if (!(signature && timestamp && nonce && echostr)) return res.status(401).send("401 Unauthorized: missing param");
         const list = [token, timestamp, nonce];
         list.sort();
