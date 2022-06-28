@@ -22,7 +22,7 @@ router.get("/", async (req, res) => {
         if (!(signature && timestamp && nonce && echostr)) return res.status(401).send("401 Unauthorized: missing param");
         const list = [token, timestamp, nonce];
         list.sort();
-        let str = list.join();
+        let str = list.join("");
         str = sha1(str);
         if (str == signature) return res.status(200).send(echostr);
         else return res.status(401).send("401 Unauthorized: authentication failure");
