@@ -37,7 +37,7 @@ const authenticate: (
 
       const payload = decoded as JwtPayload;
 
-      User.findOne({ email: payload.email }, (error, user) => {
+      User.findOne({ email: payload.email }, (error: any, user: any) => {
         if (error) {
           console.error(err);
           return res.status(500).end();
