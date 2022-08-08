@@ -491,7 +491,7 @@ router.put("/role", authenticate(["root"]), async (req, res) => {
     await User.updateMany(
       { _id: { $in: _ids } },
       { $set: { role: role } },
-      (err) => {
+      (err: any) => {
         if (err) {
           console.error(err);
           return res.status(500).end();
