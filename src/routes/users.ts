@@ -470,7 +470,7 @@ router.post("/actions/user_by_role", hasura, async (req, res) => {
       }),
     });
 
-    const usersByRole = await response.json();
+    const usersByRole: any = await response.json();
 
     if (usersByRole?.data?.user) {
       return res.status(200).json(usersByRole?.data?.user);

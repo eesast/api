@@ -18,7 +18,7 @@ const recaptcha = async (req: Request, res: Response, next: NextFunction) => {
       "https://www.recaptcha.net/recaptcha/api/siteverify",
       { method: "POST", body: params }
     );
-    const result = await response.json();
+    const result: any = await response.json();
 
     if (result.success) {
       next();
