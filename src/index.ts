@@ -4,10 +4,6 @@ import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
-// import { weekly_cron, weekly_init } from "./routes/weekly";
-// import { queue_element } from "./helpers/docker_queue";
-// import docker_cron from "./helpers/docker_queue";
-// import fs from "fs";
 
 // Use for dev
 import path from "path";
