@@ -2,7 +2,7 @@
 
 FROM node:16 AS builder
 
-RUN apk add python3 make gcc g++
+# RUN apk add python3 make gcc g++
 
 # Create app directory
 WORKDIR /home/node/app
