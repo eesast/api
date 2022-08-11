@@ -11,9 +11,10 @@ import {
 } from "../helpers/htmlTemplates";
 import authenticate, { JwtPayload } from "../middlewares/authenticate";
 import { validateEmail, validatePassword } from "../helpers/validate";
-import fetch from "node-fetch";
 import hasura from "../middlewares/hasura";
 import type { MongoError } from "mongodb";
+import { gql } from "graphql-request";
+import { client } from "..";
 
 const router = express.Router();
 
@@ -305,25 +306,16 @@ router.post("/verify", async (req, res) => {
             return res.status(200).end();
           }
         } else if (type === "regular") {
-          await fetch(`${process.env.API_URL}/v1/graphql`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
-            },
-            body: JSON.stringify({
-              query: `
-                mutation InsertUser($_id: String!) {
-                  insert_user_one(object: {_id: $_id}) {
-                    _id
-                  }
+          await client.request(
+            gql`
+              mutation InsertUser($_id: String!) {
+                insert_user_one(object: {_id: $_id}) {
+                  _id
                 }
-              `,
-              variables: {
-                _id: user._id,
-              },
-            }),
-          });
+              }
+            `,
+            { _id: user._id }
+          );
 
           user.update({ emailVerified: true }, null, (err) => {
             if (err) {
@@ -447,30 +439,18 @@ router.post("/actions/user_by_role", hasura, async (req, res) => {
 
   try {
     const users = await User.find({ role });
-
-    const response = await fetch(`${process.env.API_URL}/v1/graphql`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
-      },
-      body: JSON.stringify({
-        query: `
-          query GetUsersByIds($ids: [String!]) {
-            user(where: {_id: {_in: $ids}}) {
-              _id
-              name
-              department
-            }
+    const usersByRole = await client.request(
+      gql`
+        query GetUsersByIds($ids: [String!]) {
+          user(where: {_id: {_in: $ids}}) {
+            _id
+            name
+            department
           }
-        `,
-        variables: {
-          ids: users.map((u) => u._id),
-        },
-      }),
-    });
-
-    const usersByRole: any = await response.json();
+        }
+      `,
+      { ids: users.map((u) => u._id) }
+    )
 
     if (usersByRole?.data?.user) {
       return res.status(200).json(usersByRole?.data?.user);

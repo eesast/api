@@ -47,7 +47,7 @@ db.once("open", () => {
 });
 
 export const client = new GraphQLClient(
-  `${process.env.HASURA_URL}/v1/graphql`,
+  `${process.env.HASURA_GRAPHQL_ENDPOINT}/v1/graphql`,
   {
     headers: {
       "Content-Type": "application/json",

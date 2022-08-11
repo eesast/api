@@ -19,7 +19,7 @@ EESAST 后端 API
 
 ### 环境
 
-- node 14 / npm
+- node 16 / npm
 - yarn
 - TypeScript
 - MongoDB
