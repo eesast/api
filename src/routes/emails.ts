@@ -1,19 +1,13 @@
 import express from "express";
-import { GraphQLClient, gql } from "graphql-request";
+import { gql } from "graphql-request";
 import { sendEmail } from "../helpers/email";
 import { newMentorApplicationTemplate } from "../helpers/htmlTemplates";
 import hasura from "../middlewares/hasura";
+import { client } from "..";
 
 const router = express.Router();
 
 router.post("/events", hasura, async (req, res) => {
-  const client = new GraphQLClient(`${process.env.HASURA_URL}/v1/graphql`, {
-    headers: {
-      "Content-Type": "application/json",
-      "x-hasura-admin-secret": process.env.HASURA_GRAPHQL_ADMIN_SECRET!,
-    },
-  });
-
   const data = req.body?.event?.data?.new;
   const table = req.body?.table?.name;
   const op = req.body?.event?.op;
@@ -84,7 +78,6 @@ router.post("/events", hasura, async (req, res) => {
         }
 
         return res.status(200).end();
-        break;
       } catch (e) {
         console.error(e);
         res.status(500).end();
