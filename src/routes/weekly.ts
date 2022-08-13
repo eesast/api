@@ -1,36 +1,26 @@
 import express from "express";
 import fetch from "node-fetch";
-import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        const authHeader = req.get("Authorization");
-        if (!authHeader) {
-            return res.status(401).send("401 Unauthorized: Missing token");
+        console.log(req.query.url);
+        if (req.query.url == null) return res.status(400).send("400 Bad Request: no url provided!");
+        const url: any = req.query.url;
+        const response = await fetch(
+            url,
+            { method: "GET"}
+        );
+        if (response.ok) {
+            const text: string = await response.text();
+            const match = text.match(/var msg_cdn_url.*1:1/);
+            if (match == null) throw(Error("capture failed!"));
+            const url1 = match[0].match(/http:\/\/.*=png/);
+            const url2 = match[0].match(/http:\/\/.*=jpeg/);
+            return res.status(200).send(url1 == null ? url2 : url1);
         }
-        const token = authHeader.substring(7);
-        return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
-            if (err || !decoded) {
-                return res
-                .status(401)
-                .send("401 Unauthorized: Token expired or invalid");
-            }
-            const response = await fetch(
-                req.body.url,
-                { method: "GET"}
-            );
-            if (response.ok) {
-                const text: string = await response.text();
-                const match = text.match(/var msg_cdn_url.*1:1/);
-                if (match == null) throw(Error("capture failed!"));
-                const url1 = match[0].match(/http:\/\/.*=png/);
-                const url2 = match[0].match(/http:\/\/.*=jpeg/);
-                return res.status(200).send(url1 == null ? url2 : url1);
-            }
-            else return res.status(500).send("500 Internal Server Error: fetch failed!");
-        })
+        else return res.status(500).send("500 Internal Server Error: fetch failed!");
     } catch (err) {
         return res.status(500).send("500 Internal Server Error: " + err);
     }
