@@ -1,12 +1,13 @@
 import express from "express";
 import fetch from "node-fetch";
+import { gql } from "graphql-request";
+import { client } from "..";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/cover", async (req, res) => {
     try {
-        console.log(req.query.url);
-        if (req.query.url == null) return res.status(400).send("400 Bad Request: no url provided!");
+        if (!req.query.url) return res.status(400).send("400 Bad Request: no url provided!");
         const url: any = req.query.url;
         const response = await fetch(
             url,
@@ -21,6 +22,137 @@ router.get("/", async (req, res) => {
             return res.status(200).send(url1 == null ? url2 : url1);
         }
         else return res.status(500).send("500 Internal Server Error: fetch failed!");
+    } catch (err) {
+        return res.status(500).send("500 Internal Server Error: " + err);
+    }
+})
+
+const getTitle = async (url: string) => {
+    try {
+        const response = await fetch(
+            url,
+            { method: "GET"}
+        );
+        if (response.ok) {
+            const text: string = await response.text();
+            const match = text.match(/meta property="og:title" content=".*"/);
+            if (match == null) throw(Error("capture failed!"));
+            const title = match[0].slice(34, -1);
+            return title;
+        }
+        else throw(Error("fetch failed!"));
+    } catch (err: any) {
+        return err;
+    }
+}
+
+router.post("/insert", async (req, res) => {
+    try {
+        if (!req.body.id || !req.body.url) return res.status(400).send("400 Bad Request: not enough params!");
+        const title: string = await getTitle(req.body.url);
+        const QueryGreaterIds = await client.request(
+            gql`
+              query QueryGreaterIds($_id: Int) {
+                weekly(where: {id: {_gt: $_id}}) {
+                  id
+                }
+              }
+            `,
+            { _id: req.body.id }
+        );
+        let sorted_ids = [...QueryGreaterIds.weekly];
+        sorted_ids.sort((a: any, b: any) => {
+            return a.id - b.id;
+        })
+        for (let i = sorted_ids.length - 1; i >= 0; i--) {
+            await client.request(
+                gql`
+                  mutation IncreaseIds($_id: Int) {
+                    update_weekly(where: {id: {_eq: $_id}}, _inc: {id: 1}) {
+                      affected_rows
+                    }
+                  }
+                `,
+                { _id: sorted_ids[i].id }
+            );
+        }
+        await client.request(
+            gql`
+              mutation Insert_Weekly_One($id: Int, $title: String, $url: String) {
+                insert_weekly_one(object: {id: $id, title: $title, url: $url}) {
+                  id
+                  title
+                  url
+                }
+              }
+            `,
+            { id: req.body.id + 1, title: title, url: req.body.url }
+        );
+        return res.status(200).send("ok");
+    } catch (err) {
+        return res.status(500).send("500 Internal Server Error: " + err);
+    }
+})
+
+router.post("/delete", async (req, res) => {
+    try {
+        if (!req.body.id) return res.status(400).send("400 Bad Request: not enough params!");
+        const QueryGreaterIds = await client.request(
+            gql`
+              query QueryGreaterIds($_id: Int) {
+                weekly(where: {id: {_gt: $_id}}) {
+                  id
+                }
+              }
+            `,
+            { _id: req.body.id }
+        );
+        let sorted_ids = [...QueryGreaterIds.weekly];
+        sorted_ids.sort((a: any, b: any) => {
+            return a.id - b.id;
+        })
+        await client.request(
+            gql`
+              mutation Delete_Weekly_One($_id: Int) {
+                delete_weekly(where: {id: {_eq: $_id}}) {
+                  affected_rows
+                }
+              }
+            `,
+            { _id: req.body.id }
+        );
+        for (let i = 0; i < sorted_ids.length; i++) {
+            await client.request(
+                gql`
+                  mutation IncreaseIds($_id: Int) {
+                    update_weekly(where: {id: {_eq: $_id}}, _inc: {id: -1}) {
+                      affected_rows
+                    }
+                  }
+                `,
+                { _id: sorted_ids[i].id }
+            );
+        }
+        return res.status(200).send("ok");
+    } catch (err) {
+        return res.status(500).send("500 Internal Server Error: " + err);
+    }
+})
+
+router.post("/init", async (req, res) => {
+    try {
+        if (!req.body.data) return res.status(400).send("400 Bad Request: no data provided!");
+        await client.request(
+            gql`
+              mutation Init($objects: [weekly_insert_input!] = {}) {
+                insert_weekly(objects: $objects) {
+                  affected_rows
+                }
+              }
+            `,
+            { objects: req.body.data }
+        );
+        return res.status(200).send("ok");
     } catch (err) {
         return res.status(500).send("500 Internal Server Error: " + err);
     }
