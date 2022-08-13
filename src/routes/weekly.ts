@@ -60,7 +60,7 @@ router.post("/insert", async (req, res) => {
             `,
             { _id: req.body.id }
         );
-        let sorted_ids = [...QueryGreaterIds.weekly];
+        const sorted_ids = [...QueryGreaterIds.weekly];
         sorted_ids.sort((a: any, b: any) => {
             return a.id - b.id;
         })
@@ -107,7 +107,7 @@ router.post("/delete", async (req, res) => {
             `,
             { _id: req.body.id }
         );
-        let sorted_ids = [...QueryGreaterIds.weekly];
+        const sorted_ids = [...QueryGreaterIds.weekly];
         sorted_ids.sort((a: any, b: any) => {
             return a.id - b.id;
         })
@@ -341,5 +341,4 @@ export default router;
 //         console.log("error!" + err);
 //     }
 // }
-
 // export {router, weekly_cron, weekly_init};
