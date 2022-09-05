@@ -5,6 +5,7 @@ import staticRouter from "./routes/static";
 import userRouter from "./routes/users";
 import emailRouter from "./routes/emails";
 import weeklyRouter from "./routes/weekly";
+import docsRouter from "./routes/docs";
 //import codeRouter from "./routes/code";
 //import roomRouter from "./routes/room";
 //import contestRouter from "./routes/contest";
@@ -13,7 +14,7 @@ const app = express();
 
 const whitelist =
   process.env.NODE_ENV === "production"
-    ? ["https://eesast.com", "http://localhost:3000"]
+    ? ["https://eesast.com", "https://docs.eesast.com", "http://localhost:3000"]
     : ["http://localhost:3000"];
 
 app.use(
@@ -36,6 +37,7 @@ app.use("/static", staticRouter);
 app.use("/users", userRouter);
 app.use("/emails", emailRouter);
 app.use("/weekly", weeklyRouter);
+app.use("/docs", docsRouter);
 //app.use("/code", codeRouter);
 //app.use("/room", roomRouter);
 //app.use("/contest", contestRouter);
