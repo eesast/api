@@ -6,7 +6,6 @@ const router = express.Router();
 router.get("/get_video_link", async (req, res) => {
     try {
         if (!req.query.url) return res.status(400).send("400 Bad Request: no url provided!");
-        console.log(req.query.url);
         const url: any = req.query.url;
         const response = await fetch(
             url,
