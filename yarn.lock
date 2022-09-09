@@ -1254,10 +1254,10 @@
   dependencies:
     "@types/express" "*"
 
-"@types/node-cron@3.0.3":
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/@types/node-cron/-/node-cron-3.0.3.tgz#6d7a7bebecb20d83c850421d4d3178a7555be538"
-  integrity sha512-FPzux/llEiCe5mPn3TvLEORcF2pRXvH5cugtJCJf+UrkwQ7pYfb4wn9J/sxJ8QkT/sw9BjWSi9uur5Vh1OuAZQ==
+"@types/node-cron@3.0.4":
+  version "3.0.4"
+  resolved "https://registry.yarnpkg.com/@types/node-cron/-/node-cron-3.0.4.tgz#ade755125a5b9e409ba9598e04c7132a05c108db"
+  integrity sha512-A2H+uz5ry4hohYjRe5mQSE/8Dx/HGw4WZ728JxhKUZ7z8CMvRuG2tpbzGHRGQCuQzz5aCNB1iXzPZYHd4BPHvw==
 
 "@types/node-fetch@2.6.2":
   version "2.6.2"

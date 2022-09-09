@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@babel/runtime": "7.19.0",
-    "@types/node-cron": "3.0.3",
+    "@types/node-cron": "3.0.4",
     "ali-oss": "6.17.1",
     "bcrypt": "5.0.1",
     "cors": "2.8.5",
