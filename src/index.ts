@@ -12,8 +12,7 @@ dotenv.config({
 });
 dotenv.config();
 const debug = Debug("eesast-api");
-const databaseUrl =
-  process.env.NODE_ENV === "production" ? process.env.DATABASE : "localhost";
+const databaseUrl = process.env.DATABASE;
 
 const normalizePort: (val: string) => number | boolean = (val) => {
   const portNo = parseInt(val, 10);
@@ -23,9 +22,10 @@ const normalizePort: (val: string) => number | boolean = (val) => {
   return false;
 };
 
-mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api?authSource=admin`, {
+mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api`, {
   user: process.env.DB_USER,
   pass: process.env.DB_PASS,
+  authSource: "admin",
 });
 
 const db = mongoose.connection;

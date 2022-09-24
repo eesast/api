@@ -131,7 +131,7 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email });
+    const user: any = await User.findOne({ email });
 
     if (!user) {
       // 没有 recaptcha 保护，不提示“用户不存在”
@@ -428,8 +428,7 @@ router.post("/reset", async (req, res) => {
 });
 
 router.post("/actions/user_by_role", hasura, async (req, res) => {
-  const { role } = req.body.input;
-
+  const role: string = req.body.input;
   if (role !== "teacher") {
     return res.status(403).json({
       message: "403 Forbidden: Selection by this role not allowed",
@@ -451,9 +450,8 @@ router.post("/actions/user_by_role", hasura, async (req, res) => {
       `,
       { ids: users.map((u) => u._id) }
     )
-
-    if (usersByRole?.data?.user) {
-      return res.status(200).json(usersByRole?.data?.user);
+    if (usersByRole?.user) {
+      return res.status(200).json(usersByRole?.user);
     } else {
       console.error(usersByRole?.errors);
       return res.status(500).end();
