@@ -428,7 +428,7 @@ router.post("/reset", async (req, res) => {
 });
 
 router.post("/actions/user_by_role", hasura, async (req, res) => {
-  const role: string = req.body.input;
+  const { role } = req.body.input;
   if (role !== "teacher") {
     return res.status(403).json({
       message: "403 Forbidden: Selection by this role not allowed",
