@@ -1102,8 +1102,8 @@ const scholarships = {
 router.post("/test", async (req, res) => {
     try {
       const dict = req.body.type === true ? aids : scholarships;
-        for (let i in dict) {
-            for (let j in (dict as any)[i]) {
+        for (const i in dict) {
+            for (const j in (dict as any)[i]) {
                 if (!(dict as any)[i][j].salutation) {
                   await client.request(
                     gql`
