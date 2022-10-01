@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 export interface ApplicationModel extends mongoose.Document {
     activateIn: number,
-    honors: [String],               // 荣誉名称列表
+    honors: [string],               // 荣誉名称列表
     honor: {                        // 荣誉申请时间节点和公示时间节点
         start_A: Date,
         start_B: Date,
