@@ -1117,10 +1117,10 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
 
-"@types/ali-oss@6.16.4":
-  version "6.16.4"
-  resolved "https://registry.yarnpkg.com/@types/ali-oss/-/ali-oss-6.16.4.tgz#2927e6b940a49c2828609c0f73ff407ded0626d1"
-  integrity sha512-jcPp0qugBVcuFtewnlCVnpVDFqkNiGIklXHzq8kftFVXlBBYmVdAUYasyz1UGPMtF4qkbbAVToUxJnee+ky+NQ==
+"@types/ali-oss@6.16.5":
+  version "6.16.5"
+  resolved "https://registry.yarnpkg.com/@types/ali-oss/-/ali-oss-6.16.5.tgz#4774bba951e081af55645ac0688f400be811390e"
+  integrity sha512-t0hEN0VEVBE8kcmAeC/+ztHdzx9gvehowsD5z1Z3O/jMAecQPuArwGwq4zL4FEUwJWsNBUFTZ5wEwVsNM9RQ1A==
 
 "@types/bcrypt@5.0.0":
   version "5.0.0"
