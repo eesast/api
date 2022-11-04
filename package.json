@@ -14,7 +14,7 @@
     "@babel/runtime": "7.20.1",
     "@types/node-cron": "3.0.5",
     "ali-oss": "6.17.1",
-    "bcrypt": "5.0.1",
+    "bcrypt": "5.1.0",
     "cors": "2.8.5",
     "debug": "4.3.4",
     "dockerode": "3.3.4",
