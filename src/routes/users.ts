@@ -15,8 +15,6 @@ import hasura from "../middlewares/hasura";
 import type { MongoError } from "mongodb";
 import { gql } from "graphql-request";
 import { client } from "..";
-import debug from "debug";
-import user from "../models/user";
 
 const router = express.Router();
 
