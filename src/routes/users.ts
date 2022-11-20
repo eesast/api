@@ -18,6 +18,42 @@ import { client } from "..";
 
 const router = express.Router();
 
+router.put("/delete", async(req, res) => {
+  try{
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      return res.status(401).send("401 Unauthorized: Missing token");
+    }
+    const token = authHeader.substring(7);
+    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+      if (err || !decoded) {
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
+      }
+      const payload = decoded as JwtPayload;
+      const id = req.body._id, user = payload.email;
+      if(payload.role!=='root' && id !== payload._id){
+        return res.status(401).send()
+          .send(`401 Unauthorized: No authority to delete user ${user} or ID not match.`);
+      }
+      const num = await User.count({_id: id});
+      if(num !== 0){
+        if((await User.deleteOne({_id: id}))){
+          console.log("Delete Successfully.");
+          return res.status(200).send(`Delete user ${user} successfully.`);
+        }
+        else
+          return res.status(500).send("Error: Found multiple users in database.");
+      }
+      else
+        return res.status(501).send(`Error: User ${user} not found in database`);
+    });
+  } catch(err){
+    return res.send(err);
+  }
+})
+
 router.post("/", recaptcha, async (req, res) => {
   const { email, password } = req.body;
 
