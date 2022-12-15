@@ -1,18 +1,10 @@
 import multer from "multer";
 import fs from "fs";
-const fileStorage = multer.diskStorage({
-    destination: function (req, file, callback) {
-        callback(null, "/defaultUploadDir");
-    },
-    filename: function (req, file, callback) {
-        callback(null, file.originalname);
-    }
-});
 const uploadFunction = (req:any, res:any) => {
     const storage = multer.diskStorage({
         destination: function (req, file, callback) {
-            var destination = req.body.dest;
-            var stat;
+            let destination = req.body.dest;
+            let stat;
             try {
                 stat = fs.statSync(destination);
             } catch (err) {
