@@ -3,7 +3,7 @@ import fs from "fs";
 const uploadFunction = (req:any, res:any) => {
     const storage = multer.diskStorage({
         destination: function (req, file, callback) {
-            let destination = req.body.dest;
+            const destination = req.body.dest;
             let stat;
             try {
                 stat = fs.statSync(destination);
