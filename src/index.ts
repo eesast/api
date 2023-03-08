@@ -5,11 +5,6 @@ import mongoose from "mongoose";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
 
-// Use for dev
-import path from "path";
-dotenv.config({
-  path: path.resolve(process.cwd(), ".env.local"),
-});
 dotenv.config();
 const debug = Debug("eesast-api");
 const databaseUrl = process.env.DATABASE;
