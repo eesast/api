@@ -25,4 +25,27 @@ router.get("/", authenticate(["counselor", "root"]), async (req, res) => {
   }
 });
 
+
+// 用户具有的权限：  "name/cos:PutObject",   "name/cos:GetObject", "   "name/cos:DeleteObject", 可访问的目录为/THUAI6/{team_id}/\*
+/**
+ * POST compile code of team_id
+ * @param token (user_id)
+ * @param {uuid} req.body.team_id
+ */
+router.get("/player", authenticate(), async (req, res) => {
+  try {
+    const action = [
+      "name/cos:PutObject",
+      "name/cos:GetObject",
+      "name/cos:DeleteObject",
+    ];
+    const sts = await getSTS(action, `/THUAI6/${req.body.team_id}/*`);
+    return res.status(200).send(sts);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send(err);
+  }
+});
+
+
 export default router;
