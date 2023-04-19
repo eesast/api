@@ -8,7 +8,7 @@ import weeklyRouter from "./routes/weekly";
 import docsRouter from "./routes/docs";
 import applicationRouter from "./routes/application";
 import fileRouter from "./routes/files";
-// import codeRouter from "./routes/code";
+import codeRouter from "./routes/code";
 // import roomRouter from "./routes/room";
 // import contestRouter from "./routes/contest";
 
@@ -42,7 +42,7 @@ app.use("/weekly", weeklyRouter);
 app.use("/docs", docsRouter);
 app.use("/application", applicationRouter);
 app.use("/files",fileRouter);
-// app.use("/code", codeRouter);
+app.use("/code", codeRouter);
 // app.use("/room", roomRouter);
 // app.use("/contest", contestRouter);
 
