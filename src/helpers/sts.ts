@@ -1,7 +1,7 @@
 import STS from "qcloud-cos-sts";
 
 // 获取临时密钥
-const getSTS = async (action: string[], prefix: string) => {
+const getSTS: any = async (action: string[], prefix: string) => {
     // 配置参数
     const config = {
         secretId: process.env.GROUP_SECRET_ID!,   // 固定密钥
