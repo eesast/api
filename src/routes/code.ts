@@ -10,7 +10,7 @@ import fStream from 'fs';
 import COS from "cos-nodejs-sdk-v5";
 const router = express.Router();
 
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai5/' : '/home/xiangmy21/luangao';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/xiangmy21/luangao';
 
 interface JwtCompilerPayload {
   team_id: string;
