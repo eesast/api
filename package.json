@@ -15,6 +15,7 @@
     "@types/node-cron": "3.0.7",
     "bcrypt": "5.1.0",
     "cors": "2.8.5",
+    "cos-nodejs-sdk-v5": "^2.11.19",
     "debug": "4.3.4",
     "dockerode": "3.3.5",
     "dotenv": "16.0.3",
