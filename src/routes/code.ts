@@ -107,7 +107,9 @@ router.post("/compile", async (req, res) => {
         try {
           const sts = await getSTS(["name/cos:GetObject"], "*");
           const cos = new COS({
-            getAuthorization: async (options: object, callback: Function) => {
+            getAuthorization: async (options: object, callback: (
+              params: COS.GetAuthorizationCallbackParams
+            ) => void) => {
               try {
                 if (!sts) throw (Error("Credentials invalid!"));
                 callback({
