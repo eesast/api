@@ -8,6 +8,7 @@ import { client } from "..";
 import getSTS from "../helpers/sts";
 import fStream from 'fs';
 import COS from "cos-nodejs-sdk-v5";
+
 const router = express.Router();
 
 const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/xiangmy21/luangao';
