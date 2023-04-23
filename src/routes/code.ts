@@ -38,6 +38,7 @@ router.post("/compile", async (req, res) => {
       }
       const payload = decoded as JwtPayload;
       const user_id = payload._id;
+      console.log(user_id);
       const query_if_manager = await client.request(
         gql`
           query query_is_manager($contest_id: uuid, $user_id: String) {
@@ -48,9 +49,12 @@ router.post("/compile", async (req, res) => {
         `,
         { contest_id: process.env.GAME_ID, user_id: user_id }
       );
-      const is_manager = query_if_manager.contest_manager.lenth != 0;
+      console.log(query_if_manager);
+      const is_manager = query_if_manager.contest_manager.length != 0;
+      console.log(is_manager);
       if (!is_manager) {
         try {
+          console.log("@@1");
           const query_in_team = await client.request(
             gql`
               query query_if_in_team($team_id: uuid, $user_id: String, $contest_id: uuid) {
@@ -74,13 +78,17 @@ router.post("/compile", async (req, res) => {
             `,
             { contest_id: process.env.GAME_ID, team_id: team_id, user_id: user_id }
           );
+          console.log("@@2");
+          console.log(query_in_team);
           const is_in_team = query_in_team.contest_team.length != 0;
           if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
+          console.log("@@3");
         } catch (err) {
           return res.status(400).send(err);
         }
       }
       try {
+        console.log("@@ try to create dir");
         try {
           await fs.mkdir(`${base_directory}/${team_id}`, {
             recursive: true,
@@ -89,6 +97,8 @@ router.post("/compile", async (req, res) => {
         } catch (err) {
           return res.status(400).send("文件存储目录创建失败");
         }
+        console.log("@@ dir created");
+        console.log("@@ try to check submitted_code_num");
         try{
           const submitted_code_num = await client.request(
             gql`
@@ -104,6 +114,8 @@ router.post("/compile", async (req, res) => {
         catch (err) {
           return res.status(400).send(err);
         }
+        console.log("@@ submitted_code_num checked");
+        console.log("@@ try to download files");
         try {
           const sts = await getSTS(["name/cos:GetObject"], "*");
           const cos = new COS({
@@ -155,6 +167,7 @@ router.post("/compile", async (req, res) => {
         } catch (err) {
           return res.status(400).send(`STS选手代码下载失败:${err}`);
         }
+        console.log("@@ files downloaded");
         const docker =
           process.env.DOCKER === "remote"
             ? new Docker({
@@ -222,6 +235,7 @@ router.post("/compile", async (req, res) => {
               }
             );
             await container.start();
+            console.log("@@ docker started");
           }
         } catch (err) {
           return res.status(400).send(err);
