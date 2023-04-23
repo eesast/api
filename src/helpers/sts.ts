@@ -19,13 +19,6 @@ const getSTS: any = async (action: string[], prefix: string) => {
         prefix: prefix,
     }];
     const policy = STS.getPolicy(scope);
-    console.log({
-        secretId: config.secretId,
-        secretKey: config.secretKey,
-        proxy: config.proxy,
-        policy: policy,
-        durationSeconds: config.durationSeconds,
-    });
     return new Promise((resolve, reject) => STS.getCredential({
         secretId: config.secretId,
         secretKey: config.secretKey,
