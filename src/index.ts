@@ -4,6 +4,8 @@ import http from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
+import { queue_element } from "./helpers/docker_queue";
+import docker_cron from "./helpers/docker_queue";
 
 dotenv.config();
 const debug = Debug("eesast-api");
@@ -43,11 +45,11 @@ export const client = new GraphQLClient(
   }
 );
 
-// export const docker_queue: queue_element[] = [];
-// // export const docker_queue: queue_element[] = JSON.parse(
-// //   fs.readFileSync("/data/queue_data.json").toString()
-// // );
-// docker_cron();
+export const docker_queue: queue_element[] = [];
+// export const docker_queue: queue_element[] = JSON.parse(
+//   fs.readFileSync("/data/queue_data.json").toString()
+// );
+docker_cron();
 
 // weekly_cron();
 // weekly_init();
