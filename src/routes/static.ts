@@ -17,6 +17,7 @@ router.get("/", async (req, res) => {
       "name/cos:UploadPart",
       "name/cos:CompleteMultipartUpload",
       "name/cos:AbortMultipartUpload",
+      "name/cos:HeadObject",
       "name/cos:GetObject",
       "name/cos:DeleteObject",
     ];
