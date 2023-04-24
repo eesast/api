@@ -11,7 +11,7 @@ import COS from "cos-nodejs-sdk-v5";
 
 const router = express.Router();
 
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/xiangmy21/luangao';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/luangao';
 
 interface JwtCompilerPayload {
   team_id: string;
@@ -100,7 +100,7 @@ router.post("/compile", async (req, res) => {
         }
         console.log("@@ dir created");
         console.log("@@ try to check submitted_code_num");
-        try{
+        try {
           const submitted_code_num = await client.request(
             gql`
               query submitte_code_num ($team_id: uuid){
@@ -109,8 +109,8 @@ router.post("/compile", async (req, res) => {
                 }
               }
             `, { team_id: team_id });
-          if(submitted_code_num.contest_team[0].submitted_code_num != 4)
-              return res.status(400).send("未完成全部文件上传");
+          if (submitted_code_num.contest_team[0].submitted_code_num != 4)
+            return res.status(400).send("未完成全部文件上传");
         }
         catch (err) {
           return res.status(400).send(err);
@@ -141,82 +141,112 @@ router.post("/compile", async (req, res) => {
             bucket: 'eesast-1255334966',
             region: 'ap-beijing',
           };
-          cos.getObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: `/THUAI6/${team_id}/player1.cpp`,
-            Output: fStream.createWriteStream(`${base_directory}/${team_id}/player1.cpp`),
-          }, (err, data) => console.log(err || data));
-          cos.getObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: `/THUAI6/${team_id}/player2.cpp`,
-            Output: fStream.createWriteStream(`${base_directory}/${team_id}/player2.cpp`),
-          }, (err, data) => console.log(err || data));
-          cos.getObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: `/THUAI6/${team_id}/player3.cpp`,
-            Output: fStream.createWriteStream(`${base_directory}/${team_id}/player3.cpp`),
-          }, (err, data) => console.log(err || data));
-          cos.getObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: `/THUAI6/${team_id}/player4.cpp`,
-            Output: fStream.createWriteStream(`${base_directory}/${team_id}/player4.cpp`),
-          }, (err, data) => console.log(err || data));
-        } catch (err) {
-          return res.status(400).send(`STS选手代码下载失败:${err}`);
-        }
-        console.log("@@ files downloaded");
-        const docker =
-          process.env.DOCKER === "remote"
-            ? new Docker({
-              host: process.env.DOCKER_URL,
-              port: process.env.DOCKER_PORT,
-            })
-            : new Docker();
-        let containerRunning = false;
-        try {
-          const containerList = await docker.listContainers();
-          containerList.forEach((containerInfo) => {
-            if (containerInfo.Names.includes(`/THUAI6_Compiler_${team_id}`)) {
-              containerRunning = true;
-            }
-          });
-          if (!containerRunning) {
-            const url =
-              process.env.NODE_ENV == "production"
-                ? "https://api.eesast.com/code/compileInfo"
-                : "http://172.17.0.1:28888/code/compileInfo";
-            const compiler_token = jwt.sign(
-              {
-                team_id: team_id,
-              } as JwtCompilerPayload,
-              process.env.SECRET!,
-              {
-                expiresIn: "10m",
-              }
-            );
-            const container = await docker.createContainer({
-              Image: process.env.COMPILER_IMAGE,
-              Env: [
-                `URL=${url}`,
-                `TOKEN=${compiler_token}`
-              ],
-              HostConfig: {
-                Binds: [`${base_directory}/${team_id}:/usr/local/mnt`],
-                AutoRemove: true,
-                NetworkMode: "host"
-              },
-              AttachStdin: false,
-              AttachStdout: false,
-              AttachStderr: false,
-              //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
-              name: `THUAI6_Compiler_${team_id}`
+          // cos.getObject({
+          //   Bucket: config.bucket,
+          //   Region: config.region,
+          //   Key: `/THUAI6/${team_id}/player1.cpp`,
+          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player1.cpp`),
+          // }, (err, data) => console.log(err || data));
+          // cos.getObject({
+          //   Bucket: config.bucket,
+          //   Region: config.region,
+          //   Key: `/THUAI6/${team_id}/player2.cpp`,
+          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player2.cpp`),
+          // }, (err, data) => console.log(err || data));
+          // cos.getObject({
+          //   Bucket: config.bucket,
+          //   Region: config.region,
+          //   Key: `/THUAI6/${team_id}/player3.cpp`,
+          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player3.cpp`),
+          // }, (err, data) => console.log(err || data));
+          // cos.getObject({
+          //   Bucket: config.bucket,
+          //   Region: config.region,
+          //   Key: `/THUAI6/${team_id}/player4.cpp`,
+          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player4.cpp`),
+          // }, (err, data) => console.log(err || data));
+
+          const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
+            return new Promise((resolve, reject) => {
+              cos.getObject({
+                Bucket: config.bucket,
+                Region: config.region,
+                Key: key,
+                Output: fStream.createWriteStream(outputPath),
+              }, (err, data) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  console.log(data);
+                  resolve(true);
+                }
+              });
             });
-            await client.request(
-              gql`
+          };
+
+          const downloadAllFiles = async function downloadAllFiles() {
+            const urls = [
+              { key: `/THUAI6/${team_id}/player1.cpp`, path: `${base_directory}/${team_id}/player1.cpp` },
+              { key: `/THUAI6/${team_id}/player2.cpp`, path: `${base_directory}/${team_id}/player2.cpp` },
+              { key: `/THUAI6/${team_id}/player3.cpp`, path: `${base_directory}/${team_id}/player3.cpp` },
+              { key: `/THUAI6/${team_id}/player4.cpp`, path: `${base_directory}/${team_id}/player4.cpp` },
+            ];
+
+            const promises = urls.map((url) => downloadObject(url.key, url.path));
+            await Promise.all(promises);
+          };
+
+          downloadAllFiles().then(async () => {
+            console.log('所有文件已下载完成');
+            console.log("@@ files downloaded");
+            const docker =
+              process.env.DOCKER === "remote"
+                ? new Docker({
+                  host: process.env.DOCKER_URL,
+                  port: process.env.DOCKER_PORT,
+                })
+                : new Docker();
+            let containerRunning = false;
+            try {
+              const containerList = await docker.listContainers();
+              containerList.forEach((containerInfo) => {
+                if (containerInfo.Names.includes(`/THUAI6_Compiler_${team_id}`)) {
+                  containerRunning = true;
+                }
+              });
+              if (!containerRunning) {
+                const url =
+                  process.env.NODE_ENV == "production"
+                    ? "https://api.eesast.com/code/compileInfo"
+                    : "http://172.17.0.1:28888/code/compileInfo";
+                const compiler_token = jwt.sign(
+                  {
+                    team_id: team_id,
+                  } as JwtCompilerPayload,
+                  process.env.SECRET!,
+                  {
+                    expiresIn: "10m",
+                  }
+                );
+                const container = await docker.createContainer({
+                  Image: process.env.COMPILER_IMAGE,
+                  Env: [
+                    `URL=${url}`,
+                    `TOKEN=${compiler_token}`
+                  ],
+                  HostConfig: {
+                    Binds: [`${base_directory}/${team_id}:/usr/local/mnt`],
+                    AutoRemove: true,
+                    NetworkMode: "host"
+                  },
+                  AttachStdin: false,
+                  AttachStdout: false,
+                  AttachStderr: false,
+                  //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
+                  name: `THUAI6_Compiler_${team_id}`
+                });
+                await client.request(
+                  gql`
                 mutation update_compile_status(
                   $team_id: uuid!
                   $status: String
@@ -229,18 +259,25 @@ router.post("/compile", async (req, res) => {
                   }
                 }
               `,
-              {
-                contest_id: process.env.GAME_ID,
-                team_id: team_id,
-                status: "compiling",
+                  {
+                    contest_id: process.env.GAME_ID,
+                    team_id: team_id,
+                    status: "compiling",
+                  }
+                );
+                await container.start();
+                console.log("@@ docker started");
               }
-            );
-            await container.start();
-            console.log("@@ docker started");
-          }
+            } catch (err) {
+              return res.status(400).send(err);
+            }
+          }).catch((err) => {
+            console.error('下载文件失败：', err);
+          });
         } catch (err) {
-          return res.status(400).send(err);
+          return res.status(400).send(`STS选手代码下载失败:${err}`);
         }
+
       } catch (err) {
         return res.status(400).send(err);
       }
