@@ -18,6 +18,91 @@ interface ReqResult {
   score: number;
 }
 
+type MyPair<T> = [T, T];
+
+function cal(orgScore: MyPair<number>, competitionScore: MyPair<number>): MyPair<number> {
+  // 调整顺序，让第一个元素成为获胜者，便于计算
+  let reverse = false; // 记录是否需要调整
+  if (competitionScore[0] < competitionScore[1]) {
+    reverse = true;
+  } else if (competitionScore[0] === competitionScore[1]) {
+    if (orgScore[0] === orgScore[1]) {
+      // 完全平局，不改变天梯分数
+      return orgScore;
+    }
+    if (orgScore[0] > orgScore[1]) {
+      // 本次游戏平局，但一方天梯分数高，另一方天梯分数低，需要将两者向中间略微靠拢，因此天梯分数低的定为获胜者
+      reverse = true;
+    }
+  }
+  if (reverse) {
+    // 如果需要换，换两者的顺序
+    competitionScore.reverse();
+    orgScore.reverse();
+  }
+  // 转成浮点数
+  const orgScoreLf: MyPair<number> = [orgScore[0], orgScore[1]];
+  const competitionScoreLf: MyPair<number> = [competitionScore[0], competitionScore[1]];
+  orgScoreLf[0] = orgScore[0];
+  orgScoreLf[1] = orgScore[1];
+  competitionScoreLf[0] = competitionScore[0];
+  competitionScoreLf[1] = competitionScore[1];
+  const resScore: MyPair<number> = [0, 0];
+  const deltaWeight = 1000.0; // 差距悬殊判断参数
+  const delta = (orgScoreLf[0] - orgScoreLf[1]) / deltaWeight;
+  console.log('Tanh delta: ', Math.tanh(delta));
+  {
+    // 盈利者天梯得分权值、落败者天梯得分权值
+    const firstnerGet = 9e-6;
+    const secondrGet = 5e-6;
+    const deltaScore = 2100.0; // 两队竞争分差超过多少时就认为非常大
+    const correctRate = (orgScoreLf[0] - orgScoreLf[1]) / (deltaWeight * 1.2); // 订正的幅度，该值越小，则在势均力敌时天梯分数改变越大
+    const correct =
+      0.5 *
+      (Math.tanh((competitionScoreLf[0] - competitionScoreLf[1] - deltaScore) / deltaScore - correctRate) + 1.0); // 一场比赛中，在双方势均力敌时，减小天梯分数的改变量
+    console.log('correct: ', correct);
+    resScore[0] = orgScore[0] + Math.round(competitionScoreLf[0] * competitionScoreLf[0] * firstnerGet * (1 - Math.tanh(delta)) * correct); // 胜者所加天梯分
+    resScore[1] = orgScore[1] - Math.round(
+      (competitionScoreLf[0] - competitionScoreLf[1]) * (competitionScoreLf[0] - competitionScoreLf[1]) * secondrGet * (1 - Math.tanh(delta)) * correct,
+    ); // 败者所扣天梯分
+  }
+  // 如果换过，再换回来
+  if (reverse) {
+    resScore.reverse();
+  }
+  return resScore;
+}
+/*
+200 200 7500 7450
+ -> 263 200
+----------------------------------------------------
+263 200 8450 6490
+ -> 528 192
+----------------------------------------------------
+528 192 6400 7960
+ -> 520 578
+----------------------------------------------------
+520 578 12000 4000
+ -> 1887 241
+----------------------------------------------------
+1887 241 5880 6200
+ -> 1886 735
+----------------------------------------------------
+1886 735 7500 7600
+ -> 1886 1211
+----------------------------------------------------
+1886 1211 4550 6450
+ -> 1865 1638
+----------------------------------------------------
+*/
+console.log(cal([200, 200], [7500, 7450]))
+// console.log(cal([263, 200], [8450, 6490]))
+// console.log(cal([528, 192], [6400, 7960]))
+// console.log(cal([520, 578], [12000, 4000]))
+// console.log(cal([1887, 241], [5880, 6200]))
+// console.log(cal([1886, 735], [7500, 7600]))
+// console.log(cal([1886, 1211], [4550, 6450]))
+
 const PHI = (x: any) => {return erf(x / sqrt(2))};
 
 // 天梯用算法
@@ -311,13 +396,13 @@ router.post("/", async (req, res) => {
         case 0: {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              docker_queue.push({
-                room_id: `Num.${i}--vs--Num.${j}`,
-                team_id_1: valid_team_ids[i].team_id,
-                team_id_2: valid_team_ids[j].team_id,
-                map: 0,
-                mode: 1
-              });
+              // docker_queue.push({
+              //   room_id: `Num.${i}--vs--Num.${j}`,
+              //   team_id_1: valid_team_ids[i].team_id,
+              //   team_id_2: valid_team_ids[j].team_id,
+              //   map: 0,
+              //   mode: 1
+              // });
             }
           }
           break;
@@ -325,37 +410,38 @@ router.post("/", async (req, res) => {
         case 1: {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`,
-                team_id_1: valid_team_ids[i].team_id,
-                team_id_2: valid_team_ids[j].team_id,
-                map: 0,
-                mode: 1
-              });
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`,
-                team_id_1: valid_team_ids[j].team_id,
-                team_id_2: valid_team_ids[i].team_id,
-                map: 0,
-                mode: 1
-              });
+              // docker_queue.push({
+              //   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`,
+              //   team_id_1: valid_team_ids[i].team_id,
+              //   team_id_2: valid_team_ids[j].team_id,
+              //   map: 0,
+              //   mode: 1
+              // });
+              // docker_queue.push({
+              //   room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`,
+              //   team_id_1: valid_team_ids[j].team_id,
+              //   team_id_2: valid_team_ids[i].team_id,
+              //   map: 0,
+              //   mode: 1
+              // });
             }
           }
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`,
-                team_id_1: valid_team_ids[i].team_id,
-                team_id_2: valid_team_ids[j].team_id,
-                map: 1,
-                mode: 1
-              });
+              // docker_queue.push({
+              //   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`,
+              //   team_id_1: valid_team_ids[i].team_id,
+              //   team_id_2: valid_team_ids[j].team_id,
+              //   map: 1,
+              //   mode: 1
+              // });
               docker_queue.push({
                 room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`,
                 team_id_1: valid_team_ids[j].team_id,
                 team_id_2: valid_team_ids[i].team_id,
                 map: 1,
-                mode: 1
+                mode: 1,
+                exposed: false
               });
             }
           }
@@ -364,20 +450,20 @@ router.post("/", async (req, res) => {
         case 2: {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--second`,
-                team_id_1: valid_team_ids[i].team_id,
-                team_id_2: valid_team_ids[j].team_id,
-                map: 1,
-                mode: 1
-              });
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--second`,
-                team_id_1: valid_team_ids[j].team_id,
-                team_id_2: valid_team_ids[i].team_id,
-                map: 1,
-                mode: 1
-              });
+              // docker_queue.push({
+              //   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--second`,
+              //   team_id_1: valid_team_ids[i].team_id,
+              //   team_id_2: valid_team_ids[j].team_id,
+              //   map: 1,
+              //   mode: 1
+              // });
+              // docker_queue.push({
+              //   room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--second`,
+              //   team_id_1: valid_team_ids[j].team_id,
+              //   team_id_2: valid_team_ids[i].team_id,
+              //   map: 1,
+              //   mode: 1
+              // });
             }
           }
           break;
