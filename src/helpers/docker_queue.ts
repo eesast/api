@@ -5,26 +5,64 @@ import jwt from "jsonwebtoken";
 import { JwtServerPayload } from "../routes/contest";
 import { gql } from "graphql-request";
 import { client } from "..";
-
+import fs from "fs";
 export interface queue_element {
   room_id: string;
   team_id_1: string;
   team_id_2: string;
   map: number;
   mode: number;
+  exposed: boolean;
 }
 
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/thuai6';
+// exposed_ports, array, value is string ,len is 10
+// const exposed_ports = ["", "", "", "", "", "", "", "", "", ""];
+
+
+
+
+const get_port = (room_id: string, exposed_ports: Array<string>) => {
+  let result = -1;
+  for (let i = 0; i < exposed_ports.length; ++i) {
+    if (exposed_ports[i] === "") {
+      exposed_ports[i] = room_id;
+      result = i + 8888;
+      break;
+    }
+  }
+  if (result === -1) {
+    for (let i = 0; i < exposed_ports.length; ++i) {
+      // 查看basedirectory/room_id中是否存在finish.lock
+      if (fs.existsSync(base_directory + "/playback/" + exposed_ports[i] + "/finish.lock")) {
+        exposed_ports[i] = "";
+      }
+    }
+    for (let i = 0; i < exposed_ports.length; ++i) {
+      if (exposed_ports[i] === "") {
+        if (result === -1) {
+          exposed_ports[i] = room_id;
+          result = i + 8888;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
 
 const docker_cron = () => {
+  const port_num = parseInt(process.env.MAX_CONTAINERS as string);
+  const exposed_ports = new Array(port_num).fill("");
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME} * * * * *`, async () => {
     const max_container_num = parseInt(process.env.MAX_CONTAINERS as string);
     const docker =
       process.env.DOCKER === "remote"
         ? new Docker({
-            host: process.env.DOCKER_URL,
-            port: process.env.DOCKER_PORT,
-          })
+          host: process.env.DOCKER_URL,
+          port: process.env.DOCKER_PORT,
+        })
         : new Docker();
     try {
       const existing_containers = await docker.listContainers({
@@ -36,6 +74,7 @@ const docker_cron = () => {
           (max_container_num - existing_containers.length),
           docker_queue.length
         );
+        // console.log("available_num: " + available_num);
         if (available_num === 0) return;
         for (let i = 0; i < available_num; ++i) {
           const queue_front = docker_queue.shift() as queue_element;
@@ -55,6 +94,7 @@ const docker_cron = () => {
             );
             let all_compiled = true;
             query_if_compiled.contest_team.forEach((element: { status: string }) => {
+              // console.log(element.status);
               if (element.status != "compiled") all_compiled = false;
             });
             if (!all_compiled) continue;
@@ -76,6 +116,13 @@ const docker_cron = () => {
           });
           if (!containerRunning) {
             try {
+              const port = get_port(queue_front.room_id, exposed_ports);
+              // console.log(port)
+              if (port === -1) {
+                //no port available
+                console.log("no port available")
+                continue;
+              }
               const serverToken = jwt.sign(
                 {
                   room_id: queue_front.room_id,
@@ -104,16 +151,24 @@ const docker_cron = () => {
                     `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
                   ],
                   AutoRemove: true,
+                  PortBindings: {
+                    "8888/tcp": [{ HostPort: `${port}` }]
+                  }
                 },
                 Env: [
                   `URL=${url}`,
                   `TOKEN=${serverToken}`,
                   `MODE=${queue_front.mode}`,
-                  `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`
+                  `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
+                  `EXPOSED=${queue_front.exposed}`
                 ],
-                Cmd: ["-m 6g"]
+                Cmd: [`-m 6g`]
               });
               await container_runner.start();
+              // container_runner.wait((err, data) =>{
+              //   modify; 0 1 1 1; 1011
+              // return []
+              // });
               console.log("runnner started");
             } catch (err) {
               console.log(err);

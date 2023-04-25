@@ -7,13 +7,14 @@ import { JwtPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 
 const router = express.Router();
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/thuai6';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
 
 /**
  * @param token (user_id)
  * @param {uuid} room_id
  * @param {boolean} team_seq
  * @param {number} map
+ * @param {boolean} exposed
  */
 
 router.post("/", async (req, res) => {
@@ -73,12 +74,10 @@ router.post("/", async (req, res) => {
             if (teams.length != 2) {
               res.status(400).send("队伍信息错误");
             }
-
             const team_withseq = ["", ""] as string[];
             team_withseq[Number(team_seq)] = current_team_id;
             team_withseq[1 - Number(team_seq)] =
               current_team_id == teams[0].team_id ? teams[1].team_id : teams[0].team_id;
-
             try {
               await fs.mkdir(`${base_directory}/playback/${room_id}`, {
                 recursive: true,
@@ -93,7 +92,8 @@ router.post("/", async (req, res) => {
               team_id_1: team_withseq[0],
               team_id_2: team_withseq[1],
               map: map,
-              mode: 0
+              mode: 0,
+              exposed: Boolean(req.body.exposed),
             });
             return res.status(200).send("Joined queue!");
           } catch (err) {
@@ -163,7 +163,8 @@ router.post("/assign", async (req, res) => {
         team_id_1: req.body.team_id1,
         team_id_2: req.body.team_id2,
         map: 1,
-        mode: 1
+        mode: 1,
+        exposed: req.body.exposed
       });
       return res.status(200).send("successfully assigned!");
     })
