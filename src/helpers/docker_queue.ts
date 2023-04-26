@@ -152,8 +152,13 @@ const docker_cron = () => {
                   ],
                   AutoRemove: true,
                   PortBindings: {
-                    "8888/tcp": [{ HostPort: `${port}` }]
-                  }
+                    "8888/tcp": [{
+                       HostPort: `${port}`,
+                       HostIP: '0.0.0.0'
+                      }],
+                  },
+
+                  NetworkMode: "host",
                 },
                 Env: [
                   `URL=${url}`,
