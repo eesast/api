@@ -160,7 +160,7 @@ const docker_cron = () => {
                   `TOKEN=${serverToken}`,
                   `MODE=${queue_front.mode}`,
                   `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
-                  `EXPOSED=${queue_front.exposed}`
+                  `EXPOSED=${queue_front.exposed ? 1 : 0}`
                 ],
                 Cmd: [`-m 6g`]
               });
