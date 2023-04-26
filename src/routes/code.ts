@@ -103,26 +103,7 @@ router.post("/compile", async (req, res) => {
         } catch (err) {
           return res.status(400).send("文件存储目录创建失败");
         }
-        // console.log("@@ dir created");
-        // console.log("@@ try to check submitted_code_num");
-        // try {
-        // const submitted_code_num = await client.request(
-        //   gql`
-        //     query submitte_code_num ($team_id: uuid){
-        //       contest_team(where: {team_id: {_eq: $team_id}}) {
-        //         submitted_code_num
-        //       }
-        //     }
-        //   `, { team_id: team_id });
-        // if (submitted_code_num.contest_team[0].submitted_code_num != 5)
-        //   return res.status(400).send("未完成全部文件上传");
 
-        // }
-        // catch (err) {
-        //   return res.status(400).send(err);
-        // }
-        // console.log("@@ submitted_code_num checked");
-        // console.log("@@ try to download files");
         try {
           const get_contest_codes = await client.request(
             gql`query get_team_codes($team_id: uuid){
@@ -188,45 +169,6 @@ router.post("/compile", async (req, res) => {
             region: 'ap-beijing',
           };
 
-          // cos.putObject({
-          //   Bucket: config.bucket, // 上传到的 COS 存储桶名
-          //   Region: config.region, // 存储桶所在的区域
-          //   Key: '/THUAI6/a54458bf-e5b6-47de-989a-dabfd7a232a1/player5.py', // 上传文件的路径和文件名
-          //   Body: fStream.createReadStream(`${base_directory}/a54458bf-e5b6-47de-989a-dabfd7a232a1/player5.py`), // 使用 Node.js 的 fs 模块创建可读流
-          // }, function(err, data) {
-          //   if (err) {
-          //     console.error(err);
-          //   } else {
-          //     console.log(data);
-          //   }
-          // });
-          // return res.status(200).send("ok");
-
-          // cos.getObject({
-          //   Bucket: config.bucket,
-          //   Region: config.region,
-          //   Key: `/THUAI6/${team_id}/player1.cpp`,
-          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player1.cpp`),
-          // }, (err, data) => console.log(err || data));
-          // cos.getObject({
-          //   Bucket: config.bucket,
-          //   Region: config.region,
-          //   Key: `/THUAI6/${team_id}/player2.cpp`,
-          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player2.cpp`),
-          // }, (err, data) => console.log(err || data));
-          // cos.getObject({
-          //   Bucket: config.bucket,
-          //   Region: config.region,
-          //   Key: `/THUAI6/${team_id}/player3.cpp`,
-          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player3.cpp`),
-          // }, (err, data) => console.log(err || data));
-          // cos.getObject({
-          //   Bucket: config.bucket,
-          //   Region: config.region,
-          //   Key: `/THUAI6/${team_id}/player4.cpp`,
-          //   Output: fStream.createWriteStream(`${base_directory}/${team_id}/player4.cpp`),
-          // }, (err, data) => console.log(err || data));
-
           const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
             return new Promise((resolve, reject) => {
               cos.getObject({
@@ -244,23 +186,7 @@ router.post("/compile", async (req, res) => {
               });
             });
           };
-          // const get_contest_codes = await client.request(
-          //   gql`query get_team_codes($team_id: uuid){
-          //     contest_code(where: {team_id: {_eq: $team_id}}) {
-          //       code1
-          //       code2
-          //       code3
-          //       code4
-          //       code5
-          //       code_type1
-          //       code_type2
-          //       code_type3
-          //       code_type4
-          //       code_type5
-          //     }
-          //   }`,
-          //   { team_id: team_id }
-          // );
+
           const urls: Url[] = [];
           const codes = get_contest_codes.contest_code[0];
           urls.push({ key: `${codes.code1}`, path: `${base_directory}/${team_id}/player1.${codes.code_type1}` });
