@@ -144,14 +144,12 @@ const docker_cron = () => {
                     `${base_directory}/${queue_front.team_id_1}/:/usr/local/team1`,
                     `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
                   ],
-                  AutoRemove: true,
                   PortBindings: {
-                    "8888/tcp": [{
-                       HostPort: `${port}`,
-                       HostIP: '0.0.0.0'
-                      }],
+                    '8888/tcp': [{HostPort: `${port}`}]
                   },
+                  AutoRemove: true
                 },
+                ExposedPorts: {'8888/tcp': {}},
                 Env: [
                   `URL=${url}`,
                   `TOKEN=${serverToken}`,
