@@ -151,15 +151,13 @@ const docker_cron = () => {
                        HostIP: '0.0.0.0'
                       }],
                   },
-
-                  NetworkMode: "host",
                 },
                 Env: [
                   `URL=${url}`,
                   `TOKEN=${serverToken}`,
                   `MODE=${queue_front.mode}`,
                   `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
-                  `EXPOSED=${queue_front.exposed ? 1 : 0}`,
+                  `EXPOSED=${queue_front.exposed}`,
                   `TIME=${process.env.GAME_TIME}`
                 ],
                 Cmd: [`-m 6g`],
