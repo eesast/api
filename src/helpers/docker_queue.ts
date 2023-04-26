@@ -15,12 +15,6 @@ export interface queue_element {
   exposed: number;
 }
 
-// exposed_ports, array, value is string ,len is 10
-// const exposed_ports = ["", "", "", "", "", "", "", "", "", ""];
-
-
-
-
 const get_port = (room_id: string, exposed_ports: Array<string>) => {
   let result = -1;
   for (let i = 0; i < exposed_ports.length; ++i) {
@@ -165,16 +159,13 @@ const docker_cron = () => {
                   `TOKEN=${serverToken}`,
                   `MODE=${queue_front.mode}`,
                   `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
-                  `EXPOSED=${queue_front.exposed}`
+                  `EXPOSED=${queue_front.exposed}`,
+                  `TIME=${process.env.GAME_TIME}`
                 ],
                 Cmd: [`-m 6g`],
                 StopTimeout: 20*60
               });
               await container_runner.start();
-              // container_runner.wait((err, data) =>{
-              //   modify; 0 1 1 1; 1011
-              // return []
-              // });
               console.log("runnner started");
               await client.request(
                 gql`

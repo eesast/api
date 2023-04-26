@@ -50,7 +50,7 @@ function cal(orgScore: MyPair<number>, competitionScore: MyPair<number>): MyPair
   const resScore: MyPair<number> = [0, 0];
   const deltaWeight = 1000.0; // 差距悬殊判断参数
   const delta = (orgScoreLf[0] - orgScoreLf[1]) / deltaWeight;
-  console.log('Tanh delta: ', Math.tanh(delta));
+  // console.log('Tanh delta: ', Math.tanh(delta));
   {
     // 盈利者天梯得分权值、落败者天梯得分权值
     const firstnerGet = 9e-6;
@@ -60,7 +60,7 @@ function cal(orgScore: MyPair<number>, competitionScore: MyPair<number>): MyPair
     const correct =
       0.5 *
       (Math.tanh((competitionScoreLf[0] - competitionScoreLf[1] - deltaScore) / deltaScore - correctRate) + 1.0); // 一场比赛中，在双方势均力敌时，减小天梯分数的改变量
-    console.log('correct: ', correct);
+    // console.log('correct: ', correct);
     resScore[0] = orgScore[0] + Math.round(competitionScoreLf[0] * competitionScoreLf[0] * firstnerGet * (1 - Math.tanh(delta)) * correct); // 胜者所加天梯分
     resScore[1] = orgScore[1] - Math.round(
       (competitionScoreLf[0] - competitionScoreLf[1]) * (competitionScoreLf[0] - competitionScoreLf[1]) * secondrGet * (1 - Math.tanh(delta)) * correct,
@@ -72,73 +72,6 @@ function cal(orgScore: MyPair<number>, competitionScore: MyPair<number>): MyPair
   }
   return resScore;
 }
-/*
-200 200 7500 7450
- -> 263 200
-----------------------------------------------------
-263 200 8450 6490
- -> 528 192
-----------------------------------------------------
-528 192 6400 7960
- -> 520 578
-----------------------------------------------------
-520 578 12000 4000
- -> 1887 241
-----------------------------------------------------
-1887 241 5880 6200
- -> 1886 735
-----------------------------------------------------
-1886 735 7500 7600
- -> 1886 1211
-----------------------------------------------------
-1886 1211 4550 6450
- -> 1865 1638
-----------------------------------------------------
-*/
-console.log(cal([200, 200], [7500, 7450]))
-// console.log(cal([263, 200], [8450, 6490]))
-// console.log(cal([528, 192], [6400, 7960]))
-// console.log(cal([520, 578], [12000, 4000]))
-// console.log(cal([1887, 241], [5880, 6200]))
-// console.log(cal([1886, 735], [7500, 7600]))
-// console.log(cal([1886, 1211], [4550, 6450]))
-
-// const PHI = (x: any) => {return erf(x / sqrt(2))};
-
-// 天梯用算法
-// function calculateScore0(competitionScore: number[], orgScore: number[]) {
-//   let reverse = false;
-//   if (competitionScore[0] < competitionScore[1]) reverse = true;
-//   else if (competitionScore[0] == competitionScore[1]) {
-//     if (orgScore[0] == orgScore[1]) return orgScore;
-//     if (orgScore[0] > orgScore[1]) reverse = true;
-//     else reverse = false;
-//   }
-//   if (reverse) {
-//     [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
-//     [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
-//   }
-//   const resScore = [];
-//   const deltaWeight = 90.0;
-//   const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
-//   const firstnerGet = 1e-4;
-//   const secondrGet = 7e-5;
-//   const possibleMaxScore = 1500.0;
-//   const deltaScore = 100.0;
-//   const correctRate = (orgScore[0] - orgScore[1]) / 100.0;
-//   const correct = 0.5 * (PHI((competitionScore[0] - competitionScore[1] - deltaScore) / deltaScore - correctRate) + 1.0);
-//   resScore.push(orgScore[0] + round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - PHI(delta)) * correct));
-//   if (competitionScore[1] < possibleMaxScore)
-//       resScore.push(orgScore[1] - round((possibleMaxScore - competitionScore[1]) * (possibleMaxScore - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct));
-//   else
-//       resScore.push(orgScore[1]);
-//   if (reverse) {
-//     [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
-//     [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
-//     [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
-//   }
-//   return resScore;
-// }
 
 // 跑比赛用算法
 const maxScore = 100;
@@ -198,7 +131,7 @@ router.put("/", async (req, res) => {
       }
       if (req.body.mode != 0 && req.body.mode != 1) return res.status(400).send("Wrong mode code!");
       const payload = decoded as JwtServerPayload;
-      console.log(payload.team_ids);
+      // console.log(payload.team_ids);
       if (req.body.mode == 0) {
         const query_if_valid = await client.request(
           gql`
@@ -239,7 +172,7 @@ router.put("/", async (req, res) => {
                   contest_id: process.env.GAME_ID
                 }
               );
-              console.log(current_score_query0)
+              // console.log(current_score_query0)
               if (current_score_query0.contest_team[0].score == null) current_score[i] = 200;
               else current_score[i] = Number(current_score_query0.contest_team[0].score);
               team_name[i] = current_score_query0.contest_team[0].team_name;
@@ -339,12 +272,10 @@ router.put("/", async (req, res) => {
         );
         return res.status(200).send("update ok!");
       } catch (err) {
-        console.log(err)
         return res.status(400).send(err);
       }
     });
   } catch (err) {
-    console.log(err)
     return res.status(400).send(err);
   }
 });
