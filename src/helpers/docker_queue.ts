@@ -187,7 +187,7 @@ const docker_cron = () => {
                   port: port,
                 }
               );
-              container_runner.wait((err, data) => async function(){
+              container_runner.wait(() => async function(){
                 await client.request(
                   gql`
                     mutation update_room_port($room_id: uuid!, $port: number, $contest_id: uuid){
