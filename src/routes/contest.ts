@@ -4,7 +4,7 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
 import { JwtPayload } from "../middlewares/authenticate";
-import { erf, sqrt, round, log10 } from "mathjs";
+import { log10 } from "mathjs";
 
 const router = express.Router();
 
@@ -103,42 +103,42 @@ console.log(cal([200, 200], [7500, 7450]))
 // console.log(cal([1886, 735], [7500, 7600]))
 // console.log(cal([1886, 1211], [4550, 6450]))
 
-const PHI = (x: any) => {return erf(x / sqrt(2))};
+// const PHI = (x: any) => {return erf(x / sqrt(2))};
 
 // 天梯用算法
-function calculateScore0(competitionScore: number[], orgScore: number[]) {
-  let reverse = false;
-  if (competitionScore[0] < competitionScore[1]) reverse = true;
-  else if (competitionScore[0] == competitionScore[1]) {
-    if (orgScore[0] == orgScore[1]) return orgScore;
-    if (orgScore[0] > orgScore[1]) reverse = true;
-    else reverse = false;
-  }
-  if (reverse) {
-    [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
-    [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
-  }
-  const resScore = [];
-  const deltaWeight = 90.0;
-  const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
-  const firstnerGet = 1e-4;
-  const secondrGet = 7e-5;
-  const possibleMaxScore = 1500.0;
-  const deltaScore = 100.0;
-  const correctRate = (orgScore[0] - orgScore[1]) / 100.0;
-  const correct = 0.5 * (PHI((competitionScore[0] - competitionScore[1] - deltaScore) / deltaScore - correctRate) + 1.0);
-  resScore.push(orgScore[0] + round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - PHI(delta)) * correct));
-  if (competitionScore[1] < possibleMaxScore)
-      resScore.push(orgScore[1] - round((possibleMaxScore - competitionScore[1]) * (possibleMaxScore - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct));
-  else
-      resScore.push(orgScore[1]);
-  if (reverse) {
-    [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
-    [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
-    [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
-  }
-  return resScore;
-}
+// function calculateScore0(competitionScore: number[], orgScore: number[]) {
+//   let reverse = false;
+//   if (competitionScore[0] < competitionScore[1]) reverse = true;
+//   else if (competitionScore[0] == competitionScore[1]) {
+//     if (orgScore[0] == orgScore[1]) return orgScore;
+//     if (orgScore[0] > orgScore[1]) reverse = true;
+//     else reverse = false;
+//   }
+//   if (reverse) {
+//     [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
+//     [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
+//   }
+//   const resScore = [];
+//   const deltaWeight = 90.0;
+//   const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
+//   const firstnerGet = 1e-4;
+//   const secondrGet = 7e-5;
+//   const possibleMaxScore = 1500.0;
+//   const deltaScore = 100.0;
+//   const correctRate = (orgScore[0] - orgScore[1]) / 100.0;
+//   const correct = 0.5 * (PHI((competitionScore[0] - competitionScore[1] - deltaScore) / deltaScore - correctRate) + 1.0);
+//   resScore.push(orgScore[0] + round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - PHI(delta)) * correct));
+//   if (competitionScore[1] < possibleMaxScore)
+//       resScore.push(orgScore[1] - round((possibleMaxScore - competitionScore[1]) * (possibleMaxScore - competitionScore[1]) * secondrGet * (1 - PHI(delta)) * correct));
+//   else
+//       resScore.push(orgScore[1]);
+//   if (reverse) {
+//     [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
+//     [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
+//     [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
+//   }
+//   return resScore;
+// }
 
 // 跑比赛用算法
 const maxScore = 100;
@@ -198,6 +198,7 @@ router.put("/", async (req, res) => {
       }
       if (req.body.mode != 0 && req.body.mode != 1) return res.status(400).send("Wrong mode code!");
       const payload = decoded as JwtServerPayload;
+      console.log(payload.team_ids);
       if (req.body.mode == 0) {
         const query_if_valid = await client.request(
           gql`
@@ -238,6 +239,7 @@ router.put("/", async (req, res) => {
                   contest_id: process.env.GAME_ID
                 }
               );
+              console.log(current_score_query0)
               if (current_score_query0.contest_team[0].score == null) current_score[i] = 200;
               else current_score[i] = Number(current_score_query0.contest_team[0].score);
               team_name[i] = current_score_query0.contest_team[0].team_name;
@@ -270,7 +272,7 @@ router.put("/", async (req, res) => {
         game_result.forEach((value: ReqResult) => {
           competitionScore[value.team_id] = value.score;
         });
-        const updated_score = req.body.mode == 0 ? calculateScore0(competitionScore, current_score) as number[] : calculateScore1(competitionScore, current_score) as number[];
+        const updated_score = req.body.mode == 0 ? cal([current_score[0], current_score[1]], [competitionScore[0], competitionScore[1]]) as number[] : calculateScore1(competitionScore, current_score) as number[];
         for (let i = 0; i < 2; ++i) {
           switch (req.body.mode) {
             case 0: {
@@ -337,10 +339,12 @@ router.put("/", async (req, res) => {
         );
         return res.status(200).send("update ok!");
       } catch (err) {
+        console.log(err)
         return res.status(400).send(err);
       }
     });
   } catch (err) {
+    console.log(err)
     return res.status(400).send(err);
   }
 });
@@ -441,7 +445,7 @@ router.post("/", async (req, res) => {
                 team_id_2: valid_team_ids[i].team_id,
                 map: 1,
                 mode: 1,
-                exposed: false
+                exposed: 0
               });
             }
           }

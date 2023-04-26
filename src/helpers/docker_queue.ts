@@ -12,7 +12,7 @@ export interface queue_element {
   team_id_2: string;
   map: number;
   mode: number;
-  exposed: boolean;
+  exposed: number;
 }
 
 // exposed_ports, array, value is string ,len is 10
