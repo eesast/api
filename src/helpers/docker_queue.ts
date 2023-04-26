@@ -12,14 +12,8 @@ export interface queue_element {
   team_id_2: string;
   map: number;
   mode: number;
-  exposed: boolean;
+  exposed: number;
 }
-
-// exposed_ports, array, value is string ,len is 10
-// const exposed_ports = ["", "", "", "", "", "", "", "", "", ""];
-
-
-
 
 const get_port = (room_id: string, exposed_ports: Array<string>) => {
   let result = -1;
@@ -152,24 +146,61 @@ const docker_cron = () => {
                   ],
                   AutoRemove: true,
                   PortBindings: {
-                    "8888/tcp": [{ HostPort: `${port}` }]
-                  }
+                    "8888/tcp": [{
+                       HostPort: `${port}`,
+                       HostIP: '0.0.0.0'
+                      }],
+                  },
+
+                  NetworkMode: "host",
                 },
                 Env: [
                   `URL=${url}`,
                   `TOKEN=${serverToken}`,
                   `MODE=${queue_front.mode}`,
                   `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
-                  `EXPOSED=${queue_front.exposed ? 1 : 0}`
+                  `EXPOSED=${queue_front.exposed ? 1 : 0}`,
+                  `TIME=${process.env.GAME_TIME}`
                 ],
-                Cmd: [`-m 6g`]
+                Cmd: [`-m 6g`],
+                StopTimeout: 20*60
               });
               await container_runner.start();
-              // container_runner.wait((err, data) =>{
-              //   modify; 0 1 1 1; 1011
-              // return []
-              // });
               console.log("runnner started");
+              await client.request(
+                gql`
+                  mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
+                    update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
+                      returning{
+                        port
+                      }
+                    }
+                  }
+                `,
+                {
+                  contest_id: process.env.GAME_ID,
+                  room_id: queue_front.room_id,
+                  port: port,
+                }
+              );
+              container_runner.wait(async()=>{
+                await client.request(
+                  gql`
+                    mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
+                      update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
+                        returning{
+                          port
+                        }
+                      }
+                    }
+                  `,
+                  {
+                    contest_id: process.env.GAME_ID,
+                    room_id: queue_front.room_id,
+                    port: null,
+                  }
+                );
+              });
             } catch (err) {
               console.log(err);
               continue;
