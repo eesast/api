@@ -173,7 +173,7 @@ const docker_cron = () => {
               console.log("runnner started");
               await client.request(
                 gql`
-                  mutation update_room_port($room_id: uuid!, $contest_id: uuid){
+                  mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
                     update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
                       returning{
                         port
@@ -187,10 +187,10 @@ const docker_cron = () => {
                   port: port,
                 }
               );
-              container_runner.wait(() => async function(){
+              container_runner.wait(async()=>{
                 await client.request(
                   gql`
-                    mutation update_room_port($room_id: uuid!, $port: number, $contest_id: uuid){
+                    mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
                       update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
                         returning{
                           port
