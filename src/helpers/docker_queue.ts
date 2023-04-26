@@ -162,7 +162,8 @@ const docker_cron = () => {
                   `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
                   `EXPOSED=${queue_front.exposed}`
                 ],
-                Cmd: [`-m 6g`]
+                Cmd: [`-m 6g`],
+                StopTimeout: 20*60
               });
               await container_runner.start();
               // container_runner.wait((err, data) =>{
@@ -170,6 +171,40 @@ const docker_cron = () => {
               // return []
               // });
               console.log("runnner started");
+              await client.request(
+                gql`
+                  mutation update_room_port($room_id: uuid!, $contest_id: uuid){
+                    update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
+                      returning{
+                        port
+                      }
+                    }
+                  }
+                `,
+                {
+                  contest_id: process.env.GAME_ID,
+                  room_id: queue_front.room_id,
+                  port: port,
+                }
+              );
+              container_runner.wait(() => async function(){
+                await client.request(
+                  gql`
+                    mutation update_room_port($room_id: uuid!, $port: number, $contest_id: uuid){
+                      update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
+                        returning{
+                          port
+                        }
+                      }
+                    }
+                  `,
+                  {
+                    contest_id: process.env.GAME_ID,
+                    room_id: queue_front.room_id,
+                    port: null,
+                  }
+                );
+              });
             } catch (err) {
               console.log(err);
               continue;
