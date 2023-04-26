@@ -14,7 +14,7 @@ const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' :
  * @param {uuid} room_id
  * @param {boolean} team_seq
  * @param {number} map
- * @param {boolean} exposed
+ * @param {number} exposed
  */
 
 router.post("/", async (req, res) => {
@@ -23,6 +23,7 @@ router.post("/", async (req, res) => {
     const room_id = req.body.room_id;
     const team_seq = req.body.team_seq as boolean;
     const map = req.body.map as number;
+    const exposed = req.body.exposed as number;
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -93,9 +94,9 @@ router.post("/", async (req, res) => {
               team_id_2: team_withseq[1],
               map: map,
               mode: 0,
-              exposed: Boolean(req.body.exposed),
+              exposed: exposed,
             });
-            return res.status(200).send("Joined queue!");
+            return res.status(200).json({exposed: exposed});
           } catch (err) {
             return res.status(400).send(err);
           }
@@ -129,6 +130,7 @@ router.post("/assign", async (req, res) => {
       }
       const payload = decoded as JwtPayload;
       const user_id = payload._id;
+      const exposed = req.body.exposed as number;
       const query_if_manager = await client.request(
         gql`
           query query_is_manager($contest_id: uuid, $user_id: String) {
@@ -164,7 +166,7 @@ router.post("/assign", async (req, res) => {
         team_id_2: req.body.team_id2,
         map: 1,
         mode: 1,
-        exposed: req.body.exposed
+        exposed: exposed
       });
       return res.status(200).send("successfully assigned!");
     })
