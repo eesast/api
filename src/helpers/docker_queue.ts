@@ -196,6 +196,13 @@ const docker_cron = () => {
                     port: null,
                   }
                 );
+                const finish_path = base_directory + "/playback/" + queue_front.room_id;
+                fs.mkdir(finish_path, {recursive: true}, (err)=>{
+                  if(err) throw err;
+                  fs.writeFile(finish_path + "/finish.lock", "", (err)=>{
+                    if(err) throw err;
+                  })
+                });
               });
               setTimeout(() => {
                 container_runner.stop(() => {
