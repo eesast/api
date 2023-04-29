@@ -4,7 +4,6 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
 import { JwtPayload } from "../middlewares/authenticate";
-import { log10 } from "mathjs";
 
 const router = express.Router();
 
@@ -18,9 +17,7 @@ interface ReqResult {
   score: number;
 }
 
-type MyPair<T> = [T, T];
-
-function cal(orgScore: MyPair<number>, competitionScore: MyPair<number>): MyPair<number> {
+function cal(orgScore: number[], competitionScore: number[]) {
   // 调整顺序，让第一个元素成为获胜者，便于计算
   let reverse = false; // 记录是否需要调整
   if (competitionScore[0] < competitionScore[1]) {
@@ -40,32 +37,19 @@ function cal(orgScore: MyPair<number>, competitionScore: MyPair<number>): MyPair
     competitionScore.reverse();
     orgScore.reverse();
   }
-  // 转成浮点数
-  const orgScoreLf: MyPair<number> = [orgScore[0], orgScore[1]];
-  const competitionScoreLf: MyPair<number> = [competitionScore[0], competitionScore[1]];
-  orgScoreLf[0] = orgScore[0];
-  orgScoreLf[1] = orgScore[1];
-  competitionScoreLf[0] = competitionScore[0];
-  competitionScoreLf[1] = competitionScore[1];
-  const resScore: MyPair<number> = [0, 0];
+  const resScore = [0, 0];
   const deltaWeight = 1000.0; // 差距悬殊判断参数
-  const delta = (orgScoreLf[0] - orgScoreLf[1]) / deltaWeight;
-  // console.log('Tanh delta: ', Math.tanh(delta));
-  {
-    // 盈利者天梯得分权值、落败者天梯得分权值
-    const firstnerGet = 9e-6;
-    const secondrGet = 5e-6;
-    const deltaScore = 2100.0; // 两队竞争分差超过多少时就认为非常大
-    const correctRate = (orgScoreLf[0] - orgScoreLf[1]) / (deltaWeight * 1.2); // 订正的幅度，该值越小，则在势均力敌时天梯分数改变越大
-    const correct =
-      0.5 *
-      (Math.tanh((competitionScoreLf[0] - competitionScoreLf[1] - deltaScore) / deltaScore - correctRate) + 1.0); // 一场比赛中，在双方势均力敌时，减小天梯分数的改变量
-    // console.log('correct: ', correct);
-    resScore[0] = orgScore[0] + Math.round(competitionScoreLf[0] * competitionScoreLf[0] * firstnerGet * (1 - Math.tanh(delta)) * correct); // 胜者所加天梯分
-    resScore[1] = orgScore[1] - Math.round(
-      (competitionScoreLf[0] - competitionScoreLf[1]) * (competitionScoreLf[0] - competitionScoreLf[1]) * secondrGet * (1 - Math.tanh(delta)) * correct,
-    ); // 败者所扣天梯分
-  }
+  const delta = (orgScore[0] - orgScore[1]) / deltaWeight;
+  // 盈利者天梯得分权值、落败者天梯得分权值
+  const firstnerGet = 9e-6;
+  const secondrGet = 5e-6;
+  const deltaScore = 2100.0; // 两队竞争分差超过多少时就认为非常大
+  const correctRate = (orgScore[0] - orgScore[1]) / (deltaWeight * 1.2); // 订正的幅度，该值越小，则在势均力敌时天梯分数改变越大
+  const correct = 0.5 * (Math.tanh((competitionScore[0] - competitionScore[1] - deltaScore) / deltaScore - correctRate) + 1.0); // 一场比赛中，在双方势均力敌时，减小天梯分数的改变量
+  resScore[0] = orgScore[0] + Math.round(competitionScore[0] * competitionScore[0] * firstnerGet * (1 - Math.tanh(delta)) * correct); // 胜者所加天梯分
+  resScore[1] = orgScore[1] - Math.round(
+    (competitionScore[0] - competitionScore[1]) * (competitionScore[0] - competitionScore[1]) * secondrGet * (1 - Math.tanh(delta)) * correct,
+  ); // 败者所扣天梯分
   // 如果换过，再换回来
   if (reverse) {
     resScore.reverse();
@@ -73,40 +57,14 @@ function cal(orgScore: MyPair<number>, competitionScore: MyPair<number>): MyPair
   return resScore;
 }
 
-// 跑比赛用算法
-const maxScore = 100;
-function WinScore(delta: number, winnerGameScore: number) { // 根据游戏得分差值，与绝对分数，决定最后的加分
-    const deltaRate = 0.035;
-    const scoreRate = 2e-5;
-    // 赢者至少加 half of maxScore，平局只加 a quarter of maxScore
-    // 差值引入非线性，差值越大非线性贡献的分数越多；绝对分数只用线性
-    const score = maxScore / 2 + (deltaRate + log10(delta) / maxScore + winnerGameScore * scoreRate) * delta;
-    return score < maxScore ? score : maxScore;
-}
-
-function calculateScore1(competitionScore: number[], orgScore: number[]) {
-    let reverse = false;
-    if (competitionScore[0] < competitionScore[1]) reverse = true;
-    else if (competitionScore[0] == competitionScore[1]) { // 平局，两边加quarter of maxScore
-        orgScore[0] += maxScore / 4;
-        orgScore[1] += maxScore / 4;
-        return orgScore;
-    }
-    if (reverse) {   // 如果需要换，换两者的顺序
-      [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
-      [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
-    }
-    const resScore = [];
-    const delta = competitionScore[0] - competitionScore[1];
-    const addScore = WinScore(delta, competitionScore[0]);
-    resScore.push(orgScore[0] + addScore);
-    resScore.push(orgScore[1]);
-    if (reverse) {
-      [resScore[0], resScore[1]] = [resScore[1], resScore[0]];
-      [competitionScore[0], competitionScore[1]] = [competitionScore[1], competitionScore[0]];
-      [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
-    }
-    return resScore;
+function cal_contest(orgScore: number[], competitionScore: number[]) {
+  if (competitionScore[0] > competitionScore[1]) {
+    return [orgScore[0] + 1, orgScore[1]];
+  }
+  else if (competitionScore[0] < competitionScore[1]) {
+    return [orgScore[0], orgScore[1] + 1];
+  }
+  else return [orgScore[0] + 0.5, orgScore[1] + 0.5];
 }
 
 /**
@@ -131,7 +89,6 @@ router.put("/", async (req, res) => {
       }
       if (req.body.mode != 0 && req.body.mode != 1) return res.status(400).send("Wrong mode code!");
       const payload = decoded as JwtServerPayload;
-      // console.log(payload.team_ids);
       if (req.body.mode == 0) {
         const query_if_valid = await client.request(
           gql`
@@ -172,7 +129,6 @@ router.put("/", async (req, res) => {
                   contest_id: process.env.GAME_ID
                 }
               );
-              // console.log(current_score_query0)
               if (current_score_query0.contest_team[0].score == null) current_score[i] = 200;
               else current_score[i] = Number(current_score_query0.contest_team[0].score);
               team_name[i] = current_score_query0.contest_team[0].team_name;
@@ -205,7 +161,9 @@ router.put("/", async (req, res) => {
         game_result.forEach((value: ReqResult) => {
           competitionScore[value.team_id] = value.score;
         });
-        const updated_score = req.body.mode == 0 ? cal([current_score[0], current_score[1]], [competitionScore[0], competitionScore[1]]) as number[] : calculateScore1(competitionScore, current_score) as number[];
+        const updated_score = req.body.mode == 0 ?
+          cal([current_score[0], current_score[1]], [competitionScore[0], competitionScore[1]]) as number[] :
+          cal_contest(current_score, competitionScore) as number[];
         for (let i = 0; i < 2; ++i) {
           switch (req.body.mode) {
             case 0: {
@@ -331,13 +289,14 @@ router.post("/", async (req, res) => {
         case 0: {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              // docker_queue.push({
-              //   room_id: `Num.${i}--vs--Num.${j}`,
-              //   team_id_1: valid_team_ids[i].team_id,
-              //   team_id_2: valid_team_ids[j].team_id,
-              //   map: 0,
-              //   mode: 1
-              // });
+              docker_queue.push({
+                room_id: `Num.${i}--vs--Num.${j}`,
+                team_id_1: valid_team_ids[i].team_id,
+                team_id_2: valid_team_ids[j].team_id,
+                map: 0,
+                mode: 1,
+                exposed: 0
+              });
             }
           }
           break;
@@ -345,36 +304,19 @@ router.post("/", async (req, res) => {
         case 1: {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              // docker_queue.push({
-              //   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`,
-              //   team_id_1: valid_team_ids[i].team_id,
-              //   team_id_2: valid_team_ids[j].team_id,
-              //   map: 0,
-              //   mode: 1
-              // });
-              // docker_queue.push({
-              //   room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`,
-              //   team_id_1: valid_team_ids[j].team_id,
-              //   team_id_2: valid_team_ids[i].team_id,
-              //   map: 0,
-              //   mode: 1
-              // });
-            }
-          }
-          for (let i = 0; i < valid_team_ids.length; i++) {
-            for (let j = i + 1; j < valid_team_ids.length; j++) {
-              // docker_queue.push({
-              //   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`,
-              //   team_id_1: valid_team_ids[i].team_id,
-              //   team_id_2: valid_team_ids[j].team_id,
-              //   map: 1,
-              //   mode: 1
-              // });
               docker_queue.push({
-                room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`,
+                room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}`,
+                team_id_1: valid_team_ids[i].team_id,
+                team_id_2: valid_team_ids[j].team_id,
+                map: 0,
+                mode: 1,
+                exposed: 0
+              });
+              docker_queue.push({
+                room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}`,
                 team_id_1: valid_team_ids[j].team_id,
                 team_id_2: valid_team_ids[i].team_id,
-                map: 1,
+                map: 0,
                 mode: 1,
                 exposed: 0
               });
@@ -383,22 +325,24 @@ router.post("/", async (req, res) => {
           break;
         }
         case 2: {
-          for (let i = 0; i < valid_team_ids.length; i++) {
-            for (let j = i + 1; j < valid_team_ids.length; j++) {
-              // docker_queue.push({
-              //   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--second`,
-              //   team_id_1: valid_team_ids[i].team_id,
-              //   team_id_2: valid_team_ids[j].team_id,
-              //   map: 1,
-              //   mode: 1
-              // });
-              // docker_queue.push({
-              //   room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--second`,
-              //   team_id_1: valid_team_ids[j].team_id,
-              //   team_id_2: valid_team_ids[i].team_id,
-              //   map: 1,
-              //   mode: 1
-              // });
+          for (let i = 0; i < 3; i++) {
+            for (let j = i + 1; j < 3; j++) {
+              docker_queue.push({
+                room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}`,
+                team_id_1: valid_team_ids[i].team_id,
+                team_id_2: valid_team_ids[j].team_id,
+                map: 0,
+                mode: 1,
+                exposed: 0
+              });
+              docker_queue.push({
+                room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}`,
+                team_id_1: valid_team_ids[j].team_id,
+                team_id_2: valid_team_ids[i].team_id,
+                map: 0,
+                mode: 1,
+                exposed: 0
+              });
             }
           }
           break;

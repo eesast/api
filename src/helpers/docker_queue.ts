@@ -179,7 +179,7 @@ const docker_cron = () => {
                   port: port,
                 }
               );
-              container_runner.wait(async()=>{
+              container_runner.wait(async() => {
                 await client.request(
                   gql`
                     mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
@@ -197,8 +197,10 @@ const docker_cron = () => {
                   }
                 );
               });
-              setTimeout(()=>{
-                container_runner.stop(()=>{console.log("container forced to stop")});
+              setTimeout(() => {
+                container_runner.stop(() => {
+                  console.log("container forced to stop")
+                });
               }, 15*60); //15min强制停止(自动remove)
             } catch (err) {
               console.log(err);
