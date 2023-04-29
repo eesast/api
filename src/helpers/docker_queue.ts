@@ -111,11 +111,11 @@ const docker_cron = () => {
           if (!containerRunning) {
             try {
               const port = get_port(queue_front.room_id, exposed_ports);
-              // console.log(port)
               if (port === -1) {
-                //no port available
-                console.log("no port available")
-                continue;
+                if (queue_front.exposed) {
+                  console.log("no port available")
+                  continue;
+                }
               }
               const serverToken = jwt.sign(
                 {
@@ -158,28 +158,13 @@ const docker_cron = () => {
                   `EXPOSED=${queue_front.exposed}`,
                   `TIME=${process.env.GAME_TIME}`
                 ],
-                Cmd: [`-m 6g`],
-                StopTimeout: 20*60
+                Cmd: [`-m 6g`]
               });
+
               await container_runner.start();
               console.log("runnner started");
-              await client.request(
-                gql`
-                  mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
-                    update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
-                      returning{
-                        port
-                      }
-                    }
-                  }
-                `,
-                {
-                  contest_id: process.env.GAME_ID,
-                  room_id: queue_front.room_id,
-                  port: port,
-                }
-              );
-              container_runner.wait(async() => {
+
+              if (queue_front.exposed) {
                 await client.request(
                   gql`
                     mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
@@ -193,17 +178,36 @@ const docker_cron = () => {
                   {
                     contest_id: process.env.GAME_ID,
                     room_id: queue_front.room_id,
-                    port: null,
+                    port: port,
                   }
                 );
-                const finish_path = base_directory + "/playback/" + queue_front.room_id;
-                fs.mkdir(finish_path, {recursive: true}, (err)=>{
-                  if(err) throw err;
-                  fs.writeFile(finish_path + "/finish.lock", "", (err)=>{
+                container_runner.wait(async() => {
+                  await client.request(
+                    gql`
+                      mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
+                        update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
+                          returning{
+                            port
+                          }
+                        }
+                      }
+                    `,
+                    {
+                      contest_id: process.env.GAME_ID,
+                      room_id: queue_front.room_id,
+                      port: null,
+                    }
+                  );
+                  const finish_path = base_directory + "/playback/" + queue_front.room_id;
+                  fs.mkdir(finish_path, {recursive: true}, (err)=>{
                     if(err) throw err;
-                  })
+                    fs.writeFile(finish_path + "/finish.lock", "", (err)=>{
+                      if(err) throw err;
+                    })
+                  });
                 });
-              });
+              }
+
               setTimeout(() => {
                 container_runner.stop(() => {
                   console.log("container forced to stop")
