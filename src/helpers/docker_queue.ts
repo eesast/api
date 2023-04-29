@@ -49,7 +49,7 @@ const get_port = (room_id: string, exposed_ports: Array<string>) => {
 const docker_cron = () => {
   const port_num = parseInt(process.env.MAX_CONTAINERS as string);
   const exposed_ports = new Array(port_num).fill("");
-  
+
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME} * * * * *`, async () => {
     const max_container_num = parseInt(process.env.MAX_CONTAINERS as string);
     const docker =
@@ -59,7 +59,7 @@ const docker_cron = () => {
           port: process.env.DOCKER_PORT,
         })
         : new Docker();
-    
+
     try {
       const existing_containers = await docker.listContainers({
         all: true,
@@ -71,7 +71,7 @@ const docker_cron = () => {
           docker_queue.length
         );
         if (available_num === 0) return;
-        
+
         for (let i = 0; i < available_num; ++i) {
           const queue_front = docker_queue.shift() as queue_element;
           try {
@@ -97,7 +97,7 @@ const docker_cron = () => {
             console.log(err);
             continue;
           }
-          
+
           let containerRunning = false;
           const containerList = await docker.listContainers();
           containerList.forEach((containerInfo) => {
@@ -109,17 +109,9 @@ const docker_cron = () => {
               containerRunning = true;
             }
           });
-          
+
           if (!containerRunning) {
             try {
-              let port = get_port(queue_front.room_id, exposed_ports);
-              if (port === -1) {
-                if (queue_front.exposed) {
-                  console.log("no port available")
-                  continue;
-                }
-                port = 8888;
-              }
               const serverToken = jwt.sign(
                 {
                   room_id: queue_front.room_id,
@@ -134,40 +126,47 @@ const docker_cron = () => {
                 process.env.NODE_ENV == "production"
                   ? "https://api.eesast.com/contest"
                   : "http://172.17.0.1:28888/contest";
-              const container_runner = await docker.createContainer({
-                Image: process.env.RUNNER_IMAGE,
-                AttachStdin: false,
-                AttachStdout: false,
-                AttachStderr: false,
-                name: `THUAI6_runner_${queue_front.room_id}`,
-                HostConfig: {
-                  Binds: [
-                    `${base_directory}/playback/${queue_front.room_id}/:/usr/local/playback`,
-                    `${base_directory}/map/:/usr/local/map`,
-                    `${base_directory}/${queue_front.team_id_1}/:/usr/local/team1`,
-                    `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
-                  ],
-                  PortBindings: {
-                    '8888/tcp': [{HostPort: `${port}`}]
-                  },
-                  AutoRemove: true
-                },
-                ExposedPorts: {'8888/tcp': {}},
-                Env: [
-                  `URL=${url}`,
-                  `TOKEN=${serverToken}`,
-                  `MODE=${queue_front.mode}`,
-                  `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
-                  `EXPOSED=${queue_front.exposed}`,
-                  `TIME=${process.env.GAME_TIME}`
-                ],
-                Cmd: [`-m 6g`]
-              });
 
-              await container_runner.start();
-              console.log("runnner started");
-
+              let container_runner: Docker.Container;
               if (queue_front.exposed) {
+                const port = get_port(queue_front.room_id, exposed_ports);
+                if (port === -1) {
+                  console.log("no port available")
+                  continue;
+                }
+                container_runner = await docker.createContainer({
+                  Image: process.env.RUNNER_IMAGE,
+                  AttachStdin: false,
+                  AttachStdout: false,
+                  AttachStderr: false,
+                  name: `THUAI6_runner_${queue_front.room_id}`,
+                  HostConfig: {
+                    Binds: [
+                      `${base_directory}/playback/${queue_front.room_id}/:/usr/local/playback`,
+                      `${base_directory}/map/:/usr/local/map`,
+                      `${base_directory}/${queue_front.team_id_1}/:/usr/local/team1`,
+                      `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
+                    ],
+                    PortBindings: {
+                      '8888/tcp': [{HostPort: `${port}`}]
+                    },
+                    AutoRemove: true
+                  },
+                  ExposedPorts: {'8888/tcp': {}},
+                  Env: [
+                    `URL=${url}`,
+                    `TOKEN=${serverToken}`,
+                    `MODE=${queue_front.mode}`,
+                    `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
+                    `EXPOSED=${queue_front.exposed}`,
+                    `TIME=${process.env.GAME_TIME}`
+                  ],
+                  Cmd: [`-m 6g`]
+                });
+
+                await container_runner.start();
+                console.log("runnner started");
+
                 await client.request(
                   gql`
                     mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
@@ -209,6 +208,37 @@ const docker_cron = () => {
                     })
                   });
                 });
+              }
+
+              else {
+                container_runner = await docker.createContainer({
+                  Image: process.env.RUNNER_IMAGE,
+                  AttachStdin: false,
+                  AttachStdout: false,
+                  AttachStderr: false,
+                  name: `THUAI6_runner_${queue_front.room_id}`,
+                  HostConfig: {
+                    Binds: [
+                      `${base_directory}/playback/${queue_front.room_id}/:/usr/local/playback`,
+                      `${base_directory}/map/:/usr/local/map`,
+                      `${base_directory}/${queue_front.team_id_1}/:/usr/local/team1`,
+                      `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
+                    ],
+                    AutoRemove: true
+                  },
+                  Env: [
+                    `URL=${url}`,
+                    `TOKEN=${serverToken}`,
+                    `MODE=${queue_front.mode}`,
+                    `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
+                    `EXPOSED=${queue_front.exposed}`,
+                    `TIME=${process.env.GAME_TIME}`
+                  ],
+                  Cmd: [`-m 6g`]
+                });
+
+                await container_runner.start();
+                console.log("runnner started");
               }
 
               setTimeout(() => {
