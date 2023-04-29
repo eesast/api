@@ -212,7 +212,7 @@ const docker_cron = () => {
                 container_runner.stop(() => {
                   console.log("container forced to stop")
                 });
-              }, 15*60); //15min强制停止(自动remove)
+              }, 15 * 60 * 1000); //15min强制停止(自动remove)
             } catch (err) {
               console.log(err);
               continue;
