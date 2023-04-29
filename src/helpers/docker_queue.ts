@@ -112,12 +112,13 @@ const docker_cron = () => {
           
           if (!containerRunning) {
             try {
-              const port = get_port(queue_front.room_id, exposed_ports);
+              let port = get_port(queue_front.room_id, exposed_ports);
               if (port === -1) {
                 if (queue_front.exposed) {
                   console.log("no port available")
                   continue;
                 }
+                port = 8888;
               }
               const serverToken = jwt.sign(
                 {
