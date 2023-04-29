@@ -6,6 +6,9 @@ import { JwtServerPayload } from "../routes/contest";
 import { gql } from "graphql-request";
 import { client } from "..";
 import fs from "fs";
+
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
+
 export interface queue_element {
   room_id: string;
   team_id_1: string;
@@ -40,15 +43,13 @@ const get_port = (room_id: string, exposed_ports: Array<string>) => {
       }
     }
   }
-
   return result;
 }
-
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
 
 const docker_cron = () => {
   const port_num = parseInt(process.env.MAX_CONTAINERS as string);
   const exposed_ports = new Array(port_num).fill("");
+  
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME} * * * * *`, async () => {
     const max_container_num = parseInt(process.env.MAX_CONTAINERS as string);
     const docker =
@@ -58,6 +59,7 @@ const docker_cron = () => {
           port: process.env.DOCKER_PORT,
         })
         : new Docker();
+    
     try {
       const existing_containers = await docker.listContainers({
         all: true,
@@ -68,8 +70,8 @@ const docker_cron = () => {
           (max_container_num - existing_containers.length),
           docker_queue.length
         );
-        // console.log("available_num: " + available_num);
         if (available_num === 0) return;
+        
         for (let i = 0; i < available_num; ++i) {
           const queue_front = docker_queue.shift() as queue_element;
           try {
@@ -88,15 +90,14 @@ const docker_cron = () => {
             );
             let all_compiled = true;
             query_if_compiled.contest_team.forEach((element: { status: string }) => {
-              // console.log(element.status);
               if (element.status != "compiled") all_compiled = false;
             });
             if (!all_compiled) continue;
-
           } catch (err) {
             console.log(err);
             continue;
           }
+          
           let containerRunning = false;
           const containerList = await docker.listContainers();
           containerList.forEach((containerInfo) => {
@@ -108,6 +109,7 @@ const docker_cron = () => {
               containerRunning = true;
             }
           });
+          
           if (!containerRunning) {
             try {
               const port = get_port(queue_front.room_id, exposed_ports);
@@ -212,7 +214,7 @@ const docker_cron = () => {
                 container_runner.stop(() => {
                   console.log("container forced to stop")
                 });
-              }, 15 * 60 * 1000); //15min强制停止(自动remove)
+              }, (process.env.GAME_TIME + 5 * 60) * 1000);
             } catch (err) {
               console.log(err);
               continue;
