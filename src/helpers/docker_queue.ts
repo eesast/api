@@ -214,7 +214,7 @@ const docker_cron = () => {
                 container_runner.stop(() => {
                   console.log("container forced to stop")
                 });
-              }, (process.env.GAME_TIME + 5 * 60) * 1000);
+              }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME) : 600 + 5 * 60) * 1000);
             } catch (err) {
               console.log(err);
               continue;
