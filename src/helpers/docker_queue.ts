@@ -150,7 +150,8 @@ const docker_cron = () => {
                     PortBindings: {
                       '8888/tcp': [{HostPort: `${port}`}]
                     },
-                    AutoRemove: true
+                    AutoRemove: true,
+                    Memory: 6*1024*1024*1024
                   },
                   ExposedPorts: {'8888/tcp': {}},
                   Env: [
@@ -161,7 +162,6 @@ const docker_cron = () => {
                     `EXPOSED=${queue_front.exposed}`,
                     `TIME=${process.env.GAME_TIME}`
                   ],
-                  Cmd: [`-m 6g`]
                 });
 
                 await container_runner.start();
@@ -224,7 +224,8 @@ const docker_cron = () => {
                       `${base_directory}/${queue_front.team_id_1}/:/usr/local/team1`,
                       `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
                     ],
-                    AutoRemove: true
+                    AutoRemove: true,
+                    Memory: 6*1024*1024*1024 //6G
                   },
                   Env: [
                     `URL=${url}`,
@@ -234,7 +235,6 @@ const docker_cron = () => {
                     `EXPOSED=${queue_front.exposed}`,
                     `TIME=${process.env.GAME_TIME}`
                   ],
-                  Cmd: [`-m 6g`]
                 });
 
                 await container_runner.start();
