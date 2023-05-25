@@ -151,7 +151,8 @@ const docker_cron = () => {
                       '8888/tcp': [{HostPort: `${port}`}]
                     },
                     AutoRemove: true,
-                    Memory: 6*1024*1024*1024
+                    Memory: 6*1024*1024*1024,
+                    MemorySwap: 6*1024*1024*1024
                   },
                   ExposedPorts: {'8888/tcp': {}},
                   Env: [
@@ -225,7 +226,8 @@ const docker_cron = () => {
                       `${base_directory}/${queue_front.team_id_2}/:/usr/local/team2`
                     ],
                     AutoRemove: true,
-                    Memory: 6*1024*1024*1024 //6G
+                    Memory: 6*1024*1024*1024, //6G
+                    MemorySwap: 6*1024*1024*1024
                   },
                   Env: [
                     `URL=${url}`,
