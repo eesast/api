@@ -310,7 +310,7 @@ router.post("/", async (req, res) => {
                 team_id_2: valid_team_ids[j].team_id,
                 map: 0,
                 mode: 1,
-                exposed: 0
+                exposed: 1
               });
               docker_queue.push({
                 room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`,
@@ -318,7 +318,7 @@ router.post("/", async (req, res) => {
                 team_id_2: valid_team_ids[i].team_id,
                 map: 0,
                 mode: 1,
-                exposed: 0
+                exposed: 1
               });
             }
           }
@@ -330,7 +330,7 @@ router.post("/", async (req, res) => {
                 team_id_2: valid_team_ids[j].team_id,
                 map: 1,
                 mode: 1,
-                exposed: 0
+                exposed: 1
               });
               docker_queue.push({
                 room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`,
@@ -338,7 +338,7 @@ router.post("/", async (req, res) => {
                 team_id_2: valid_team_ids[i].team_id,
                 map: 1,
                 mode: 1,
-                exposed: 0
+                exposed: 1
               });
             }
           }
