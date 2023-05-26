@@ -167,24 +167,8 @@ const docker_cron = () => {
 
                 await container_runner.start();
                 console.log("runnner started");
-
-                await client.request(
-                  gql`
-                    mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
-                      update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
-                        returning{
-                          port
-                        }
-                      }
-                    }
-                  `,
-                  {
-                    contest_id: process.env.GAME_ID,
-                    room_id: queue_front.room_id,
-                    port: port,
-                  }
-                );
-                container_runner.wait(async() => {
+                
+                if(queue_front.mode == 0){ //前端创建了房间的比赛才改数据库
                   await client.request(
                     gql`
                       mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
@@ -198,9 +182,30 @@ const docker_cron = () => {
                     {
                       contest_id: process.env.GAME_ID,
                       room_id: queue_front.room_id,
-                      port: null,
+                      port: port,
                     }
                   );
+                }
+                
+                container_runner.wait(async() => {
+                  if(queue_front.mode == 0){
+                    await client.request(
+                      gql`
+                        mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
+                          update_contest_room(where: {_and: [{contest_id: {_eq: $contest_id}}, {room_id: {_eq: $room_id}}]}, _set: {port: $port}){
+                            returning{
+                              port
+                            }
+                          }
+                        }
+                      `,
+                      {
+                        contest_id: process.env.GAME_ID,
+                        room_id: queue_front.room_id,
+                        port: null,
+                      }
+                    );
+                  }
                   const finish_path = base_directory + "/playback/" + queue_front.room_id;
                   fs.mkdir(finish_path, {recursive: true}, (err)=>{
                     if(err) throw err;
