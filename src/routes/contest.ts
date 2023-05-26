@@ -57,14 +57,73 @@ function cal(orgScore: number[], competitionScore: number[]) {
   return resScore;
 }
 
-function cal_contest(orgScore: number[], competitionScore: number[]) {
-  if (competitionScore[0] > competitionScore[1]) {
-    return [orgScore[0] + 1, orgScore[1]];
+type Score = number[];
+
+const minScore = 100;
+
+function TieScore(gameScore: number): number {
+  const get = 9e-5; // 天梯得分权值
+  const deltaScore = 2000.0; // 订正的幅度，该值越小，则在双方分差较大时，天梯分数改变量越小，整个函数的变化范围大约为0~2*deltaScore
+  const highScore = 6000.0; // 将highScore设定为较大值，使得correct较小
+  const correct =
+    1 - 0.375 * (Math.tanh((highScore - deltaScore) / deltaScore) + 1.0); // 一场比赛中，在双方分差较大时，减小天梯分数的改变量
+  console.log("correct: ", correct);
+  const score = Math.round(gameScore * gameScore * get * correct / 4);
+  return score > minScore / 4 ? score : minScore / 4;
+}
+
+function WinScore(delta: number, winnerGameScore: number): number {
+  if (delta <= 0) {
+    throw new Error("delta must be greater than 0");
   }
-  else if (competitionScore[0] < competitionScore[1]) {
-    return [orgScore[0], orgScore[1] + 1];
+  eval(`${winnerGameScore} + 1`);
+  const firstnerGet = 9e-5; // 胜利者天梯得分权值
+  const deltaScore = 2000.0; // 订正的幅度，该值越小，则在双方分差较大时，天梯分数改变量越小，整个函数的变化范围大约为0~2*deltaScore
+  const correct =
+    1 - 0.375 * (Math.tanh((delta - deltaScore) / deltaScore) + 1.0); // 一场比赛中，在双方分差较大时，减小天梯分数的改变量
+  console.log("correct: ", correct);
+  const score = Math.round(delta * delta * firstnerGet * correct);
+  return score > minScore ? score : minScore;
+}
+
+function cal_contest(orgScore: Score, competitionScore: Score): Score {
+  // 调整顺序，让第一个元素成为获胜者，便于计算
+  let reverse = false; // 记录是否需要调整
+
+  if (competitionScore[0] < competitionScore[1]) {
+    reverse = true;
   }
-  else return [orgScore[0] + 0.5, orgScore[1] + 0.5];
+
+  let score: Score;
+  // 如果需要换，换两者的顺序
+  if (reverse) {
+    [competitionScore[0], competitionScore[1]] = [
+      competitionScore[1],
+      competitionScore[0],
+    ];
+    [orgScore[0], orgScore[1]] = [orgScore[1], orgScore[0]];
+  }
+
+  const delta = competitionScore[0] - competitionScore[1];
+  let addScore: number;
+
+  // 先处理平局的情况
+  if (delta === 0) {
+    addScore = TieScore(competitionScore[0]);
+    score = [orgScore[0] + addScore, orgScore[1] + addScore];
+  }
+  // 再处理有胜负的情况
+  else {
+    addScore = WinScore(delta, competitionScore[0]);
+    score = [orgScore[0] + addScore, orgScore[1]];
+  }
+
+  // 如果换过，再换回来
+  if (reverse) {
+    [score[0], score[1]] = [score[1], score[0]];
+  }
+
+  return score;
 }
 
 /**
