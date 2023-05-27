@@ -159,7 +159,7 @@ const docker_cron = () => {
                     `URL=${url}`,
                     `TOKEN=${serverToken}`,
                     `MODE=${queue_front.mode}`,
-                    `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
+                    `MAP=${queue_front.map == 0 ? `${base_directory}/map/oldmap.txt` : `${base_directory}/map/newmap.txt`}`,
                     `EXPOSED=${queue_front.exposed}`,
                     `TIME=${process.env.GAME_TIME}`
                   ],
@@ -167,7 +167,7 @@ const docker_cron = () => {
 
                 await container_runner.start();
                 console.log("runnner started");
-                
+
                 if(queue_front.mode == 0){ //前端创建了房间的比赛才改数据库
                   await client.request(
                     gql`
@@ -186,7 +186,7 @@ const docker_cron = () => {
                     }
                   );
                 }
-                
+
                 container_runner.wait(async() => {
                   if(queue_front.mode == 0){
                     await client.request(
@@ -238,7 +238,7 @@ const docker_cron = () => {
                     `URL=${url}`,
                     `TOKEN=${serverToken}`,
                     `MODE=${queue_front.mode}`,
-                    `MAP=${queue_front.map == 0 ? "oldmap.txt" : "newmap.txt"}`,
+                    `MAP=${queue_front.map == 0 ? `${base_directory}/map/oldmap.txt` : `${base_directory}/map/newmap.txt`}`,
                     `EXPOSED=${queue_front.exposed}`,
                     `TIME=${process.env.GAME_TIME}`
                   ],
