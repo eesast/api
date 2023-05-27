@@ -225,7 +225,7 @@ router.put("/", async (req, res) => {
               updated_score[0] - current_score[0] > 0 ? "+" : ""
             }${updated_score[0] - current_score[0]} , ${team_name[1]}: ${
               updated_score[1] - current_score[1] > 0 ? "+" : ""
-            }${updated_score[1] - current_score[1]}`
+              }${updated_score[1] - current_score[1]}`
           }
         );
         return res.status(200).send("update ok!");
@@ -238,13 +238,15 @@ router.put("/", async (req, res) => {
   }
 });
 
+import * as fs from 'fs';
+import { base_directory } from "./room"
 /**
  * POST launch contest
  * @param token
  * @param mode 0代表单循环赛，1代表双循环赛，2代表测试比赛
  */
 router.post("/", async (req, res) => {
-  try{
+  try {
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -271,8 +273,8 @@ router.post("/", async (req, res) => {
       const is_manager = query_if_manager.contest_manager.lenth != 0;
       if (!is_manager) {
         return res
-        .status(400)
-        .send("Permission Denied: Need Permission Elevation");
+          .status(400)
+          .send("Permission Denied: Need Permission Elevation");
       }
       const query_valid_teams = await client.request(
         gql`
@@ -304,42 +306,96 @@ router.post("/", async (req, res) => {
         case 1: {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`,
-                team_id_1: valid_team_ids[i].team_id,
-                team_id_2: valid_team_ids[j].team_id,
-                map: 0,
-                mode: 1,
-                exposed: 1
-              });
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`,
-                team_id_1: valid_team_ids[j].team_id,
-                team_id_2: valid_team_ids[i].team_id,
-                map: 0,
-                mode: 1,
-                exposed: 1
-              });
+              try {
+                // 检查路径是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`, fs.constants.F_OK);
+
+                // 检查文件是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
+
+                //若存在，则不再添加
+                // console.log(`Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap已存在`)
+
+              } catch (err) {
+                // console.error('文件不存在', err);
+                docker_queue.push({
+                  room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`,
+                  team_id_1: valid_team_ids[i].team_id,
+                  team_id_2: valid_team_ids[j].team_id,
+                  map: 0,
+                  mode: 1,
+                  exposed: 1
+                });
+                // console.log(`添加Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`)
+              }
+              try {
+                // 检查路径是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`, fs.constants.F_OK);
+
+                // 检查文件是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
+
+                //若存在，则不再添加
+                // console.log(`Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap已存在`)
+              } catch (err) {
+                // console.error('文件不存在', err);
+                docker_queue.push({
+                  room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`,
+                  team_id_1: valid_team_ids[j].team_id,
+                  team_id_2: valid_team_ids[i].team_id,
+                  map: 0,
+                  mode: 1,
+                  exposed: 1
+                });
+                // console.log(`添加Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`)
+              }
             }
           }
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`,
-                team_id_1: valid_team_ids[i].team_id,
-                team_id_2: valid_team_ids[j].team_id,
-                map: 1,
-                mode: 1,
-                exposed: 1
-              });
-              docker_queue.push({
-                room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`,
-                team_id_1: valid_team_ids[j].team_id,
-                team_id_2: valid_team_ids[i].team_id,
-                map: 1,
-                mode: 1,
-                exposed: 1
-              });
+              try {
+                // 检查路径是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`, fs.constants.F_OK);
+
+                // 检查文件是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap/finish.lock`, fs.constants.R_OK);
+
+                //若存在，则不再添加
+                // console.log(`Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap已存在`)
+              } catch (err) {
+                // console.error('文件不存在', err);
+                docker_queue.push({
+                  room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`,
+                  team_id_1: valid_team_ids[i].team_id,
+                  team_id_2: valid_team_ids[j].team_id,
+                  map: 1,
+                  mode: 1,
+                  exposed: 1
+                });
+                // console.log(`添加Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`)
+              }
+              try {
+                // 检查路径是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`, fs.constants.F_OK);
+
+                // 检查文件是否存在
+                fs.accessSync(`${base_directory}/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap/finish.lock`, fs.constants.R_OK);
+
+                //若存在，则不再添加
+                // console.log(`Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap已存在`)
+              } catch (err) {
+                // console.error('文件不存在', err);
+                docker_queue.push({
+                  room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`,
+                  team_id_1: valid_team_ids[j].team_id,
+                  team_id_2: valid_team_ids[i].team_id,
+                  map: 1,
+                  mode: 1,
+                  exposed: 1
+                });
+                // console.log(`添加Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`)
+              }
+
             }
           }
           break;

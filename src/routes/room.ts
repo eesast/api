@@ -7,7 +7,7 @@ import { JwtPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 
 const router = express.Router();
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
+export const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
 
 /**
  * @param token (user_id)
@@ -184,18 +184,18 @@ router.post("/assign", async (req, res) => {
 router.get("/:room_id", async (req, res) => {
   try {
     const room_id = req.params.room_id;
-    const query_room = await client.request(
-      gql`
-        query query_room($room_id: uuid!) {
-          contest_room(where: {room_id: {_eq: $room_id}}) {
-            room_id
-          }
-        }
-      `,
-      { room_id: room_id }
-    );
-    if (query_room.contest_room.length == 0)
-      return res.status(400).send("room does not exist");
+    // const query_room = await client.request(
+    //   gql`
+    //     query query_room($room_id: uuid!) {
+    //       contest_room(where: {room_id: {_eq: $room_id}}) {
+    //         room_id
+    //       }
+    //     }
+    //   `,
+    //   { room_id: room_id }
+    // );
+    // if (query_room.contest_room.length == 0)
+    //   return res.status(400).send("room does not exist");
     try {
       await fs.access(`${base_directory}/playback/${room_id}/video.thuaipb`);
       res.setHeader(
