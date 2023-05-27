@@ -312,10 +312,9 @@ router.post("/", async (req, res) => {
 
                 // 检查文件是否存在
                 fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap/result.json`, fs.constants.R_OK);
 
                 //若存在，则不再添加
-                // console.log(`Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap已存在`)
-
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
@@ -326,7 +325,6 @@ router.post("/", async (req, res) => {
                   mode: 1,
                   exposed: 1
                 });
-                // console.log(`添加Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`)
               }
               try {
                 // 检查路径是否存在
@@ -334,9 +332,9 @@ router.post("/", async (req, res) => {
 
                 // 检查文件是否存在
                 fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap/result.json`, fs.constants.R_OK);
 
                 //若存在，则不再添加
-                // console.log(`Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap已存在`)
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
@@ -347,7 +345,6 @@ router.post("/", async (req, res) => {
                   mode: 1,
                   exposed: 1
                 });
-                // console.log(`添加Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`)
               }
             }
           }
@@ -359,9 +356,9 @@ router.post("/", async (req, res) => {
 
                 // 检查文件是否存在
                 fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap/result.json`, fs.constants.R_OK);
 
                 //若存在，则不再添加
-                // console.log(`Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap已存在`)
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
@@ -372,7 +369,6 @@ router.post("/", async (req, res) => {
                   mode: 1,
                   exposed: 1
                 });
-                // console.log(`添加Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`)
               }
               try {
                 // 检查路径是否存在
@@ -380,9 +376,9 @@ router.post("/", async (req, res) => {
 
                 // 检查文件是否存在
                 fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap/result.json`, fs.constants.R_OK);
 
                 //若存在，则不再添加
-                // console.log(`Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap已存在`)
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
@@ -393,7 +389,6 @@ router.post("/", async (req, res) => {
                   mode: 1,
                   exposed: 1
                 });
-                // console.log(`添加Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`)
               }
 
             }
