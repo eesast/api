@@ -49,7 +49,7 @@ export const docker_queue: queue_element[] = [];
 // export const docker_queue: queue_element[] = JSON.parse(
 //   fs.readFileSync("/data/queue_data.json").toString()
 // );
-docker_cron();
+// docker_cron();
 
 // weekly_cron();
 // weekly_init();
