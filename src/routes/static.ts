@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/team_code", async (req, res) => {
   try{
     const action = [
       "name/cos:PutObject",
@@ -20,6 +20,7 @@ router.get("/", async (req, res) => {
       "name/cos:HeadObject",
       "name/cos:GetObject",
       "name/cos:DeleteObject",
+      "name/cos:GetBucket",
     ];
     const authHeader = req.get("Authorization");
     if (!authHeader) {
@@ -86,6 +87,74 @@ router.get("/", async (req, res) => {
         }
       }
       else return res.status(401).send("401 Unauthorized");
+    });
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
+router.get("/chat_record", async (req, res) => {
+  try{
+    const action = [
+      "name/cos:PutObject",
+      "name/cos:InitiateMultipartUpload",
+      "name/cos:ListMultipartUploads",
+      "name/cos:ListParts",
+      "name/cos:UploadPart",
+      "name/cos:CompleteMultipartUpload",
+      "name/cos:AbortMultipartUpload",
+      "name/cos:HeadObject",
+      "name/cos:GetObject",
+      "name/cos:DeleteObject",
+      "name/cos:GetBucket",
+    ];
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      return res.status(401).send("401 Unauthorized: Missing token");
+    }
+    const token = authHeader.substring(7);
+    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+      try{
+        if (err || !decoded) {
+          return res
+            .status(401)
+            .send("401 Unauthorized: Token expired or invalid");
+        }
+        const payload = decoded as JwtPayload;
+        const user_id = payload._id;
+        if (payload.role == 'counselor' || payload.role == 'root' || payload.role == 'admin') {
+          const sts = await getSTS(action, "chat_record/*");
+          return res.status(200).send(sts);
+        }
+        else if (payload.role == 'student' || payload.role == 'teacher') {
+          const application_id = req.query.application_id;
+          const applications = await client.request(
+            gql`
+              query query_if_in_application($application_id: uuid) {
+                mentor_application(where: {id: {_eq: $application_id}}) {
+                  mentor_id
+                  student_id
+                }
+              }
+            `,
+            { application_id: application_id }
+          );
+          if (applications.mentor_application.length == 0)
+            return res.status(404).send("未查找到该申请");
+          const application = applications.mentor_application[0];
+          if ((payload.role == 'student' && user_id == application.student_id) ||
+              (payload.role == 'teacher' && user_id == application.mentor_id)
+            ) {
+              const sts = await getSTS(action, `chat_record/${application_id}/*`);
+              return res.status(200).send(sts);
+            }
+          else
+            return res.status(401).send("当前用户没有该申请的权限");
+        }
+        else return res.status(401).send("401 Unauthorized");
+      } catch (err) {
+        return res.status(500).send(err);
+      }
     });
   } catch (err) {
     return res.status(500).send(err);
