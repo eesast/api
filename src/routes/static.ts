@@ -6,22 +6,23 @@ import { gql } from "graphql-request";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
+const generalActions = [
+  "name/cos:PutObject",
+  "name/cos:InitiateMultipartUpload",
+  "name/cos:ListMultipartUploads",
+  "name/cos:ListParts",
+  "name/cos:UploadPart",
+  "name/cos:CompleteMultipartUpload",
+  "name/cos:AbortMultipartUpload",
+  "name/cos:HeadObject",
+  "name/cos:GetObject",
+  "name/cos:DeleteObject",
+  "name/cos:GetBucket",
+];
 
 router.get("/team_code", async (req, res) => {
   try{
-    const action = [
-      "name/cos:PutObject",
-      "name/cos:InitiateMultipartUpload",
-      "name/cos:ListMultipartUploads",
-      "name/cos:ListParts",
-      "name/cos:UploadPart",
-      "name/cos:CompleteMultipartUpload",
-      "name/cos:AbortMultipartUpload",
-      "name/cos:HeadObject",
-      "name/cos:GetObject",
-      "name/cos:DeleteObject",
-      "name/cos:GetBucket",
-    ];
+    const action = generalActions;
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -95,19 +96,7 @@ router.get("/team_code", async (req, res) => {
 
 router.get("/chat_record", async (req, res) => {
   try{
-    const action = [
-      "name/cos:PutObject",
-      "name/cos:InitiateMultipartUpload",
-      "name/cos:ListMultipartUploads",
-      "name/cos:ListParts",
-      "name/cos:UploadPart",
-      "name/cos:CompleteMultipartUpload",
-      "name/cos:AbortMultipartUpload",
-      "name/cos:HeadObject",
-      "name/cos:GetObject",
-      "name/cos:DeleteObject",
-      "name/cos:GetBucket",
-    ];
+    const action = generalActions;
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -150,6 +139,38 @@ router.get("/chat_record", async (req, res) => {
             }
           else
             return res.status(401).send("当前用户没有该申请的权限");
+        }
+        else return res.status(401).send("401 Unauthorized");
+      } catch (err) {
+        return res.status(500).send(err);
+      }
+    });
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
+//General Template
+router.get("/", async (req, res) => {
+  try{
+    const action = generalActions;
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      return res.status(401).send("401 Unauthorized: Missing token");
+    }
+    const token = authHeader.substring(7);
+    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+      try{
+        if (err || !decoded) {
+          return res
+            .status(401)
+            .send("401 Unauthorized: Token expired or invalid");
+        }
+        const payload = decoded as JwtPayload;
+        const user_id = payload._id;
+        if (payload.role == 'counselor' || payload.role == 'root' || payload.role == 'admin') {
+          const sts = await getSTS(action, "*");
+          return res.status(200).send(sts);
         }
         else return res.status(401).send("401 Unauthorized");
       } catch (err) {
