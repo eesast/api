@@ -167,7 +167,6 @@ router.get("/", async (req, res) => {
             .send("401 Unauthorized: Token expired or invalid");
         }
         const payload = decoded as JwtPayload;
-        const user_id = payload._id;
         if (payload.role == 'counselor' || payload.role == 'root' || payload.role == 'admin') {
           const sts = await getSTS(action, "*");
           return res.status(200).send(sts);
