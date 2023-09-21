@@ -3,7 +3,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import Email from "../models/email";
 import User from "../models/user";
-import recaptcha from "../middlewares/recaptcha";
+// import recaptcha from "../middlewares/recaptcha";
 import { sendEmail } from "../helpers/email";
 import {
   verifyEmailTemplate,
@@ -54,7 +54,8 @@ router.put("/delete", async(req, res) => {
   }
 })
 
-router.post("/", recaptcha, async (req, res) => {
+// router.post("/", recaptcha, async (req, res) => {
+router.post("/", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -209,7 +210,7 @@ router.post("/verify", async (req, res) => {
   const { action, type } = req.body;
 
   if (action === "request") {
-    await new Promise((resolve) => recaptcha(req, res, resolve));
+    // await new Promise((resolve) => recaptcha(req, res, resolve));
 
     if (type === "regular") {
       const { email } = req.body;
@@ -378,7 +379,7 @@ router.post("/reset", async (req, res) => {
   const { action } = req.body;
 
   if (action === "request") {
-    await new Promise((resolve) => recaptcha(req, res, resolve));
+    // await new Promise((resolve) => recaptcha(req, res, resolve));
 
     const { email } = req.body;
 
