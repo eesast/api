@@ -19,6 +19,11 @@ const generalActions = [
   "name/cos:DeleteObject",
   "name/cos:GetBucket",
 ];
+const viewActions = [
+  "name/cos:HeadObject",
+  "name/cos:GetObject",
+  "name/cos:GetBucket",
+]
 
 router.get("/team_code", async (req, res) => {
   try{
@@ -153,7 +158,6 @@ router.get("/chat_record", async (req, res) => {
 //General Template
 router.get("/", async (req, res) => {
   try{
-    const action = generalActions;
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -168,10 +172,13 @@ router.get("/", async (req, res) => {
         }
         const payload = decoded as JwtPayload;
         if (payload.role == 'counselor' || payload.role == 'root' || payload.role == 'admin') {
-          const sts = await getSTS(action, "*");
+          const sts = await getSTS(generalActions, "*");
           return res.status(200).send(sts);
         }
-        else return res.status(401).send("401 Unauthorized");
+        else {
+          const sts = await getSTS(viewActions, "upload/*");
+          return res.status(200).send(sts);
+        }
       } catch (err) {
         return res.status(500).send(err);
       }
