@@ -15,11 +15,10 @@ router.get("/cover", async (req, res) => {
         );
         if (response.ok) {
             const text: string = await response.text();
-            const match = text.match(/var msg_cdn_url.*1:1/);
-            if (match == null) throw(Error("capture failed!"));
-            const url1 = match[0].match(/https?:\/\/.*=png/);
-            const url2 = match[0].match(/https?:\/\/.*=jpeg/);
-            return res.status(200).send(url1 == null ? url2 : url1);
+            const match = text.match(/var msg_cdn_url = "(.*?)";/);
+            if (match && match[1])
+              res.status(200).send(match[1]);
+            else throw(Error("capture failed!"));
         }
         else return res.status(500).send("500 Internal Server Error: fetch failed!");
     } catch (err) {
