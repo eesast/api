@@ -1,0 +1,106 @@
+[{
+  "_id": {
+    "$oid": "5f18053b32ce990023cb9802"
+  },
+  "emailVerified": true,
+  "email": "biyesheng@test.com",
+  "password": "$2b$10$EbQQqZbzEimZzAfy2be2UuePQp/FtAlhjNcASyFd0OwBD2Hp4Vd82",
+  "role": "EEsenior",
+  "createdAt": {
+    "$date": "2020-07-22T09:22:03.070Z"
+  },
+  "updatedAt": {
+    "$date": "2020-07-22T09:22:03.070Z"
+  },
+  "__v": 0
+},{
+  "_id": {
+    "$oid": "6432d753b1ad50c64113ba07"
+  },
+  "email": "fudaoyuan@test.com",
+  "password": "$2b$10$rjh3VZPoMIk3aPLHZV.GYeaZyCIqo1Ix0nlcWqid8jw96O99E4bLu",
+  "role": "counselor",
+  "emailVerified": true,
+  "createdAt": {
+    "$date": "2023-04-09T15:18:43.874Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T15:18:43.874Z"
+  },
+  "__v": 0
+},{
+  "_id": {
+    "$oid": "6432d767b1ad50c64113ba09"
+  },
+  "email": "laoshi@test.com",
+  "password": "$2b$10$E/fkajTOO39wFYrY6Ce0/u66d5Q31EoCDHlEFHKtyIZKFsdoCs7La",
+  "role": "teacher",
+  "emailVerified": true,
+  "createdAt": {
+    "$date": "2023-04-09T15:19:03.869Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T15:19:03.869Z"
+  },
+  "__v": 0
+},{
+  "_id": {
+    "$oid": "637a32025e3f5510ae0c7ff2"
+  },
+  "email": "student2@test.com",
+  "password": "$2b$10$WZNvP4SaAHN/AtseUfZJK./QYLtPQ8r2LmIhdpzKZ3sqtFQ1IGYAm",
+  "role": "user",
+  "emailVerified": true,
+  "createdAt": {
+    "$date": "2022-11-20T13:56:18.933Z"
+  },
+  "updatedAt": {
+    "$date": "2022-11-20T13:56:18.933Z"
+  },
+  "__v": 0
+},{
+  "_id": {
+    "$oid": "637a329a5e3f5510ae0c7ff8"
+  },
+  "email": "student3@test.com",
+  "password": "$2b$10$Mq/TT2jAHV7RVpOQtTjCV.08r8pykGwlGzuZr0S0TdjW79RDoZGim",
+  "role": "user",
+  "emailVerified": true,
+  "createdAt": {
+    "$date": "2022-11-20T13:58:50.723Z"
+  },
+  "updatedAt": {
+    "$date": "2022-11-20T13:58:50.723Z"
+  },
+  "__v": 0
+},{
+  "_id": {
+    "$oid": "6439034f9c59ea5891f2e874"
+  },
+  "email": "xuesheng1@test.com",
+  "password": "$2b$10$uVUbK4LOv5uVYY4d4sRacecJQ0hv1JfoNr2.wND0sRRRCLTyG6cx2",
+  "role": "student",
+  "emailVerified": true,
+  "createdAt": {
+    "$date": "2023-04-14T07:39:59.930Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-14T07:39:59.930Z"
+  },
+  "__v": 0
+},{
+  "_id": {
+    "$oid": "6432d716b1ad50c64113ba03"
+  },
+  "email": "xuesheng@test.com",
+  "password": "$2b$10$NCOdzTOfR.x4gr519iuUheF7qoi.RQFbUwKe4Px95iYz/GyKhqTMm",
+  "role": "student",
+  "emailVerified": true,
+  "createdAt": {
+    "$date": "2023-04-09T15:17:42.103Z"
+  },
+  "updatedAt": {
+    "$date": "2023-04-09T15:17:42.103Z"
+  },
+  "__v": 0
+}]

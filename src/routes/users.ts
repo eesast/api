@@ -15,7 +15,6 @@ import hasura from "../middlewares/hasura";
 import type { MongoError } from "mongodb";
 import { gql } from "graphql-request";
 import { client } from "..";
-
 const router = express.Router();
 
 router.put("/delete", async(req, res) => {
@@ -160,7 +159,6 @@ router.put("/", authenticate(), async (req, res) => {
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
   if (!email || !password) {
     return res
       .status(422)
@@ -172,11 +170,13 @@ router.post("/login", async (req, res) => {
 
     if (!user) {
       // 没有 recaptcha 保护，不提示“用户不存在”
+      console.log("user missing")
       return res.status(401).end();
     }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
+      console.log("password wrong")
       return res.status(401).end();
     }
 
