@@ -9,9 +9,10 @@ import getSTS from "../helpers/sts";
 import fStream from 'fs';
 import COS from "cos-nodejs-sdk-v5";
 import { join } from "path";
+
 const router = express.Router();
 
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/alan/thuai6';
 
 interface JwtCompilerPayload {
   team_id: string;
@@ -145,7 +146,9 @@ router.post("/compile", async (req, res) => {
             "name/cos:AbortMultipartUpload",
             "name/cos:GetObject",
             "name/cos:DeleteObject",
+            "name/cos:GetBucket"
           ], "*");
+
           const cos = new COS({
             getAuthorization: async (options: object, callback: (
               params: COS.GetAuthorizationCallbackParams
@@ -164,26 +167,61 @@ router.post("/compile", async (req, res) => {
               }
             }
           });
+
           const config = {
             bucket: 'eesast-1255334966',
             region: 'ap-beijing',
           };
 
+
+
           const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
             return new Promise((resolve, reject) => {
-              cos.getObject({
-                Bucket: config.bucket,
-                Region: config.region,
-                Key: key,
-                Output: fStream.createWriteStream(outputPath),
-              }, (err) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  // console.log(data);
-                  resolve(true);
-                }
-              });
+              // console.log(key)
+              const key_prefix = key.match(/THUAI6\/.*\//i);
+              if (key_prefix) {
+                cos.getBucket({
+                  Bucket: config.bucket,
+                  Region: config.region,
+                  Prefix: key_prefix[0],           /* Prefix表示列出的object的key以prefix开始，非必须 */
+                  Delimiter: "/"
+                }, function(err, data) {
+                    if (err) {
+                      reject(err);
+                    } else {
+                      // console.log(data.Contents.length);
+                      let find_flag = false;
+                      for (let i = 0;i < data.Contents.length && !find_flag;i++) {
+                        // console.log("content: " + data.Contents[i].Key)
+                        if (data.Contents[i].Key == key) {
+                          // console.log('find key')
+                          find_flag = true;
+                        }
+                      }
+                      if (find_flag) {
+                        cos.getObject({
+                          Bucket: config.bucket,
+                          Region: config.region,
+                          Key: key,
+                          Output: fStream.createWriteStream(outputPath),
+                        }, (err) => {
+                          if (err) {
+                            reject(err);
+                          } else {
+                            // console.log(data);
+                            resolve(true);
+                          }
+                        });
+                          // resolve(true);
+                      } else {
+                        reject('not find key')
+                      }
+
+                    }
+                });
+              } else {
+                reject('key prefix error')
+              }
             });
           };
 
@@ -228,8 +266,8 @@ router.post("/compile", async (req, res) => {
           // });
 
           // return res.status(200).send("ok");
-          deleteFile(`${base_directory}/${team_id}`).then(() => {
-            return downloadAllFiles();
+          await deleteFile(`${base_directory}/${team_id}`).then(() => {
+              return downloadAllFiles();
           }).then(async () => {
             // console.log('所有文件已下载完成');
             // console.log("@@ files downloaded");
@@ -306,7 +344,10 @@ router.post("/compile", async (req, res) => {
               return res.status(400).send(err);
             }
           }).catch((err) => {
-            console.error('下载文件失败：', err);
+            // return err;
+            return new Promise((resolve, reject) => {
+              reject(err)
+            })
           });
         } catch (err) {
           return res.status(400).send(`STS选手代码下载失败:${err}`);
