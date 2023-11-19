@@ -12,7 +12,7 @@ import { join } from "path";
 
 const router = express.Router();
 
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/xiangmy21/luangao/thuai6';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
 
 interface JwtCompilerPayload {
   team_id: string;
@@ -85,58 +85,47 @@ router.post("/compile", async (req, res) => {
           );
           const is_in_team = query_in_team.contest_team.length != 0;
           if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
-      }
-      } catch (err) {
-        return res.status(400).send(err);
-      }
-      
-      // console.log("@@ try to create dir");
-      try {
+        }
+
         await fs.mkdir(`${base_directory}/${team_id}`, {
           recursive: true,
           mode: 0o775,
         });
-      } catch (err) {
-        return res.status(400).send("文件存储目录创建失败");
-      }
 
-      try {
+        const player_num = 5;
+        let query_string = "";
+        for (let i = 0;i < player_num;i++) {
+          const j = i + 1;
+          query_string += `
+            code${j}
+            code_type${j}
+          `
+        }
         const get_contest_codes = await client.request(
           gql`query get_team_codes($team_id: uuid){
             contest_code(where: {team_id: {_eq: $team_id}}) {
-              code1
-              code2
-              code3
-              code4
-              code5
-              code_type1
-              code_type2
-              code_type3
-              code_type4
-              code_type5
+              ${query_string}
             }
           }`,
           { team_id: team_id }
         );
+
         //判断是否为cpp或python
-        if ((get_contest_codes.contest_code[0].code_type1 != "cpp" && get_contest_codes.contest_code[0].code_type1 != "py") ||
-          (get_contest_codes.contest_code[0].code_type2 != "cpp" && get_contest_codes.contest_code[0].code_type2 != "py") ||
-          (get_contest_codes.contest_code[0].code_type3 != "cpp" && get_contest_codes.contest_code[0].code_type3 != "py") ||
-          (get_contest_codes.contest_code[0].code_type4 != "cpp" && get_contest_codes.contest_code[0].code_type4 != "py") ||
-          (get_contest_codes.contest_code[0].code_type5 != "cpp" && get_contest_codes.contest_code[0].code_type5 != "py") ||
-          !get_contest_codes.contest_code[0].code1 ||
-          !get_contest_codes.contest_code[0].code2 ||
-          !get_contest_codes.contest_code[0].code3 ||
-          !get_contest_codes.contest_code[0].code4 ||
-          !get_contest_codes.contest_code[0].code5) {
+        for (let i = 0;i < player_num;i++) {
+          const j = i + 1;
+          if ((get_contest_codes.contest_code[0]['code_type' + j] != "cpp" && get_contest_codes.contest_code[0]['code_type' + j] != "py") ||
+          !get_contest_codes.contest_code[0]['code' + j]) {
             return res.status(400).send("未完成全部文件上传");
           }
+        }
+
+        console.log("start to get sts")
         const sts = await getSTS([
           "name/cos:GetObject",
           "name/cos:DeleteObject",
           "name/cos:HeadObject",
         ], "*");
-
+        console.log("start to cos")
         const cos = new COS({
           getAuthorization: async (options: object, callback: (
             params: COS.GetAuthorizationCallbackParams
@@ -151,7 +140,7 @@ router.post("/compile", async (req, res) => {
                 ExpiredTime: sts.expiredTime,
               });
             } catch (err) {
-              return console.log(err);
+              console.log(err);
             }
           }
         });
@@ -161,8 +150,7 @@ router.post("/compile", async (req, res) => {
           region: 'ap-beijing',
         };
 
-
-
+        console.log('start to get object')
         const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
           return new Promise((resolve, reject) => {
             cos.headObject({
@@ -184,7 +172,7 @@ router.post("/compile", async (req, res) => {
                   }
                 });
               } else {
-                reject(`${key} Not found.`);
+                reject(`key: ${key} Not found.`);
               }
             });
           });
@@ -192,11 +180,10 @@ router.post("/compile", async (req, res) => {
 
         const urls: Url[] = [];
         const codes = get_contest_codes.contest_code[0];
-        urls.push({ key: `${codes.code1}`, path: `${base_directory}/${team_id}/player1.${codes.code_type1}` });
-        urls.push({ key: `${codes.code2}`, path: `${base_directory}/${team_id}/player2.${codes.code_type2}` });
-        urls.push({ key: `${codes.code3}`, path: `${base_directory}/${team_id}/player3.${codes.code_type3}` });
-        urls.push({ key: `${codes.code4}`, path: `${base_directory}/${team_id}/player4.${codes.code_type4}` });
-        urls.push({ key: `${codes.code5}`, path: `${base_directory}/${team_id}/player5.${codes.code_type5}` });
+        for (let i = 0;i < 5;i++) {
+          const j = i + 1;
+          urls.push({ key: `${codes['code' + j]}`, path: `${base_directory}/${team_id}/player${j}.${codes['code_type' + j]}`});
+        }
         const downloadAllFiles = async function downloadAllFiles() {
           const promises = urls.map((url) => downloadObject(url.key, url.path));
           await Promise.all(promises);
@@ -217,89 +204,84 @@ router.post("/compile", async (req, res) => {
           }));
         }
 
-        deleteFile(`${base_directory}/${team_id}`).then(() => {
-            return downloadAllFiles();
-        }).then(async () => {
-          // console.log("@@ files downloaded");
-          const docker =
-            process.env.DOCKER === "remote"
-              ? new Docker({
-                host: process.env.DOCKER_URL,
-                port: process.env.DOCKER_PORT,
-              })
-              : new Docker();
-          let containerRunning = false;
-          const containerList = await docker.listContainers();
-          containerList.forEach((containerInfo) => {
-            if (containerInfo.Names.includes(`/THUAI6_Compiler_${team_id}`)) {
-              containerRunning = true;
+        await deleteFile(`${base_directory}/${team_id}`);
+
+        await downloadAllFiles();
+
+        const docker =
+          process.env.DOCKER === "remote"
+            ? new Docker({
+              host: process.env.DOCKER_URL,
+              port: process.env.DOCKER_PORT,
+            })
+            : new Docker();
+        let containerRunning = false;
+        const containerList = await docker.listContainers();
+        containerList.forEach((containerInfo) => {
+          if (containerInfo.Names.includes(`/THUAI6_Compiler_${team_id}`)) {
+            containerRunning = true;
+          }
+        });
+        if (!containerRunning) {
+          const url =
+            process.env.NODE_ENV == "production"
+              ? "https://api.eesast.com/code/compileInfo"
+              : "http://172.17.0.1:28888/code/compileInfo";
+          const compiler_token = jwt.sign(
+            {
+              team_id: team_id,
+            } as JwtCompilerPayload,
+            process.env.SECRET!,
+            {
+              expiresIn: "10m",
             }
+          );
+          const container = await docker.createContainer({
+            Image: process.env.COMPILER_IMAGE,
+            Env: [
+              `URL=${url}`,
+              `TOKEN=${compiler_token}`
+            ],
+            HostConfig: {
+              Binds: [`${base_directory}/${team_id}:/usr/local/mnt`],
+              AutoRemove: true,
+              NetworkMode: "host"
+            },
+            AttachStdin: false,
+            AttachStdout: false,
+            AttachStderr: false,
+            //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
+            name: `THUAI6_Compiler_${team_id}`
           });
-          if (!containerRunning) {
-            const url =
-              process.env.NODE_ENV == "production"
-                ? "https://api.eesast.com/code/compileInfo"
-                : "http://172.17.0.1:28888/code/compileInfo";
-            const compiler_token = jwt.sign(
-              {
-                team_id: team_id,
-              } as JwtCompilerPayload,
-              process.env.SECRET!,
-              {
-                expiresIn: "10m",
-              }
-            );
-            const container = await docker.createContainer({
-              Image: process.env.COMPILER_IMAGE,
-              Env: [
-                `URL=${url}`,
-                `TOKEN=${compiler_token}`
-              ],
-              HostConfig: {
-                Binds: [`${base_directory}/${team_id}:/usr/local/mnt`],
-                AutoRemove: true,
-                NetworkMode: "host"
-              },
-              AttachStdin: false,
-              AttachStdout: false,
-              AttachStderr: false,
-              //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
-              name: `THUAI6_Compiler_${team_id}`
-            });
-            await client.request(
-              gql`
-                mutation update_compile_status(
-                  $team_id: uuid!
-                  $status: String
-                  $contest_id: uuid
-                ) {
-                  update_contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}, _set: {status: $status}) {
-                    returning {
-                      status
-                    }
+          await client.request(
+            gql`
+              mutation update_compile_status(
+                $team_id: uuid!
+                $status: String
+                $contest_id: uuid
+              ) {
+                update_contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}, _set: {status: $status}) {
+                  returning {
+                    status
                   }
                 }
-              `,
-              {
-                contest_id: process.env.GAME_ID,
-                team_id: team_id,
-                status: "compiling",
               }
-            );
-            await container.start();
-            // console.log("@@ docker started");
-          }
-        }).then(() => {
-          res.status(200).send("ok!");
-        }).catch((err) => {
-          return res.status(400).send(err);
-        });
-      } catch (err) {
-        return res.status(400).send(err);
+            `,
+            {
+              contest_id: process.env.GAME_ID,
+              team_id: team_id,
+              status: "compiling",
+            }
+          );
+          await container.start();
+        }
+        res.status(200).send("ok!");
+      } catch (err: unknown) {
+          return res.status(400).send(err?.toString());
       }
     });
-  } catch (err) {
-    return res.send(err);
+  } catch (err: unknown) {
+    return res.status(400).send(err?.toString());
   }
 });
 
