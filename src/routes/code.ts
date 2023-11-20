@@ -12,7 +12,8 @@ import { join } from "path";
 
 const router = express.Router();
 
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/xiangmy21/luangao/thuai6';
+// const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/xiangmy21/luangao/thuai6';
+const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/Users/zhenzhengdehuoyubai/Downloads';
 
 interface JwtCompilerPayload {
   team_id: string;
