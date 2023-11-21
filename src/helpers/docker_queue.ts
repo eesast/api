@@ -18,7 +18,7 @@ export interface queue_element {
   exposed: number;
 }
 
-const get_port = async (room_id: string, exposed_ports: Array<string>, sub_base_dic: string) => {
+const get_port = async (room_id: string, exposed_ports: Array<string>, sub_base_dir: string) => {
   let result = -1;
   for (let i = 0; i < exposed_ports.length; ++i) {
     if (exposed_ports[i] === "") {
@@ -29,7 +29,7 @@ const get_port = async (room_id: string, exposed_ports: Array<string>, sub_base_
   }
   if (result === -1) {
     for (let i = 0; i < exposed_ports.length; ++i) {
-      if (fs.existsSync(`${sub_base_dic}/${exposed_ports[i]}/finish.lock`)) {
+      if (fs.existsSync(`${sub_base_dir}/${exposed_ports[i]}/finish.lock`)) {
         exposed_ports[i] = "";
       }
     }
@@ -79,7 +79,7 @@ const docker_cron = () => {
             return;
           }
           const contest_name = await get_contest_name(queue_front.contest_id);
-          const sub_base_dic = queue_front.arenic == 1 ? `${base_directory}/${contest_name}/arena` : `${base_directory}/${contest_name}/competition`;
+          const sub_base_dir = queue_front.arenic == 1 ? `${base_directory}/${contest_name}/arena` : `${base_directory}/${contest_name}/competition`;
 
           // 检查对战双方是否通过编译，否则丢弃
           const query_if_compiled = await client.request(
@@ -143,7 +143,7 @@ const docker_cron = () => {
 
           // 若开放直播，则需安排观战端口
           if (queue_front.exposed) {
-            const port = await get_port(queue_front.room_id, exposed_ports, sub_base_dic);
+            const port = await get_port(queue_front.room_id, exposed_ports, sub_base_dir);
             // 理论上限制端口数不少于闲置容器数，故此处是否赘余？
             if (port === -1) {
               console.log("no port available")
@@ -159,7 +159,7 @@ const docker_cron = () => {
               name: `${contest_name}_runner_${queue_front.room_id}`,
               HostConfig: {
                 Binds: [
-                  `${sub_base_dic}/${queue_front.room_id}/:/usr/local/playback`,
+                  `${sub_base_dir}/${queue_front.room_id}/:/usr/local/playback`,
                   `${base_directory}/${contest_name}/map/:/usr/local/map`,
                   `${base_directory}/${contest_name}/code/${queue_front.team_id_1}/:/usr/local/team1`,
                   `${base_directory}/${contest_name}/code/${queue_front.team_id_2}/:/usr/local/team2`
@@ -225,11 +225,11 @@ const docker_cron = () => {
                 );
               }
 
-              fs.mkdir(`${sub_base_dic}/${queue_front.room_id}`, {recursive: true}, (err)=>{
+              fs.mkdir(`${sub_base_dir}/${queue_front.room_id}`, {recursive: true}, (err)=>{
                 if(err) {
                   throw err;
                 }
-                fs.writeFile(`${sub_base_dic}/${queue_front.room_id}/finish.lock`, "", (err)=>{
+                fs.writeFile(`${sub_base_dir}/${queue_front.room_id}/finish.lock`, "", (err)=>{
                   if(err) {
                     throw err;
                   }
@@ -248,7 +248,7 @@ const docker_cron = () => {
               name: `${contest_name}_runner_${queue_front.room_id}`,
               HostConfig: {
                 Binds: [
-                  `${sub_base_dic}/${queue_front.room_id}/:/usr/local/playback`,
+                  `${sub_base_dir}/${queue_front.room_id}/:/usr/local/playback`,
                   `${base_directory}/${contest_name}/map/:/usr/local/map`,
                   `${base_directory}/${contest_name}/code/${queue_front.team_id_1}/:/usr/local/team1`,
                   `${base_directory}/${contest_name}/code/${queue_front.team_id_2}/:/usr/local/team2`

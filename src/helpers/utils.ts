@@ -8,7 +8,7 @@ export const get_contest_name: any = async (contest_id: string) => {
     gql`
       query get_contest_name($contest_id: uuid) {
         contest(where: { id: { _eq: $contest_id } }) {
-          contest_name
+          name
         }
       }
     `,
@@ -16,5 +16,5 @@ export const get_contest_name: any = async (contest_id: string) => {
       contest_id: contest_id,
     }
   );
-  return query_contest_name.contest[0].contest_name;
+  return query_contest_name.contest[0].name;
 };
