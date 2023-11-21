@@ -75,6 +75,9 @@ const docker_cron = () => {
         try {
           // 取出元素
           const queue_front = docker_queue.shift() as queue_element;
+          if(queue_front === undefined){
+            return;
+          }
           const contest_name = await get_contest_name(queue_front.contest_id);
           const sub_base_dic = queue_front.arenic == 1 ? `${base_directory}/${contest_name}/arena` : `${base_directory}/${contest_name}/competition`;
 
