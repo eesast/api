@@ -8,6 +8,7 @@ import { JwtPayload } from "../middlewares/authenticate";
 const router = express.Router();
 
 export interface JwtServerPayload {
+  contest_id: string;
   room_id: string;
   team_ids: string[];
 }
@@ -87,7 +88,9 @@ router.put("/", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      if (req.body.mode != 0 && req.body.mode != 1) return res.status(400).send("Wrong mode code!");
+      if (req.body.mode != 0 && req.body.mode != 1) {
+        return res.status(400).send("Wrong mode code!");
+      }
       const payload = decoded as JwtServerPayload;
       if (req.body.mode == 0) {
         const query_if_valid = await client.request(
@@ -126,11 +129,14 @@ router.put("/", async (req, res) => {
                 `,
                 {
                   team_id: payload.team_ids[i],
-                  contest_id: process.env.GAME_ID
+                  contest_id: payload.contest_id,
                 }
               );
-              if (current_score_query0.contest_team[0].score == null) current_score[i] = 200;
-              else current_score[i] = Number(current_score_query0.contest_team[0].score);
+              if (current_score_query0.contest_team[0].score == null) {
+                current_score[i] = 200;
+              } else {
+                current_score[i] = Number(current_score_query0.contest_team[0].score);
+              }
               team_name[i] = current_score_query0.contest_team[0].team_name;
               break;
             }
@@ -146,13 +152,19 @@ router.put("/", async (req, res) => {
                 `,
                 {
                   team_id: payload.team_ids[i],
-                  contest_id: process.env.GAME_ID
+                  contest_id: payload.contest_id,
                 }
               );
-              if (current_score_query1.contest_team[0].contest_score == null) current_score[i] = 200;
-              else current_score[i] = Number(current_score_query1.contest_team[0].contest_score);
-              if (current_score_query1.contest_team[0].status2 == null) contest_times[i] = 0;
-              else contest_times[i] = Number(current_score_query1.contest_team[0].status2);
+              if (current_score_query1.contest_team[0].contest_score == null) {
+                current_score[i] = 200;
+              } else {
+                current_score[i] = Number(current_score_query1.contest_team[0].contest_score);
+              }
+              if (current_score_query1.contest_team[0].status2 == null) {
+                contest_times[i] = 0;
+              } else {
+                contest_times[i] = Number(current_score_query1.contest_team[0].status2);
+              }
               break;
             }
           }
@@ -180,7 +192,7 @@ router.put("/", async (req, res) => {
                 {
                   team_id: payload.team_ids[i],
                   score: `${updated_score[i]}`,
-                  contest_id: process.env.GAME_ID
+                  contest_id: payload.contest_id,
                 }
               );
               break;
@@ -200,14 +212,14 @@ router.put("/", async (req, res) => {
                   team_id: payload.team_ids[i],
                   score: `${updated_score[i]}`,
                   status2: `${contest_times[i] + 1}`,
-                  contest_id: process.env.GAME_ID
+                  contest_id: payload.contest_id,
                 }
               );
               break;
             }
           }
         }
-        if (req.body.mode == 0) await client.request(   //存在room
+        if (req.body.mode == 0) await client.request(
           gql`
             mutation update_room_status($contest_id: uuid!, $room_id: uuid!, $status: Boolean, $result: String) {
               update_contest_room(where: {_and: {contest_id: {_eq: $contest_id}, room_id: {_eq: $room_id}}}, _set: {status: $status, result: $result}) {
@@ -218,7 +230,7 @@ router.put("/", async (req, res) => {
             }
           `,
           {
-            contest_id: process.env.GAME_ID,
+            contest_id: payload.contest_id,
             room_id: payload.room_id,
             status: true,
             result: `${team_name[0]}: ${
@@ -238,11 +250,17 @@ router.put("/", async (req, res) => {
   }
 });
 
+
+
+
+
+
 import * as fs from 'fs';
-import { base_directory } from "./room"
+import { base_directory, get_contest_name } from "../helpers/utils"
 /**
  * POST launch contest
  * @param token
+ * @param contest_id
  * @param mode 0代表单循环赛，1代表双循环赛，2代表测试比赛
  */
 router.post("/", async (req, res) => {
@@ -260,6 +278,7 @@ router.post("/", async (req, res) => {
       }
       const payload = decoded as JwtPayload;
       const user_id = payload._id;
+      const contest_id = req.body.contest_id;
       const query_if_manager = await client.request(
         gql`
           query query_is_manager($contest_id: uuid, $user_id: String) {
@@ -268,9 +287,12 @@ router.post("/", async (req, res) => {
             }
           }
         `,
-        { contest_id: process.env.GAME_ID, user_id: user_id }
+        { 
+          contest_id: contest_id, 
+          user_id: user_id 
+        }
       );
-      const is_manager = query_if_manager.contest_manager.lenth != 0;
+      const is_manager = query_if_manager.contest_manager.length != 0;
       if (!is_manager) {
         return res
           .status(400)
@@ -284,19 +306,24 @@ router.post("/", async (req, res) => {
             }
           }
         `,
-        { contest_id: process.env.GAME_ID }
+        { 
+          contest_id: contest_id,
+        }
       );
       const valid_team_ids = query_valid_teams.contest_team;
+
+      const contest_name = await get_contest_name(contest_id);
       switch (req.body.mode) {
         case 0: {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
               docker_queue.push({
+                contest_id: contest_id,
                 room_id: `Num.${i}--vs--Num.${j}`,
                 team_id_1: valid_team_ids[i].team_id,
                 team_id_2: valid_team_ids[j].team_id,
                 map: 0,
-                mode: 1,
+                arenic: 0,
                 exposed: 0
               });
             }
@@ -308,41 +335,36 @@ router.post("/", async (req, res) => {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
               try {
                 // 检查路径是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`, fs.constants.F_OK);
-
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`, fs.constants.F_OK);
                 // 检查文件是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap/result.json`, fs.constants.R_OK);
-
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap/result.json`, fs.constants.R_OK);
                 //若存在，则不再添加
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
+                  contest_id: contest_id,
                   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--oldmap`,
                   team_id_1: valid_team_ids[i].team_id,
                   team_id_2: valid_team_ids[j].team_id,
                   map: 0,
-                  mode: 1,
+                  arenic: 0,
                   exposed: 1
                 });
               }
               try {
-                // 检查路径是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`, fs.constants.F_OK);
-
-                // 检查文件是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap/result.json`, fs.constants.R_OK);
-
-                //若存在，则不再添加
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`, fs.constants.F_OK);
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap/result.json`, fs.constants.R_OK);
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
+                  contest_id: contest_id,
                   room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--oldmap`,
                   team_id_1: valid_team_ids[j].team_id,
                   team_id_2: valid_team_ids[i].team_id,
                   map: 0,
-                  mode: 1,
+                  arenic: 0,
                   exposed: 1
                 });
               }
@@ -351,42 +373,34 @@ router.post("/", async (req, res) => {
           for (let i = 0; i < valid_team_ids.length; i++) {
             for (let j = i + 1; j < valid_team_ids.length; j++) {
               try {
-                // 检查路径是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`, fs.constants.F_OK);
-
-                // 检查文件是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap/finish.lock`, fs.constants.R_OK);
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap/result.json`, fs.constants.R_OK);
-
-                //若存在，则不再添加
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`, fs.constants.F_OK);
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap/result.json`, fs.constants.R_OK);
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
+                  contest_id: contest_id,
                   room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}--newmap`,
                   team_id_1: valid_team_ids[i].team_id,
                   team_id_2: valid_team_ids[j].team_id,
                   map: 1,
-                  mode: 1,
+                  arenic: 0,
                   exposed: 1
                 });
               }
               try {
-                // 检查路径是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`, fs.constants.F_OK);
-
-                // 检查文件是否存在
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap/finish.lock`, fs.constants.R_OK);
-                fs.accessSync(`${base_directory}/playback/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap/result.json`, fs.constants.R_OK);
-
-                //若存在，则不再添加
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`, fs.constants.F_OK);
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap/finish.lock`, fs.constants.R_OK);
+                fs.accessSync(`${base_directory}/${contest_name}/competition/Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap/result.json`, fs.constants.R_OK);
               } catch (err) {
                 // console.error('文件不存在', err);
                 docker_queue.push({
+                  contest_id: contest_id,
                   room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}--newmap`,
                   team_id_1: valid_team_ids[j].team_id,
                   team_id_2: valid_team_ids[i].team_id,
                   map: 1,
-                  mode: 1,
+                  arenic: 0,
                   exposed: 1
                 });
               }
@@ -399,19 +413,21 @@ router.post("/", async (req, res) => {
           for (let i = 0; i < 3; i++) {
             for (let j = i + 1; j < 3; j++) {
               docker_queue.push({
+                contest_id: contest_id,
                 room_id: `Team_${valid_team_ids[i].team_id}--vs--Team_${valid_team_ids[j].team_id}`,
                 team_id_1: valid_team_ids[i].team_id,
                 team_id_2: valid_team_ids[j].team_id,
                 map: 0,
-                mode: 1,
+                arenic: 0,
                 exposed: 1
               });
               docker_queue.push({
+                contest_id: contest_id,
                 room_id: `Team_${valid_team_ids[j].team_id}--vs--Team_${valid_team_ids[i].team_id}`,
                 team_id_1: valid_team_ids[j].team_id,
                 team_id_2: valid_team_ids[i].team_id,
                 map: 1,
-                mode: 1,
+                arenic: 0,
                 exposed: 1
               });
             }

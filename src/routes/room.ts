@@ -5,12 +5,14 @@ import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
 import { JwtPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
+import { base_directory, get_contest_name } from "../helpers/utils";
+import { ConnectionStates } from "mongoose";
 
 const router = express.Router();
-export const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
 
 /**
  * @param token (user_id)
+ * @param {uuid} contest_id
  * @param {uuid} room_id
  * @param {boolean} team_seq
  * @param {number} map
@@ -20,6 +22,7 @@ export const base_directory = process.env.NODE_ENV === "production" ? '/data/thu
 router.post("/", async (req, res) => {
   try {
     console.log("needed");
+    const contest_id = req.body.contest_id;
     const room_id = req.body.room_id;
     const team_seq = req.body.team_seq as boolean;
     const map = req.body.map as number;
@@ -37,7 +40,7 @@ router.post("/", async (req, res) => {
       }
       const payload = decoded as JwtPayload;
       const user_id = payload._id;
-
+      const contest_name = await get_contest_name(contest_id);
       try {
           //查询选手是否在房间里
           const if_in_room = await client.request(
@@ -80,7 +83,7 @@ router.post("/", async (req, res) => {
             team_withseq[1 - Number(team_seq)] =
               current_team_id == teams[0].team_id ? teams[1].team_id : teams[0].team_id;
             try {
-              await fs.mkdir(`${base_directory}/playback/${room_id}`, {
+              await fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}`, {
                 recursive: true,
                 mode: 0o775,
               });
@@ -89,11 +92,12 @@ router.post("/", async (req, res) => {
             }
 
             docker_queue.push({
+              contest_id: contest_id,
               room_id: room_id,
               team_id_1: team_withseq[0],
               team_id_2: team_withseq[1],
               map: map,
-              mode: 0,
+              arenic: 1,
               exposed: exposed,
             });
             return res.status(200).json({exposed: exposed});
@@ -111,8 +115,10 @@ router.post("/", async (req, res) => {
 
 /**
  * @param token (user_id)
+ * @param {uuid} contest_id
  * @param {uuid} team_id1
  * @param {uuid} team_id2
+ * @param {number} exposed
  */
 router.post("/assign", async (req, res) => {
   console.log("needed");
@@ -130,6 +136,7 @@ router.post("/assign", async (req, res) => {
       }
       const payload = decoded as JwtPayload;
       const user_id = payload._id;
+      const contest_id = req.body.contest_id;
       const exposed = req.body.exposed as number;
       const query_if_manager = await client.request(
         gql`
@@ -139,9 +146,12 @@ router.post("/assign", async (req, res) => {
             }
           }
         `,
-        { contest_id: process.env.GAME_ID, user_id: user_id }
+        { 
+          contest_id: contest_id, 
+          user_id: user_id 
+        }
       );
-      const is_manager = query_if_manager.contest_manager.lenth != 0;
+      const is_manager = query_if_manager.contest_manager.length != 0;
       if (!is_manager) {
         return res
         .status(400)
@@ -155,17 +165,21 @@ router.post("/assign", async (req, res) => {
             }
           }
         `,
-        { contest_id: process.env.GAME_ID }
+        { 
+          contest_id: contest_id, 
+        }
       );
       const valid_team_ids = query_valid_teams.contest_team;
-      if (valid_team_ids.find((item: any) => item.team_id == req.body.team_id1) == undefined || valid_team_ids.find((item: any) => item.team_id == req.body.team_id2) == undefined)
+      if (valid_team_ids.find((item: any) => item.team_id == req.body.team_id1) == undefined || valid_team_ids.find((item: any) => item.team_id == req.body.team_id2) == undefined){
         return res.status(400).send("requested team not compiled");
+      }
       docker_queue.push({
+        contest_id: contest_id,
         room_id: `${req.body.team_id1}--vs--${req.body.team_id2}`,
         team_id_1: req.body.team_id1,
         team_id_2: req.body.team_id2,
         map: 1,
-        mode: 1,
+        arenic: 0,
         exposed: exposed
       });
       return res.status(200).send("successfully assigned!");
@@ -178,8 +192,9 @@ router.post("/assign", async (req, res) => {
 
 /**
  * GET playback file
- * @param {uuid} id
- * @param {int} mode 0代表存在实际room的对战，1代表不存在实际room的对战
+ * @param {uuid} room_id
+ * @param {uuid} contest_id
+ * @param {int} arenic 1代表存在实际room的对战，0代表不存在实际room的对战
  */
 router.get("/:room_id", async (req, res) => {
   try {
@@ -192,21 +207,30 @@ router.get("/:room_id", async (req, res) => {
     //       }
     //     }
     //   `,
-    //   { room_id: room_id }
+    //   { 
+    //     room_id: room_id 
+    //   }
     // );
-    // if (query_room.contest_room.length == 0)
+    // if (query_room.contest_room.length == 0){
     //   return res.status(400).send("room does not exist");
+    // }
+
+    const contest_name = await get_contest_name(req.body.contest_id);
+    const videoPath = req.body.arenic === 1 ? `${base_directory}/${contest_name}/arena/${room_id}/video.thuaipb` : `${base_directory}/${contest_name}/competition/${room_id}/video.thuaipb`;
+
     try {
-      await fs.access(`${base_directory}/playback/${room_id}/video.thuaipb`);
+      await fs.access(videoPath);
       res.setHeader(
         "Content-Disposition",
         "attachment;filename=video.thuaipb"
       );
       return res
         .status(200)
-        .sendFile(`${base_directory}/playback/${room_id}/video.thuaipb`);
+        .sendFile(videoPath);
     } catch (err: any) {
-      if (err.code == "ENOENT") return res.status(404).send("文件不存在");
+      if (err.code == "ENOENT") {
+        return res.status(404).send("文件不存在");
+      }
       return res.status(400).send(err);
     }
   } catch (err) {
