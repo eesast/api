@@ -6,7 +6,6 @@ import jwt from "jsonwebtoken";
 import { JwtPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 import { base_directory, get_contest_name } from "../helpers/utils";
-import { ConnectionStates } from "mongoose";
 
 const router = express.Router();
 
