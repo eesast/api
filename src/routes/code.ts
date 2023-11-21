@@ -9,13 +9,13 @@ import getSTS from "../helpers/sts";
 import fStream from 'fs';
 import COS from "cos-nodejs-sdk-v5";
 import { join } from "path";
+import { base_directory, get_contest_name } from "../helpers/utils";
 
 const router = express.Router();
 
-const base_directory = process.env.NODE_ENV === "production" ? '/data/thuai6/' : '/home/guoyun/thuai6';
-
 interface JwtCompilerPayload {
   team_id: string;
+  contest_id: string;
 }
 
 interface Url {
@@ -56,7 +56,10 @@ router.post("/compile", async (req, res) => {
               }
             }
           `,
-          { contest_id: contest_id, user_id: user_id }
+          { 
+            contest_id: contest_id, 
+            user_id: user_id 
+          }
         );
         const is_manager = query_if_manager.contest_manager.length != 0;
         if (!is_manager) {
@@ -81,20 +84,28 @@ router.post("/compile", async (req, res) => {
                 }
               }
             `,
-            { contest_id: contest_id, team_id: team_id, user_id: user_id }
+            { 
+              contest_id: contest_id, 
+              team_id: team_id, 
+              user_id: user_id 
+            }
           );
           const is_in_team = query_in_team.contest_team.length != 0;
-          if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
+          if (!is_in_team) {
+            return res.status(401).send("当前用户不在队伍中");
+          }
         }
 
-        await fs.mkdir(`${base_directory}/${team_id}`, {
+        const contest_name = await get_contest_name(contest_id);
+
+        await fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}`, {
           recursive: true,
           mode: 0o775,
         });
 
         const player_num = 5;
         let query_string = "";
-        for (let i = 0;i < player_num;i++) {
+        for (let i = 0;i < player_num; ++i) {
           const j = i + 1;
           query_string += `
             code${j}
@@ -107,11 +118,13 @@ router.post("/compile", async (req, res) => {
               ${query_string}
             }
           }`,
-          { team_id: team_id }
+          { 
+            team_id: team_id 
+          }
         );
 
         //判断是否为cpp或python
-        for (let i = 0;i < player_num;i++) {
+        for (let i = 0;i < player_num; ++i) {
           const j = i + 1;
           if ((get_contest_codes.contest_code[0]['code_type' + j] != "cpp" && get_contest_codes.contest_code[0]['code_type' + j] != "py") ||
           !get_contest_codes.contest_code[0]['code' + j]) {
@@ -180,9 +193,9 @@ router.post("/compile", async (req, res) => {
 
         const urls: Url[] = [];
         const codes = get_contest_codes.contest_code[0];
-        for (let i = 0;i < 5;i++) {
+        for (let i = 0;i < player_num; ++i) {
           const j = i + 1;
-          urls.push({ key: `${codes['code' + j]}`, path: `${base_directory}/${team_id}/player${j}.${codes['code_type' + j]}`});
+          urls.push({ key: `${codes['code' + j]}`, path: `${base_directory}/${contest_name}/code/${team_id}/player${j}.${codes['code_type' + j]}`});
         }
         const downloadAllFiles = async function downloadAllFiles() {
           const promises = urls.map((url) => downloadObject(url.key, url.path));
@@ -204,7 +217,7 @@ router.post("/compile", async (req, res) => {
           }));
         }
 
-        await deleteFile(`${base_directory}/${team_id}`);
+        await deleteFile(`${base_directory}/${contest_name}/code/${team_id}`);
 
         await downloadAllFiles();
 
@@ -218,7 +231,7 @@ router.post("/compile", async (req, res) => {
         let containerRunning = false;
         const containerList = await docker.listContainers();
         containerList.forEach((containerInfo) => {
-          if (containerInfo.Names.includes(`/THUAI6_Compiler_${team_id}`)) {
+          if (containerInfo.Names.includes(`/${contest_name}_Compiler_${team_id}`)) {
             containerRunning = true;
           }
         });
@@ -230,6 +243,7 @@ router.post("/compile", async (req, res) => {
           const compiler_token = jwt.sign(
             {
               team_id: team_id,
+              contest_id: contest_id,
             } as JwtCompilerPayload,
             process.env.SECRET!,
             {
@@ -243,7 +257,7 @@ router.post("/compile", async (req, res) => {
               `TOKEN=${compiler_token}`
             ],
             HostConfig: {
-              Binds: [`${base_directory}/${team_id}:/usr/local/mnt`],
+              Binds: [`${base_directory}/${contest_name}/code/${team_id}:/usr/local/mnt`],
               AutoRemove: true,
               NetworkMode: "host"
             },
@@ -251,7 +265,7 @@ router.post("/compile", async (req, res) => {
             AttachStdout: false,
             AttachStderr: false,
             //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
-            name: `THUAI6_Compiler_${team_id}`
+            name: `${contest_name}_Compiler_${team_id}`
           });
           await client.request(
             gql`
@@ -268,12 +282,15 @@ router.post("/compile", async (req, res) => {
               }
             `,
             {
-              contest_id: process.env.GAME_ID,
+              contest_id: contest_id,
               team_id: team_id,
               status: "compiling",
             }
           );
           await container.start();
+          if(process.env.NODE_ENV !== "production"){
+            return res.status(200).json({compiler_token});
+          }
         }
         res.status(200).send("ok!");
       } catch (err: unknown) {
@@ -305,6 +322,7 @@ router.put("/compileInfo", async (req, res) => {
 
       const payload = decoded as JwtCompilerPayload;
       const team_id = payload.team_id;
+      const contest_id = payload.contest_id;
       const compile_status: string = req.body.compile_status;
       console.log(`${team_id}:compile:${compile_status}`);
       if (compile_status != "compiled" && compile_status != "failed")
@@ -321,7 +339,7 @@ router.put("/compileInfo", async (req, res) => {
             }
           `,
           {
-            contest_id: process.env.GAME_ID,
+            contest_id: contest_id,
             team_id: team_id,
             status: compile_status,
           }
@@ -339,6 +357,7 @@ router.put("/compileInfo", async (req, res) => {
 /**
  * GET compile logs
  * @param {token}
+ * @param {uuid} contest_id
  * @param {string} team_id
  * @param {number} usr_seq
  */
@@ -355,8 +374,10 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
 
     const payload = decoded as JwtPayload;
     const user_id = payload._id;
+    const contest_id = req.body.contest_id;
     const team_id = req.params.team_id;
     const usr_seq = req.params.usr_seq;
+    const contest_name = await get_contest_name(contest_id);
     const query_if_manager = await client.request(
       gql`
         query query_is_manager($contest_id: uuid, $user_id: String) {
@@ -365,7 +386,10 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
           }
         }
       `,
-      { contest_id: process.env.GAME_ID, user_id: user_id }
+      { 
+        contest_id: contest_id, 
+        user_id: user_id 
+      }
     );
     const is_manager = query_if_manager.contest_manager != null;
     if (is_manager) {
@@ -377,7 +401,10 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
             }
           }
         `,
-        { contest_id: process.env.GAME_ID, team_id: team_id }
+        { 
+          contest_id: contest_id, 
+          team_id: team_id 
+        }
       );
       const team_exists = query_if_team_exists.contest_team != null;
       if (team_exists) {
@@ -387,7 +414,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
           res.set("Pragma", "no-cache");
           return res
             .status(200)
-            .sendFile(`${base_directory}/${team_id}/compile_log${usr_seq}.txt`, {
+            .sendFile(`${base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
               cacheControl: false,
             });
         } catch (err) {
@@ -418,19 +445,19 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
             }
           `,
           {
-            contest_id: process.env.GAME_ID,
+            contest_id: contest_id,
             team_id: team_id,
             user_id: user_id,
           }
         );
-        const is_in_team = query_in_team.thuai.length != 0;
+        const is_in_team = query_in_team.contest_team.length != 0;
         if (is_in_team) {
           res.set("Cache-Control", "no-cache");
           res.set("Expires", "0");
           res.set("Pragma", "no-cache");
           return res
             .status(200)
-            .sendFile(`${base_directory}/${team_id}/compile_log${usr_seq}.txt`, {
+            .sendFile(`${base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
               cacheControl: false,
             });
         } else

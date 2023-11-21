@@ -119,7 +119,11 @@ router.get("/code/:contest_id/:team_id/*", async (req, res) => {
               }
             }
           `,
-          { contest_id: contest_id, team_id: team_id, user_id: user_id }
+          { 
+            contest_id: contest_id, 
+            team_id: team_id, 
+            user_id: user_id 
+          }
         );
         const is_in_team = query_in_team.contest_team.length != 0;
         if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
@@ -156,10 +160,13 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
           const sts = await getSTS(generalActions, `chat_record/${application_id}/*`);
           return res.status(200).send(sts);
         }
-      else
+      else {
         return res.status(401).send("当前用户没有该申请的权限");
+      }
     }
-    else return res.status(401).send("401 Unauthorized");
+    else {
+      return res.status(401).send("401 Unauthorized");
+    }
   } catch (err) {
     return res.status(500).send(err);
   }
