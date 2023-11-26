@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/user";
-
 export interface JwtPayload {
   _id: string;
   email: string;
@@ -11,6 +10,21 @@ export interface JwtPayload {
     "x-hasura-default-role": string;
     "x-hasura-user-id": string;
   };
+}
+export interface JwtUserPayload {
+  uuid: string;
+  role: string;
+  _id: string;
+  "https://hasura.io/jwt/claims": {
+    "x-hasura-allowed-roles": string[];
+    "x-hasura-default-role": string;
+    "x-hasura-user-id": string;
+  };
+}
+export interface JwtVerifyPayload {
+  email: string;
+  phone: string;
+  code: string; // hash加密后的验证码
 }
 
 /**

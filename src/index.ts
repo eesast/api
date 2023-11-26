@@ -1,7 +1,7 @@
 import Debug from "debug";
 import dotenv from "dotenv";
 import http from "http";
-import mongoose from "mongoose";
+// import mongoose from "mongoose";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
 import { queue_element } from "./helpers/docker_queue";
@@ -9,7 +9,7 @@ import docker_cron from "./helpers/docker_queue";
 
 dotenv.config();
 const debug = Debug("eesast-api");
-const databaseUrl = process.env.DATABASE;
+// const databaseUrl = process.env.DATABASE;
 
 const normalizePort: (val: string) => number | boolean = (val) => {
   const portNo = parseInt(val, 10);
@@ -19,21 +19,21 @@ const normalizePort: (val: string) => number | boolean = (val) => {
   return false;
 };
 
-mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api`, {
-  user: process.env.DB_USER,
-  pass: process.env.DB_PASS,
-  authSource: "admin",
-});
+// mongoose.connect(`mongodb://${databaseUrl}:27017/sast-api`, {
+//   user: process.env.DB_USER,
+//   pass: process.env.DB_PASS,
+//   authSource: "admin",
+// });
 
-const db = mongoose.connection;
+// const db = mongoose.connection;
 
-db.on("error", (error) => {
-  debug("Database connection error: " + error);
-  process.exit(1);
-});
-db.once("open", () => {
-  debug("Database connected");
-});
+// db.on("error", (error) => {
+//   debug("Database connection error: " + error);
+//   process.exit(1);
+// });
+// db.once("open", () => {
+//   debug("Database connected");
+// });
 
 export const client = new GraphQLClient(
   `${process.env.HASURA_GRAPHQL_ENDPOINT}/v1/graphql`,
