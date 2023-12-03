@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import logger from "morgan";
 import staticRouter from "./routes/static";
-import userRouter from "./routes/users";
+import userRouter from "./routes/user";
 import emailRouter from "./routes/emails";
 import weeklyRouter from "./routes/weekly";
 import docsRouter from "./routes/docs";
@@ -36,7 +36,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/static", staticRouter);
-app.use("/users", userRouter);
+app.use("/user", userRouter);
 app.use("/emails", emailRouter);
 app.use("/weekly", weeklyRouter);
 app.use("/docs", docsRouter);
