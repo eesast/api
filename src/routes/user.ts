@@ -22,7 +22,7 @@ router.post("/login", async (req, res) => {
   if (!user || !password) {
     return res
       .status(422)
-      .send("422 Unprocessable Entity: Missing credentials");
+      .send("422 Unprocessable Entity: Missing user or password");
   }
   try {
     let item: any = {};
@@ -71,7 +71,7 @@ router.post("/login", async (req, res) => {
       .json({ token });
   } catch (err) {
     console.error(err);
-    return res.status(500).end();
+    return res.status(500).send(err);
   }
 });
 /*
@@ -127,13 +127,13 @@ router.post("/send-code", async(req, res) => {
 router.post("/verify",async(req,res) =>{
   const { verificationCode, verificationToken } = req.body;
   if (!verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken");
   }
   try {
       const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
       const valid = await bcrypt.compare(verificationCode, decoded.code);
       if (!valid) {
-        return res.status(401).end();
+        return res.status(401).send("401 Unauthorized: Verification code does not match");
       }
       return res.status(200).end();
   } catch (err) {
@@ -150,7 +150,7 @@ router.post("/verify",async(req,res) =>{
 router.post("/register", async(req, res) => {
   const { password, verificationCode, verificationToken } = req.body;
   if (!password || !verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res.status(422).send("422 Unprocessable Entity: Missing password or verificationCode or verificationToken");
   }
   try {
     const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
@@ -176,7 +176,7 @@ router.post("/register", async(req, res) => {
     }
     const valid = await bcrypt.compare(verificationCode, decoded.code);
     if (!valid) {
-      return res.status(401).end();
+      return res.status(401).send("401 Unauthorized: Verification code does not match");
     }
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
@@ -238,10 +238,10 @@ router.post("/register", async(req, res) => {
 router.post("/change-password", authenticate(), async(req, res) => {
   const { password, verificationCode, verificationToken } = req.body;
   if (!password || !verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res.status(422).send("422 Unprocessable Entity: Missing password or verificationCode or verificationToken");
   }
   if (!validatePassword(password)) {
-    return res.status(422).send("422 Unprocessable Entity: Password does not match pattern");
+    return res.status(401).send("401 Unauthorized: Password does not match");
   }
   try {
     const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
@@ -280,7 +280,7 @@ router.post("/change-password", authenticate(), async(req, res) => {
 router.post("/edit-profile", authenticate(), async(req, res) => {
   const { verificationCode, verificationToken, isTsinghua } = req.body;
   if (!verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken or isTsinghua");
   }
   try {
     const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
@@ -291,7 +291,7 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
     if (isTsinghua) {
       // 验证邮箱为清华邮箱
       if (!validateEmail(decoded.email, true)) {
-        return res.status(422).send("422 Unprocessable Entity: Invalid Tsinghua email");
+        return res.status(421).send("421 Authority Limited: Invalid Tsinghua email");
       }
       // 更新tsinghua_email和role
       await client.request(
@@ -359,7 +359,7 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
         );
         return res.status(200).end();
       }
-      return res.status(500).end();
+      return res.status(422).send("422 Unprocessable Entity: Missing email or phone");
     }
   } catch (err) {
     console.error(err);
@@ -375,7 +375,7 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
 router.post("/delete", authenticate(), async(req, res) => {
   const { verificationCode, verificationToken } = req.body;
   if (!verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken");
   }
   try {
     const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
