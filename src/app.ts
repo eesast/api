@@ -17,7 +17,7 @@ const app = express();
 const whitelist =
   process.env.NODE_ENV === "production"
     ? ["https://eesast.com", "https://docs.eesast.com", "http://localhost:3000"]
-    : ["http://localhost:3000"];
+    : ["http://localhost:3000", "http://183.172.200.192:3000"];
 
 app.use(
   cors({

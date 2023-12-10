@@ -279,7 +279,7 @@ router.post("/change-password", authenticate(), async(req, res) => {
 */
 router.post("/edit-profile", authenticate(), async(req, res) => {
   const { verificationCode, verificationToken, isTsinghua } = req.body;
-  if (!verificationCode || !verificationToken) {
+  if (!verificationCode || !verificationToken || !isTsinghua) {
     return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken or isTsinghua");
   }
   try {
@@ -289,6 +289,9 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
       return res.status(401).send("401 Unauthorized: Verification code does not match");
     }
     if (isTsinghua) {
+      if(!decoded.email) {
+        return res.status(422).send("422 Unprocessable Entity: Missing email");
+      }
       // 验证邮箱为清华邮箱
       if (!validateEmail(decoded.email, true)) {
         return res.status(421).send("421 Authority Limited: Invalid Tsinghua email");
