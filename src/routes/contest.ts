@@ -277,19 +277,19 @@ router.post("/", async (req, res) => {
           .send("401 Unauthorized: Token expired or invalid");
       }
       const payload = decoded as JwtPayload;
-      const user_id = payload._id;
+      const user_uuid = payload.uuid;
       const contest_id = req.body.contest_id;
       const query_if_manager = await client.request(
         gql`
-          query query_is_manager($contest_id: uuid, $user_id: String) {
-            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
-              user_id
+          query query_is_manager($contest_id: uuid, $user_uuid: String) {
+            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
+              user_uuid
             }
           }
         `,
         { 
           contest_id: contest_id, 
-          user_id: user_id 
+          user_uuid: user_uuid 
         }
       );
       const is_manager = query_if_manager.contest_manager.length != 0;
