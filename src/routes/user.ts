@@ -32,7 +32,6 @@ router.post("/login", async (req, res) => {
           query MyQuery($email: String) {
             users(where: {email: {_eq: $email}}) {
               password
-              id
               role
               uuid
             }
@@ -56,7 +55,6 @@ router.post("/login", async (req, res) => {
     const payload: JwtUserPayload = {
       uuid: item.uuid,
       role: item.role,
-      _id: item.id,
       "https://hasura.io/jwt/claims": {
         "x-hasura-allowed-roles": [item.role],
         "x-hasura-default-role": item.role,
@@ -213,7 +211,6 @@ router.post("/register", async(req, res) => {
     const payload: JwtUserPayload = {
       uuid: userInsert.insert_users_one.uuid,
       role: "user",
-      _id: userInsert.insert_users_one.uuid,
       "https://hasura.io/jwt/claims": {
         "x-hasura-allowed-roles": ["user"],
         "x-hasura-default-role": "user",
@@ -315,7 +312,6 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
       const payload: JwtUserPayload = {
         uuid: req.auth.user.uuid,
         role: "student",
-        _id: req.auth.user.id,
         "https://hasura.io/jwt/claims": {
           "x-hasura-allowed-roles": ["student"],
           "x-hasura-default-role": "student",

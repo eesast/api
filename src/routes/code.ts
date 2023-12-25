@@ -25,7 +25,7 @@ interface Url {
 
 /**
  * POST compile code of team_id
- * @param token (user_id)
+ * @param token (user_uuid)
  * @param {uuid} req.body.contest_id
  * @param {uuid} req.body.team_id
  */
@@ -46,26 +46,26 @@ router.post("/compile", async (req, res) => {
           .send("401 Unauthorized: Token expired or invalid");
       }
       const payload = decoded as JwtPayload;
-      const user_id = payload._id;
+      const user_uuid = payload.uuid;
       try {
         const query_if_manager = await client.request(
           gql`
-            query query_is_manager($contest_id: uuid, $user_id: String) {
-              contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
-                user_id
+            query query_is_manager($contest_id: uuid, $user_uuid: String) {
+              contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
+                user_uuid
               }
             }
           `,
           { 
             contest_id: contest_id, 
-            user_id: user_id 
+            user_uuid: user_uuid 
           }
         );
         const is_manager = query_if_manager.contest_manager.length != 0;
         if (!is_manager) {
           const query_in_team = await client.request(
             gql`
-              query query_if_in_team($team_id: uuid, $user_id: String, $contest_id: uuid) {
+              query query_if_in_team($team_id: uuid, $user_uuid: String, $contest_id: uuid) {
                 contest_team(
                   where: {
                     _and: [
@@ -73,8 +73,8 @@ router.post("/compile", async (req, res) => {
                       { team_id: { _eq: $team_id } }
                       {
                         _or: [
-                          { team_leader: { _eq: $user_id } }
-                          { contest_team_members: { user_id: { _eq: $user_id } } }
+                          { team_leader_uuid: { _eq: $user_uuid } }
+                          { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
                         ]
                       }
                     ]
@@ -87,7 +87,7 @@ router.post("/compile", async (req, res) => {
             { 
               contest_id: contest_id, 
               team_id: team_id, 
-              user_id: user_id 
+              user_uuid: user_uuid 
             }
           );
           const is_in_team = query_in_team.contest_team.length != 0;
@@ -373,22 +373,22 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
     }
 
     const payload = decoded as JwtPayload;
-    const user_id = payload._id;
+    const user_uuid = payload.uuid;
     const contest_id = req.body.contest_id;
     const team_id = req.params.team_id;
     const usr_seq = req.params.usr_seq;
     const contest_name = await get_contest_name(contest_id);
     const query_if_manager = await client.request(
       gql`
-        query query_is_manager($contest_id: uuid, $user_id: String) {
-          contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
-            user_id
+        query query_is_manager($contest_id: uuid, $user_uuid: String) {
+          contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
           }
         }
       `,
       { 
         contest_id: contest_id, 
-        user_id: user_id 
+        user_uuid: user_uuid 
       }
     );
     const is_manager = query_if_manager.contest_manager != null;
@@ -425,7 +425,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
       try {
         const query_in_team = await client.request(
           gql`
-            query query_if_in_team($team_id: uuid, $user_id: String, $contest_id: uuid) {
+            query query_if_in_team($team_id: uuid, $user_uuid: String, $contest_id: uuid) {
               contest_team(
                 where: {
                   _and: [
@@ -433,8 +433,8 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
                     { team_id: { _eq: $team_id } }
                     {
                       _or: [
-                        { team_leader: { _eq: $user_id } }
-                        { contest_team_members: { user_id: { _eq: $user_id } } }
+                        { team_leader_uuid: { _eq: $user_uuid } }
+                        { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
                       ]
                     }
                   ]
@@ -447,7 +447,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
           {
             contest_id: contest_id,
             team_id: team_id,
-            user_id: user_id,
+            user_uuid: user_uuid,
           }
         );
         const is_in_team = query_in_team.contest_team.length != 0;

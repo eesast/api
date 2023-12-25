@@ -4,7 +4,7 @@ import { gql } from "graphql-request";
 import { client } from "..";
 
 export interface JwtPayload {
-  _id: string;
+  uuid: string;
   email: string;
   role: string;
   "https://hasura.io/jwt/claims": {
@@ -16,7 +16,6 @@ export interface JwtPayload {
 export interface JwtUserPayload {
   uuid: string;
   role: string;
-  _id: string;
   "https://hasura.io/jwt/claims": {
     "x-hasura-allowed-roles": string[];
     "x-hasura-default-role": string;
@@ -41,7 +40,6 @@ export interface UserInfo {
   class: string;
   tsinghua_email: string;
   github_id: string;
-  id: string;
 }
 
 /**
@@ -84,7 +82,6 @@ const authenticate: (
                 class,
                 tsinghua_email,
                 github_id,
-                id
               }
             }
           `,

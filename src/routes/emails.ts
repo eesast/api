@@ -23,36 +23,36 @@ router.post("/events", hasura, async (req, res) => {
         const mentorId = data.mentor_id;
         let response = await client.request(
           gql`
-            query GetUserName($_id: String!) {
-              user(where: { _id: { _eq: $_id } }) {
+            query GetUserName($uuid: String!) {
+              users(where: { uuid: { _eq: $uuid } }) {
                 name
               }
             }
           `,
           {
-            _id: studentId,
+            uuid: studentId,
           }
         );
-        const studentName = response?.user[0]?.name;
+        const studentName = response?.users[0]?.realname;
         if (!studentName) {
           return res.status(404).send("404 Not Found: Student does not exist");
         }
 
         response = await client.request(
           gql`
-            query GetUserNameEmail($_id: String!) {
-              user(where: { _id: { _eq: $_id } }) {
+            query GetUserNameEmail($uuid: String!) {
+              users(where: { uuid: { _eq: $uuid } }) {
                 name
                 email
               }
             }
           `,
           {
-            _id: mentorId,
+            uuid: mentorId,
           }
         );
-        const mentorName = response?.user[0]?.name;
-        const mentorEmail = response?.user[0]?.email;
+        const mentorName = response?.users[0]?.realname;
+        const mentorEmail = response?.users[0]?.email;
         if (!mentorName) {
           return res.status(404).send("404 Not Found: Teacher does not exist");
         }
