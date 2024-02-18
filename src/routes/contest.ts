@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
-import { JwtPayload } from "../middlewares/authenticate";
+import { JwtUserPayload } from "../middlewares/authenticate";
 
 const router = express.Router();
 
@@ -276,7 +276,7 @@ router.post("/", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtPayload;
+      const payload = decoded as JwtUserPayload;
       const user_uuid = payload.uuid;
       const contest_id = req.body.contest_id;
       const query_if_manager = await client.request(

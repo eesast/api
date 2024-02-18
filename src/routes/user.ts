@@ -42,7 +42,7 @@ router.post("/login", async (req, res) => {
         }
       );
     }
-    if (!item) {
+    if (!item?.users?.length) {
       return res.status(404).send("404 Not Found: User does not exist");
     }
     item = item.users[0];
@@ -276,7 +276,7 @@ router.post("/change-password", authenticate(), async(req, res) => {
 */
 router.post("/edit-profile", authenticate(), async(req, res) => {
   const { verificationCode, verificationToken, isTsinghua } = req.body;
-  if (!verificationCode || !verificationToken || !isTsinghua) {
+  if (!verificationCode || !verificationToken || isTsinghua === undefined) {
     return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken or isTsinghua");
   }
   try {

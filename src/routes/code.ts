@@ -2,7 +2,7 @@ import express from "express";
 import Docker from "dockerode";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import { JwtPayload } from "../middlewares/authenticate";
+import { JwtUserPayload } from "../middlewares/authenticate";
 import { gql } from "graphql-request";
 import { client } from "..";
 import getSTS from "../helpers/sts";
@@ -45,7 +45,7 @@ router.post("/compile", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtPayload;
+      const payload = decoded as JwtUserPayload;
       const user_uuid = payload.uuid;
       try {
         const query_if_manager = await client.request(
@@ -372,7 +372,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
       return res.status(401).send("401 Unauthorized: Token expired or invalid");
     }
 
-    const payload = decoded as JwtPayload;
+    const payload = decoded as JwtUserPayload;
     const user_uuid = payload.uuid;
     const contest_id = req.body.contest_id;
     const team_id = req.params.team_id;
