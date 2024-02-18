@@ -3,16 +3,6 @@ import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
 
-export interface JwtPayload {
-  uuid: string;
-  email: string;
-  role: string;
-  "https://hasura.io/jwt/claims": {
-    "x-hasura-allowed-roles": string[];
-    "x-hasura-default-role": string;
-    "x-hasura-user-id": string;
-  };
-}
 export interface JwtUserPayload {
   uuid: string;
   role: string;

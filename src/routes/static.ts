@@ -1,5 +1,5 @@
 import express from "express";
-import { JwtPayload } from "../middlewares/authenticate";
+import { JwtUserPayload } from "../middlewares/authenticate";
 import getSTS from "../helpers/sts";
 import { client } from "..";
 import { gql } from "graphql-request";
@@ -40,7 +40,7 @@ router.get("/*", async (req, res, next) => {
             .status(401)
             .send("401 Unauthorized: Token expired or invalid");
         }
-        const payload = decoded as JwtPayload;
+        const payload = decoded as JwtUserPayload;
         user_uuid = payload.uuid;
         role = payload.role;
         // admin gets all permissions, otherwise throw to next route.

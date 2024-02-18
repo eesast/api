@@ -3,7 +3,7 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
-import { JwtPayload } from "../middlewares/authenticate";
+import { JwtUserPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 import { base_directory, get_contest_name } from "../helpers/utils";
 
@@ -37,7 +37,7 @@ router.post("/", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtPayload;
+      const payload = decoded as JwtUserPayload;
       const user_uuid = payload.uuid;
       const contest_name = await get_contest_name(contest_id);
       try {
@@ -133,7 +133,7 @@ router.post("/assign", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtPayload;
+      const payload = decoded as JwtUserPayload;
       const user_uuid = payload.uuid;
       const contest_id = req.body.contest_id;
       const exposed = req.body.exposed as number;
