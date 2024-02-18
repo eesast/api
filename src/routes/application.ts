@@ -1,6 +1,4 @@
 import express from "express";
-import Application from "../models/application";
-import jwt from "jsonwebtoken";
 import { client } from "..";
 import { gql } from "graphql-request";
 
