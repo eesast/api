@@ -1,5 +1,5 @@
 import express from "express";
-import { JwtPayload } from "../middlewares/authenticate";
+import { JwtUserPayload } from "../middlewares/authenticate";
 import getSTS from "../helpers/sts";
 import { client } from "..";
 import { gql } from "graphql-request";
@@ -24,7 +24,7 @@ const viewActions = [
   "name/cos:GetObject",
   "name/cos:GetBucket",
 ]
-let user_id: string, role: string;
+let user_uuid: string, role: string;
 
 router.get("/*", async (req, res, next) => {
   try{
@@ -40,8 +40,8 @@ router.get("/*", async (req, res, next) => {
             .status(401)
             .send("401 Unauthorized: Token expired or invalid");
         }
-        const payload = decoded as JwtPayload;
-        user_id = payload._id;
+        const payload = decoded as JwtUserPayload;
+        user_uuid = payload.uuid;
         role = payload.role;
         // admin gets all permissions, otherwise throw to next route.
         if (role == 'counselor' || role == 'root' || role == 'admin') {
@@ -84,13 +84,16 @@ router.get("/code/:contest_id/:team_id/*", async (req, res) => {
       const team_id = req.params.team_id;
       const query_if_manager = await client.request(
         gql`
-          query query_is_manager($contest_id: uuid, $user_id: String) {
-            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
-              user_id
+          query query_is_manager($contest_id: uuid, $user_uuid: String) {
+            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
+              user_uuid
             }
           }
         `,
-        { contest_id: contest_id, user_id: user_id }
+        { 
+          contest_id: contest_id, 
+          user_uuid: user_uuid 
+        }
       );
       const is_manager = query_if_manager.contest_manager.length != 0;
       if (is_manager) {
@@ -100,7 +103,7 @@ router.get("/code/:contest_id/:team_id/*", async (req, res) => {
       else {
         const query_in_team = await client.request(
           gql`
-            query query_if_in_team($team_id: uuid, $user_id: String, $contest_id: uuid) {
+            query query_if_in_team($team_id: uuid, $user_uuid: String, $contest_id: uuid) {
               contest_team(
                 where: {
                   _and: [
@@ -108,8 +111,8 @@ router.get("/code/:contest_id/:team_id/*", async (req, res) => {
                     { team_id: { _eq: $team_id } }
                     {
                       _or: [
-                        { team_leader: { _eq: $user_id } }
-                        { contest_team_members: { user_id: { _eq: $user_id } } }
+                        { team_leader_uuid: { _eq: $user_uuid } }
+                        { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
                       ]
                     }
                   ]
@@ -122,7 +125,7 @@ router.get("/code/:contest_id/:team_id/*", async (req, res) => {
           { 
             contest_id: contest_id, 
             team_id: team_id, 
-            user_id: user_id 
+            user_uuid: user_uuid 
           }
         );
         const is_in_team = query_in_team.contest_team.length != 0;
@@ -144,8 +147,8 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
         gql`
           query query_if_in_application($application_id: uuid) {
             mentor_application(where: {id: {_eq: $application_id}}) {
-              mentor_id
-              student_id
+              mentor_uuid
+              student_uuid
             }
           }
         `,
@@ -154,8 +157,8 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
       if (applications.mentor_application.length == 0)
         return res.status(404).send("未查找到该申请");
       const application = applications.mentor_application[0];
-      if ((role == 'student' && user_id == application.student_id) ||
-          (role == 'teacher' && user_id == application.mentor_id)
+      if ((role == 'student' && user_uuid == application.student_uuid) ||
+          (role == 'teacher' && user_uuid == application.mentor_uuid)
         ) {
           const sts = await getSTS(generalActions, `chat_record/${application_id}/*`);
           return res.status(200).send(sts);

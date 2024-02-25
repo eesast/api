@@ -3,14 +3,14 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
-import { JwtPayload } from "../middlewares/authenticate";
+import { JwtUserPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 import { base_directory, get_contest_name } from "../helpers/utils";
 
 const router = express.Router();
 
 /**
- * @param token (user_id)
+ * @param token (user_uuid)
  * @param {uuid} contest_id
  * @param {uuid} room_id
  * @param {boolean} team_seq
@@ -37,22 +37,22 @@ router.post("/", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtPayload;
-      const user_id = payload._id;
+      const payload = decoded as JwtUserPayload;
+      const user_uuid = payload.uuid;
       const contest_name = await get_contest_name(contest_id);
       try {
           //查询选手是否在房间里
           const if_in_room = await client.request(
             gql`
-              query query_if_in_room($room_id: uuid!, $user_id: String) {
-                contest_room_team(where: {_and: {room_id: {_eq: $room_id}, contest_team: {_or: [{team_leader: {_eq: $user_id}}, {contest_team_members: {user_id: {_eq: $user_id}}}]}}}) {
+              query query_if_in_room($room_id: uuid!, $user_uuid: String) {
+                contest_room_team(where: {_and: {room_id: {_eq: $room_id}, contest_team: {_or: [{team_leader_uuid: {_eq: $user_uuid}}, {contest_team_members: {user_uuid: {_eq: $user_uuid}}}]}}}) {
                   team_id
                 }
               }
             `,
             {
               room_id: room_id,
-              user_id: user_id
+              user_uuid: user_uuid
             }
           );
           if (if_in_room.contest_room_team.length === 0)
@@ -113,7 +113,7 @@ router.post("/", async (req, res) => {
 });
 
 /**
- * @param token (user_id)
+ * @param token (user_uuid)
  * @param {uuid} contest_id
  * @param {uuid} team_id1
  * @param {uuid} team_id2
@@ -133,21 +133,21 @@ router.post("/assign", async (req, res) => {
           .status(401)
           .send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtPayload;
-      const user_id = payload._id;
+      const payload = decoded as JwtUserPayload;
+      const user_uuid = payload.uuid;
       const contest_id = req.body.contest_id;
       const exposed = req.body.exposed as number;
       const query_if_manager = await client.request(
         gql`
-          query query_is_manager($contest_id: uuid, $user_id: String) {
-            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_id: {_eq: $user_id}}}) {
-              user_id
+          query query_is_manager($contest_id: uuid, $user_uuid: String) {
+            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
+              user_uuid
             }
           }
         `,
         { 
           contest_id: contest_id, 
-          user_id: user_id 
+          user_uuid: user_uuid 
         }
       );
       const is_manager = query_if_manager.contest_manager.length != 0;
