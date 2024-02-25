@@ -5,7 +5,7 @@ import http from "http";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
 import { queue_element } from "./helpers/docker_queue";
-import docker_cron from "./helpers/docker_queue";
+// import docker_cron from "./helpers/docker_queue";
 
 dotenv.config();
 const debug = Debug("eesast-api");
