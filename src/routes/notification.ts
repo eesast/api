@@ -1,5 +1,6 @@
 import express from "express";
 import { setVapidDetails, PushSubscription, sendNotification } from 'web-push';
+import authenticate from "../middlewares/authenticate";
 
 const VAPID_PUBLIC_KEY = "BKSRw848EimTGFlZVpumm4jA2yhV25g8PjxRY_pEF8dJN4wqsbC5yQGSllhI63H_cDhRMDMtaRy57iLYc3MJoEY";
 const VAPID_PRIVATE_KEY = "Tc1uIS8IO9TTvBJnrLj8y48TAyIoqdz1TSPCqSJY4BM";
@@ -29,7 +30,7 @@ setVapidDetails(
   VAPID_PRIVATE_KEY
 );
 
-router.post("/subscribe", (req, res) => {
+router.post("/subscribe", authenticate(), (req, res) => {
   subscriptions.push(req.body);
   res.status(200).json({ message: "Subscribed" });
 });
