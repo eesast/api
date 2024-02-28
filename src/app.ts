@@ -11,13 +11,14 @@ import fileRouter from "./routes/files";
 import codeRouter from "./routes/code";
 import roomRouter from "./routes/room";
 import contestRouter from "./routes/contest";
+import notificationRouter from "./routes/notification";
 
 const app = express();
 
 const whitelist =
   process.env.NODE_ENV === "production"
     ? ["https://eesast.com", "https://docs.eesast.com", "http://localhost:3000"]
-    : ["http://localhost:3000", "http://183.172.200.192:3000"];
+    : ["http://localhost:3000"];
 
 app.use(
   cors({
@@ -45,5 +46,6 @@ app.use("/files",fileRouter);
 app.use("/code", codeRouter);
 app.use("/room", roomRouter);
 app.use("/contest", contestRouter);
+app.use("/notification", notificationRouter);
 
 export default app;
