@@ -1,12 +1,14 @@
 import express from "express";
-import { sendNotification } from 'web-push';
+import { PushSubscription, sendNotification } from 'web-push';
 import authenticate from "../middlewares/authenticate";
 import crypto from 'crypto';
+
+const router = express.Router();
 
 const VAPID_PUBLIC_KEY = "BKSRw848EimTGFlZVpumm4jA2yhV25g8PjxRY_pEF8dJN4wqsbC5yQGSllhI63H_cDhRMDMtaRy57iLYc3MJoEY";
 const VAPID_PRIVATE_KEY = "Tc1uIS8IO9TTvBJnrLj8y48TAyIoqdz1TSPCqSJY4BM";
 
-interface Notification {
+export interface Notification {
   title: string;
   options: {
     body?: string;
@@ -21,8 +23,6 @@ interface Notification {
   };
 }
 
-const router = express.Router();
-
 const subscriptions: any = {};
 
 const hash = (input: string) => {
@@ -31,9 +31,38 @@ const hash = (input: string) => {
   return md5sum.digest("hex");
 }
 
-router.post("/subscribe", authenticate(), (req, res) => {
+export const send = async (subscription: PushSubscription, notification: Notification) => {
+  const message = JSON.stringify(notification);
+  const options = {
+    timeout: 3000,
+    vapidDetails: {
+      subject: "https://eesast.com",
+      publicKey: VAPID_PUBLIC_KEY,
+      privateKey: VAPID_PRIVATE_KEY
+    },
+  };
+  try {
+    const response = await sendNotification(subscription, message, options);
+    if (response.statusCode !== 201) throw new Error("Unexpected status code: " + response.statusCode);
+    return response;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};
+
+router.post("/subscribe", authenticate(), async (req, res) => {
   const index = hash(req.body.endpoint);
   subscriptions[index] = req.body;
+  const notification = {
+    title: "感谢订阅",
+    options: { body: "您将在此看到来自EESAST的最新消息" }
+  };
+  const response = await send(req.body, notification);
+  if (!response) {
+    delete subscriptions[index];
+    return res.status(504).json({ message: "Failed to send notification" });
+  }
   return res.status(200).json({ index: index });
 });
 
@@ -50,27 +79,13 @@ router.post("/unsubscribe", authenticate(), (req, res) => {
 });
 
 router.post("/broadcast", async (req, res) => {
-  const notification = JSON.stringify(req.body as Notification);
-  const options = {
-    timeout: 1000,
-    vapidDetails: {
-      subject: "https://eesast.com",
-      publicKey: VAPID_PUBLIC_KEY,
-      privateKey: VAPID_PRIVATE_KEY
-    },
-  };
   for (const index in subscriptions) {
-    console.log(index);
     const subscription = subscriptions[index];
-    try {
-      const response = await sendNotification(subscription, notification, options);
-      if (response.statusCode === 201) {
-        console.log("Notification sent");
-      } else {
-        console.error("Notification failed");
-      }
-    } catch (e) {
-      console.error(e);
+    const response = await send(subscription, req.body);
+    if (response) {
+      console.log("Notification sent to", index);
+    } else {
+      console.error("Failed to send notification to", index);
     }
   };
   return res.status(200).json({ message: "Sent" });
