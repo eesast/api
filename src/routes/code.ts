@@ -159,7 +159,7 @@ router.post("/compile", async (req, res) => {
         });
 
         const config = {
-          bucket: 'eesast-1255334966',
+          bucket: process.env.COS_BUCKET!,
           region: 'ap-beijing',
         };
 
