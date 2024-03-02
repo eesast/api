@@ -9,7 +9,7 @@ const getSTS: any = async (action: string[], prefix: string) => {
         proxy: '',
         host: 'sts.tencentcloudapi.com',
         durationSeconds: 1800,  // 密钥有效期
-        bucket: 'eesast-1255334966', // 换成你的 bucket
+        bucket: process.env.COS_BUCKET!, // 换成你的 bucket
         region: 'ap-beijing', // 换成 bucket 所在地区
     };
     const scope = [{
