@@ -182,7 +182,7 @@ router.post("/register", async(req, res) => {
     const userExist = await client.request(
       gql`
         query MyQuery($email: String, $phone: String) {
-          users(where: {_or: {email: {_eq: $email}, phone: {_eq: $phone}}}) {
+          users(where: {_or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}]}) {
             uuid
           }
         }
@@ -275,7 +275,7 @@ router.post("/change-password", async(req, res) => {
     const userExist = await client.request(
       gql`
         query MyQuery($email: String, $phone: String) {
-          users(where: {_or: {email: {_eq: $email}, phone: {_eq: $phone}}}) {
+          users(where: {_or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}]}) {
             uuid
           }
         }
@@ -285,6 +285,7 @@ router.post("/change-password", async(req, res) => {
         phone: decoded.phone || "AvoidNull"
       }
     );
+    console.log(decoded.email + " " + decoded.phone);
     if (userExist.users.length === 0) {
       return res.status(404).send("404 Not Found: User does not exist");
     }
