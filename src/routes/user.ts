@@ -10,6 +10,7 @@ import authenticate, { JwtUserPayload, JwtVerifyPayload } from "../middlewares/a
 import { validateEmail, validatePassword } from "../helpers/validate";
 import { gql } from "graphql-request";
 import { client } from "..";
+import { sendMessageVerifyCode } from "../helpers/short_message";
 const router = express.Router();
 /*
 `/user/login`：处理用户登录。根据`username/email/phone/student_no`从`hasura`的`users`表查找用户，并验证密码是否匹配，若验证成功，则返回`token`
@@ -88,6 +89,7 @@ router.post("/send-code", async(req, res) => {
   const verificationCode = Math.floor(100000 + Math.random() * 900000);
   console.log("verficationCode = " + verificationCode);
   const code = await bcrypt.hash(String(verificationCode), 10);
+  const ttl = 10; // 有效期为10分钟
   const token = jwt.sign(
     {
       email,
@@ -96,7 +98,7 @@ router.post("/send-code", async(req, res) => {
     } as JwtVerifyPayload,
     process.env.SECRET!,
     {
-      expiresIn: "10m",
+      expiresIn: ttl.toString()+"m",
     }
   );
   if (email) {
@@ -112,7 +114,12 @@ router.post("/send-code", async(req, res) => {
     }
   }
   else if (phone) {
-    // wait to be implemented
+    try{
+      await sendMessageVerifyCode(phone, verificationCode.toString(), ttl);
+    } catch (err) {
+      console.error(err); // https://unisms.apistd.com/docs/api/error-codes
+      return res.status(500).send("Message failed to send");
+    }
   }
   res.status(200).json({token});
 });
