@@ -255,7 +255,7 @@ router.post("/register", async(req, res) => {
 - 请求：`body`中有`{password: string, verificationCode: string, verificationToken: string}`，`token`是登陆时返回的，`password`是新密码，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
 - 响应：返回更改状态即可
 */
-router.post("/change-password", authenticate(), async(req, res) => {
+router.post("/change-password", async(req, res) => {
   const { password, verificationCode, verificationToken } = req.body;
   if (!password || !verificationCode || !verificationToken) {
     return res.status(422).send("422 Unprocessable Entity: Missing password or verificationCode or verificationToken");
@@ -271,6 +271,24 @@ router.post("/change-password", authenticate(), async(req, res) => {
     }
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
+    //查询数据库中是否已存在该用户的email或phone
+    const userExist = await client.request(
+      gql`
+        query MyQuery($email: String, $phone: String) {
+          users(where: {_or: {email: {_eq: $email}, phone: {_eq: $phone}}}) {
+            uuid
+          }
+        }
+      `,
+      {
+        email: decoded.email || "AvoidNull",
+        phone: decoded.phone || "AvoidNull"
+      }
+    );
+    if (userExist.users.length === 0) {
+      return res.status(404).send("404 Not Found: User does not exist");
+    }
+    const user = userExist.users[0];
     // graphql mutation, set password to password_hash
     await client.request(
       gql`
@@ -281,7 +299,7 @@ router.post("/change-password", authenticate(), async(req, res) => {
         }
       `,
       {
-        uuid: req.auth.user.uuid,
+        uuid: user.uuid,
         password: password_hash
       }
     );
