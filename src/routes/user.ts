@@ -43,6 +43,22 @@ router.post("/login", async (req, res) => {
         }
       );
     }
+    else if(user.length === 11 && !isNaN(Number(user))){
+      item = await client.request(
+        gql`
+          query MyQuery($phone: String) {
+            users(where: {phone: {_eq: $phone}}) {
+              password
+              role
+              uuid
+            }
+          }
+        `,
+        {
+          phone: user
+        }
+      );
+    }
     if (!item?.users?.length) {
       return res.status(404).send("404 Not Found: User does not exist");
     }
