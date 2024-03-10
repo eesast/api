@@ -67,7 +67,7 @@ router.post("/login", async (req, res) => {
     const valid = await bcrypt.compare(password, item.password);
     if (!valid) {
       console.log("password wrong")
-      return res.status(401).end();
+      return res.status(401).send("401 Unauthorized: Password does not match");
     }
     const payload: JwtUserPayload = {
       uuid: item.uuid,
@@ -126,7 +126,7 @@ router.post("/send-code", async(req, res) => {
       );
     } catch (err) {
       console.error(err);
-      return res.status(500).send(err);
+      return res.status(500).send("500 Internal Server Error: Email failed to send");
     }
   }
   else if (phone) {
@@ -134,7 +134,7 @@ router.post("/send-code", async(req, res) => {
       await sendMessageVerifyCode(phone, verificationCode.toString(), ttl);
     } catch (err) {
       console.error(err); // https://unisms.apistd.com/docs/api/error-codes
-      return res.status(500).send("Message failed to send");
+      return res.status(501).send("501 Internal Server Error: Short message failed to send");
     }
   }
   res.status(200).json({token});
@@ -178,7 +178,12 @@ router.post("/register", async(req, res) => {
     if (!decoded.email && !decoded.phone) {
       return res.status(422).send("422 Unprocessable Entity: Missing email or phone");
     }
-    //查询数据库中是否已存在该用户的email或phone
+
+    const valid = await bcrypt.compare(verificationCode, decoded.code);
+    if (!valid) {
+      return res.status(401).send("401 Unauthorized: Verification code does not match");
+    }
+
     const userExist = await client.request(
       gql`
         query MyQuery($email: String, $phone: String) {
@@ -195,10 +200,7 @@ router.post("/register", async(req, res) => {
     if (userExist.users.length !== 0) {
       return res.status(409).send("409 Conflict: User already exists");
     }
-    const valid = await bcrypt.compare(verificationCode, decoded.code);
-    if (!valid) {
-      return res.status(401).send("401 Unauthorized: Verification code does not match");
-    }
+
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
     // graphql mutation, set role to user, password to password_hash, email to decoded.email, phone to decoded.phone
@@ -258,10 +260,10 @@ router.post("/register", async(req, res) => {
 router.post("/change-password", async(req, res) => {
   const { password, verificationCode, verificationToken } = req.body;
   if (!password || !verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing password or verificationCode or verificationToken");
+    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
   }
   if (!validatePassword(password)) {
-    return res.status(401).send("401 Unauthorized: Password does not match");
+    return res.status(400).send("400 Bad Request: Invalid password format");
   }
   try {
     const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
@@ -319,7 +321,7 @@ router.post("/change-password", async(req, res) => {
 router.post("/edit-profile", authenticate(), async(req, res) => {
   const { verificationCode, verificationToken, isTsinghua } = req.body;
   if (!verificationCode || !verificationToken || isTsinghua === undefined) {
-    return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken or isTsinghua");
+    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
   }
   try {
     const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
@@ -416,7 +418,7 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
 router.post("/delete", authenticate(), async(req, res) => {
   const { verificationCode, verificationToken } = req.body;
   if (!verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken");
+    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
   }
   try {
     const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
