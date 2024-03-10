@@ -9,7 +9,7 @@ import getSTS from "../helpers/sts";
 import fStream from 'fs';
 import COS from "cos-nodejs-sdk-v5";
 import { join } from "path";
-import { base_directory, get_contest_name } from "../helpers/utils";
+import { base_directory, get_contest_name, contest_image_map } from "../helpers/utils";
 
 const router = express.Router();
 
@@ -56,9 +56,9 @@ router.post("/compile", async (req, res) => {
               }
             }
           `,
-          { 
-            contest_id: contest_id, 
-            user_uuid: user_uuid 
+          {
+            contest_id: contest_id,
+            user_uuid: user_uuid
           }
         );
         const is_manager = query_if_manager.contest_manager.length != 0;
@@ -84,10 +84,10 @@ router.post("/compile", async (req, res) => {
                 }
               }
             `,
-            { 
-              contest_id: contest_id, 
-              team_id: team_id, 
-              user_uuid: user_uuid 
+            {
+              contest_id: contest_id,
+              team_id: team_id,
+              user_uuid: user_uuid
             }
           );
           const is_in_team = query_in_team.contest_team.length != 0;
@@ -118,8 +118,8 @@ router.post("/compile", async (req, res) => {
               ${query_string}
             }
           }`,
-          { 
-            team_id: team_id 
+          {
+            team_id: team_id
           }
         );
 
@@ -251,7 +251,7 @@ router.post("/compile", async (req, res) => {
             }
           );
           const container = await docker.createContainer({
-            Image: process.env.COMPILER_IMAGE,
+            Image: contest_image_map[contest_name].COMPILER_IMAGE,
             Env: [
               `URL=${url}`,
               `TOKEN=${compiler_token}`
@@ -386,9 +386,9 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
           }
         }
       `,
-      { 
-        contest_id: contest_id, 
-        user_uuid: user_uuid 
+      {
+        contest_id: contest_id,
+        user_uuid: user_uuid
       }
     );
     const is_manager = query_if_manager.contest_manager != null;
@@ -401,9 +401,9 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
             }
           }
         `,
-        { 
-          contest_id: contest_id, 
-          team_id: team_id 
+        {
+          contest_id: contest_id,
+          team_id: team_id
         }
       );
       const team_exists = query_if_team_exists.contest_team != null;

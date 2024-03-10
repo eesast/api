@@ -18,3 +18,21 @@ export const get_contest_name: any = async (contest_id: string) => {
   );
   return query_contest_name.contest[0].name;
 };
+
+type ContestImages = {
+  [key: string]: {
+    RUNNER_IMAGE: string;
+    COMPILER_IMAGE: string;
+  };
+};
+
+export const contest_image_map: ContestImages = {
+  "THUAI6": {
+    RUNNER_IMAGE: "eesast/thuai6_run",
+    COMPILER_IMAGE: "eesast/thuai6_cpp"
+  },
+  "THUAI7": {
+    RUNNER_IMAGE: "eesast/thuai7_run",
+    COMPILER_IMAGE: "eesast/thuai7_cpp"
+  }
+}

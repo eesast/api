@@ -6,7 +6,7 @@ import { JwtServerPayload } from "../routes/contest";
 import { gql } from "graphql-request";
 import { client } from "..";
 import fs from "fs";
-import { base_directory, get_contest_name } from "./utils";
+import { base_directory, get_contest_name, contest_image_map } from "./utils";
 
 export interface queue_element {
   contest_id: string;
@@ -137,7 +137,7 @@ const docker_cron = () => {
             process.env.NODE_ENV == "production"
               ? "https://api.eesast.com/contest"
               : "http://172.17.0.1:28888/contest";
-          
+
           // 声明新容器
           let container_runner: Docker.Container;
 
@@ -152,7 +152,7 @@ const docker_cron = () => {
 
             // 创建容器
             container_runner = await docker.createContainer({
-              Image: process.env.RUNNER_IMAGE,
+              Image: contest_image_map[contest_name].RUNNER_IMAGE,
               AttachStdin: false,
               AttachStdout: false,
               AttachStderr: false,
@@ -241,7 +241,7 @@ const docker_cron = () => {
           // 否则只需运行比赛
           else {
             container_runner = await docker.createContainer({
-              Image: process.env.RUNNER_IMAGE,
+              Image: contest_image_map[contest_name].RUNNER_IMAGE,
               AttachStdin: false,
               AttachStdout: false,
               AttachStderr: false,
