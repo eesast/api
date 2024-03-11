@@ -68,6 +68,7 @@ const docker_cron = () => {
         docker_queue.length
       );
       if (available_num <= 0) {
+        console.log("no available container or queue is empty");
         return;
       }
 
@@ -75,7 +76,9 @@ const docker_cron = () => {
         try {
           // 取出元素
           const queue_front = docker_queue.shift() as queue_element;
-          if(queue_front === undefined){
+          console.log("queue_front room id: " + queue_front.room_id);
+          if (queue_front === undefined) {
+            console.log("queue_front === undefined");
             return;
           }
           const contest_name = await get_contest_name(queue_front.contest_id);
@@ -96,12 +99,15 @@ const docker_cron = () => {
             }
           );
           let all_compiled = true;
-          query_if_compiled.contest_team.forEach((element: { status: string }) => {
+          let not_compiled_idx = -1;
+          query_if_compiled.contest_team.forEach((element: { status: string }, index: number) => {
             if (element.status != "compiled") {
+              not_compiled_idx = index;
               all_compiled = false;
             }
           });
           if (!all_compiled) {
+            console.log("not all team are compiled, idx: " + not_compiled_idx);
             continue;
           }
 
@@ -117,7 +123,8 @@ const docker_cron = () => {
               containerRunning = true;
             }
           });
-          if(containerRunning){
+          if (containerRunning) {
+            console.log("container is already running");
             continue;
           }
 
@@ -165,13 +172,13 @@ const docker_cron = () => {
                   `${base_directory}/${contest_name}/code/${queue_front.team_id_2}/:/usr/local/team2`
                 ],
                 PortBindings: {
-                  '8888/tcp': [{HostPort: `${port}`}]
+                  '8888/tcp': [{ HostPort: `${port}` }]
                 },
                 AutoRemove: true,
-                Memory: 6*1024*1024*1024,
-                MemorySwap: 6*1024*1024*1024
+                Memory: 6 * 1024 * 1024 * 1024,
+                MemorySwap: 6 * 1024 * 1024 * 1024
               },
-              ExposedPorts: {'8888/tcp': {}},
+              ExposedPorts: { '8888/tcp': {} },
               Env: [
                 `URL=${url}`,
                 `TOKEN=${serverToken}`,
@@ -186,7 +193,7 @@ const docker_cron = () => {
             console.log("runnner started");
 
             // 若创建房间
-            if(queue_front.arenic == 1){
+            if (queue_front.arenic == 1) {
               await client.request(
                 gql`
                   mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
@@ -205,8 +212,8 @@ const docker_cron = () => {
               );
             }
 
-            container_runner.wait(async() => {
-              if(queue_front.arenic == 1){
+            container_runner.wait(async () => {
+              if (queue_front.arenic == 1) {
                 await client.request(
                   gql`
                     mutation update_room_port($room_id: uuid!, $port: Int, $contest_id: uuid){
@@ -225,12 +232,12 @@ const docker_cron = () => {
                 );
               }
 
-              fs.mkdir(`${sub_base_dir}/${queue_front.room_id}`, {recursive: true}, (err)=>{
-                if(err) {
+              fs.mkdir(`${sub_base_dir}/${queue_front.room_id}`, { recursive: true }, (err) => {
+                if (err) {
                   throw err;
                 }
-                fs.writeFile(`${sub_base_dir}/${queue_front.room_id}/finish.lock`, "", (err)=>{
-                  if(err) {
+                fs.writeFile(`${sub_base_dir}/${queue_front.room_id}/finish.lock`, "", (err) => {
+                  if (err) {
                     throw err;
                   }
                 })
@@ -254,8 +261,8 @@ const docker_cron = () => {
                   `${base_directory}/${contest_name}/code/${queue_front.team_id_2}/:/usr/local/team2`
                 ],
                 AutoRemove: true,
-                Memory: 6*1024*1024*1024, //6G
-                MemorySwap: 6*1024*1024*1024
+                Memory: 6 * 1024 * 1024 * 1024, //6G
+                MemorySwap: 6 * 1024 * 1024 * 1024
               },
               Env: [
                 `URL=${url}`,

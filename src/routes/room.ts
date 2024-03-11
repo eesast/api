@@ -20,7 +20,6 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    console.log("needed");
     const contest_id = req.body.contest_id;
     const room_id = req.body.room_id;
     const team_seq = req.body.team_seq as boolean;
@@ -44,7 +43,7 @@ router.post("/", async (req, res) => {
           //查询选手是否在房间里
           const if_in_room = await client.request(
             gql`
-              query query_if_in_room($room_id: uuid!, $user_uuid: String) {
+              query query_if_in_room($room_id: uuid!, $user_uuid: uuid!) {
                 contest_room_team(where: {_and: {room_id: {_eq: $room_id}, contest_team: {_or: [{team_leader_uuid: {_eq: $user_uuid}}, {contest_team_members: {user_uuid: {_eq: $user_uuid}}}]}}}) {
                   team_id
                 }
@@ -120,7 +119,6 @@ router.post("/", async (req, res) => {
  * @param {number} exposed
  */
 router.post("/assign", async (req, res) => {
-  console.log("needed");
   try{
     const authHeader = req.get("Authorization");
     if (!authHeader) {
@@ -139,15 +137,15 @@ router.post("/assign", async (req, res) => {
       const exposed = req.body.exposed as number;
       const query_if_manager = await client.request(
         gql`
-          query query_is_manager($contest_id: uuid, $user_uuid: String) {
+          query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
             contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
               user_uuid
             }
           }
         `,
-        { 
-          contest_id: contest_id, 
-          user_uuid: user_uuid 
+        {
+          contest_id: contest_id,
+          user_uuid: user_uuid
         }
       );
       const is_manager = query_if_manager.contest_manager.length != 0;
@@ -164,8 +162,8 @@ router.post("/assign", async (req, res) => {
             }
           }
         `,
-        { 
-          contest_id: contest_id, 
+        {
+          contest_id: contest_id,
         }
       );
       const valid_team_ids = query_valid_teams.contest_team;
@@ -206,8 +204,8 @@ router.get("/:room_id", async (req, res) => {
     //       }
     //     }
     //   `,
-    //   { 
-    //     room_id: room_id 
+    //   {
+    //     room_id: room_id
     //   }
     // );
     // if (query_room.contest_room.length == 0){
