@@ -50,7 +50,7 @@ router.post("/compile", async (req, res) => {
       try {
         const query_if_manager = await client.request(
           gql`
-            query query_is_manager($contest_id: uuid, $user_uuid: String) {
+            query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
               contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
                 user_uuid
               }
@@ -65,7 +65,7 @@ router.post("/compile", async (req, res) => {
         if (!is_manager) {
           const query_in_team = await client.request(
             gql`
-              query query_if_in_team($team_id: uuid, $user_uuid: String, $contest_id: uuid) {
+              query query_if_in_team($team_id: uuid!, $user_uuid: uuid!, $contest_id: uuid!) {
                 contest_team(
                   where: {
                     _and: [
@@ -105,7 +105,7 @@ router.post("/compile", async (req, res) => {
 
         const player_num = 5;
         let query_string = "";
-        for (let i = 0;i < player_num; ++i) {
+        for (let i = 0; i < player_num; ++i) {
           const j = i + 1;
           query_string += `
             code${j}
@@ -124,10 +124,10 @@ router.post("/compile", async (req, res) => {
         );
 
         //判断是否为cpp或python
-        for (let i = 0;i < player_num; ++i) {
+        for (let i = 0; i < player_num; ++i) {
           const j = i + 1;
           if ((get_contest_codes.contest_code[0]['code_type' + j] != "cpp" && get_contest_codes.contest_code[0]['code_type' + j] != "py") ||
-          !get_contest_codes.contest_code[0]['code' + j]) {
+            !get_contest_codes.contest_code[0]['code' + j]) {
             return res.status(400).send("未完成全部文件上传");
           }
         }
@@ -193,9 +193,9 @@ router.post("/compile", async (req, res) => {
 
         const urls: Url[] = [];
         const codes = get_contest_codes.contest_code[0];
-        for (let i = 0;i < player_num; ++i) {
+        for (let i = 0; i < player_num; ++i) {
           const j = i + 1;
-          urls.push({ key: `${codes['code' + j]}`, path: `${base_directory}/${contest_name}/code/${team_id}/player${j}.${codes['code_type' + j]}`});
+          urls.push({ key: `${codes['code' + j]}`, path: `${base_directory}/${contest_name}/code/${team_id}/player${j}.${codes['code_type' + j]}` });
         }
         const downloadAllFiles = async function downloadAllFiles() {
           const promises = urls.map((url) => downloadObject(url.key, url.path));
@@ -288,13 +288,13 @@ router.post("/compile", async (req, res) => {
             }
           );
           await container.start();
-          if(process.env.NODE_ENV !== "production"){
-            return res.status(200).json({compiler_token});
+          if (process.env.NODE_ENV !== "production") {
+            return res.status(200).json({ compiler_token });
           }
         }
         res.status(200).send("ok!");
       } catch (err: unknown) {
-          return res.status(400).send(err?.toString());
+        return res.status(400).send(err?.toString());
       }
     });
   } catch (err: unknown) {
@@ -380,7 +380,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
     const contest_name = await get_contest_name(contest_id);
     const query_if_manager = await client.request(
       gql`
-        query query_is_manager($contest_id: uuid, $user_uuid: String) {
+        query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
           contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
             user_uuid
           }
@@ -395,7 +395,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
     if (is_manager) {
       const query_if_team_exists = await client.request(
         gql`
-          query query_team_exists($contest_id: uuid, $team_id: uuid!) {
+          query query_team_exists($contest_id: uuid!, $team_id: uuid!) {
             contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}) {
               team_id
             }
@@ -425,7 +425,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
       try {
         const query_in_team = await client.request(
           gql`
-            query query_if_in_team($team_id: uuid, $user_uuid: String, $contest_id: uuid) {
+            query query_if_in_team($team_id: uuid!, $user_uuid: uuid!, $contest_id: uuid!) {
               contest_team(
                 where: {
                   _and: [
@@ -461,7 +461,7 @@ router.get("/logs/:team_id/:usr_seq", async (req, res) => {
               cacheControl: false,
             });
         } else
-          return res.status(401).send("401 Unauthorized:Permission denied");
+          return res.status(401).send("你不在队伍中");
       } catch (err) {
         return res.status(400).send(err);
       }
