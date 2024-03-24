@@ -46,7 +46,7 @@ router.get("/*", async (req, res, next) => {
         // admin gets all permissions, otherwise throw to next route.
         if (role == 'counselor' || role == 'root' || role == 'admin') {
           const sts = await getSTS(generalActions, "*");
-          return res.status(200).send(sts);
+          return res.status(200).send(sts);                   //返回sts密钥
         }
         else
           next('route');
@@ -77,37 +77,37 @@ router.get("/contest_upload/*", async (req, res) => {
   }
 });
 
-router.get("/code/:contest_id/:team_id/*", async (req, res) => {
+router.get("/:name/code/:team_id/*", async (req, res) => {
   try{
     if (role == 'student') {
-      const contest_id = req.params.contest_id;
+      const name = req.params.name;
       const team_id = req.params.team_id;
       const query_if_manager = await client.request(
         gql`
-          query query_is_manager($contest_id: uuid, $user_uuid: String) {
-            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
+          query query_is_manager($name: string, $user_uuid: uuid) {
+            contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
               user_uuid
             }
           }
         `,
-        { 
-          contest_id: contest_id, 
-          user_uuid: user_uuid 
+        {
+          name: name,
+          user_uuid: user_uuid
         }
       );
       const is_manager = query_if_manager.contest_manager.length != 0;
       if (is_manager) {
-        const sts = await getSTS(generalActions, `code/${contest_id}/${team_id}/*`);
+        const sts = await getSTS(generalActions, `${name}/code/${team_id}/*`);
         return res.status(200).send(sts);
       }
       else {
         const query_in_team = await client.request(
           gql`
-            query query_if_in_team($team_id: uuid, $user_uuid: String, $contest_id: uuid) {
+            query query_if_in_team($team_id: uuid, $user_uuid: uuid, $name: string) {
               contest_team(
                 where: {
                   _and: [
-                    { contest_id: { _eq: $contest_id } }
+                    {contest: {name: {_eq: $name}}
                     { team_id: { _eq: $team_id } }
                     {
                       _or: [
@@ -122,15 +122,15 @@ router.get("/code/:contest_id/:team_id/*", async (req, res) => {
               }
             }
           `,
-          { 
-            contest_id: contest_id, 
-            team_id: team_id, 
-            user_uuid: user_uuid 
+          {
+            name: name,
+            team_id: team_id,
+            user_uuid: user_uuid
           }
         );
         const is_in_team = query_in_team.contest_team.length != 0;
         if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
-        const sts = await getSTS(generalActions, `code/${contest_id}/${team_id}/*`);
+        const sts = await getSTS(generalActions, `${name}/code/${team_id}/*`);
         return res.status(200).send(sts);
       }
     }
