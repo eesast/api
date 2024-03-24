@@ -44,7 +44,7 @@ router.get("/*", async (req, res, next) => {
         user_uuid = payload.uuid;
         role = payload.role;
         // admin gets all permissions, otherwise throw to next route.
-        if (role == 'counselor' || role == 'root' || role == 'admin') {
+        if (role == 'admin') {
           const sts = await getSTS(generalActions, "*");
           return res.status(200).send(sts);                   //返回sts密钥
         }
@@ -68,18 +68,9 @@ router.get("/upload/*", async (req, res) => {
   }
 });
 
-router.get("/contest_upload/*", async (req, res) => {
-  try{
-    const sts = await getSTS(viewActions, `contest_upload/*`);
-    return res.status(200).send(sts);
-  } catch (err) {
-    return res.status(500).send(err);
-  }
-});
-
 router.get("/:name/code/:team_id/*", async (req, res) => {
   try{
-    if (role == 'student') {
+    if (role != 'anonymous') {
       const name = req.params.name;
       const team_id = req.params.team_id;
       const query_if_manager = await client.request(
@@ -133,6 +124,9 @@ router.get("/:name/code/:team_id/*", async (req, res) => {
         const sts = await getSTS(generalActions, `${name}/code/${team_id}/*`);
         return res.status(200).send(sts);
       }
+    }
+    else{
+      return res.status(401).send("Unauthorized");
     }
   } catch (err) {
     return res.status(500).send(err);
