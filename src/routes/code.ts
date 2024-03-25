@@ -62,6 +62,8 @@ async function getConfig() {
  * @param {string} path
 */
 router.put("/upload", async (req, res) => {
+  if (process.env.NODE_ENV === "production")
+    return res.status(403).send("403 Forbidden: This API is disabled in production environment.");
 
   const contest_name = req.body.contest_name;
   const code_id = req.body.code_id;
@@ -116,6 +118,9 @@ router.put("/upload", async (req, res) => {
  * @param {string} path
 */
 router.get("/download", async (req, res) => {
+  if (process.env.NODE_ENV === "production")
+    return res.status(403).send("403 Forbidden: This API is disabled in production environment.");
+
   const contest_name = req.body.contest_name;
   const code_id = req.body.code_id;
   const team_id = req.body.team_id;
@@ -169,6 +174,7 @@ router.get("/download", async (req, res) => {
  * @param {string} contest_name
  * @param {uuid} code_id
  * @param {string} language
+ * @param {string} path
  **/
 router.post("/compile-start", authenticate(), async (req, res) => {
   try {
@@ -176,7 +182,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     const code_id = req.body.code_id;
     const language = req.body.language;
     const user_uuid = req.auth.user.uuid;
-    if (!contest_name || !code_id || !language) {
+    if (!contest_name || !code_id || !language || !user_uuid) {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
@@ -204,6 +210,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     }
 
     console.log("start to get sts")
+    const cosPath = req.body.path ? req.body.path : `${contest_name}/code/${team_id}`;
 
     try {
       const cos = await initCOS();
@@ -238,8 +245,8 @@ router.post("/compile-start", authenticate(), async (req, res) => {
 
       console.log("start to download files")
 
-      const key = `${contest_name}/code/${team_id}/${code_id}.${language}`;
-      const outputPath = `${utils.base_directory}/${key}`;
+      const key = `${cosPath}/${code_id}.${language}`;
+      const outputPath = `${utils.base_directory}/${contest_name}/code/${team_id}/${code_id}.${language}`;
       await downloadObject(key, outputPath);
 
     } catch (err) {
@@ -276,6 +283,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
           code_id: code_id,
           team_id: team_id,
           contest_name: contest_name,
+          cos_path: cosPath,
         } as JwtCompilerPayload,
         process.env.SECRET!,
         {
@@ -362,6 +370,7 @@ router.post("/compile-finish", async (req, res) => {
       const team_id = payload.team_id;
       const contest_name = payload.contest_name;
       const compile_status = req.body.compile_status;
+      const cosPath = payload.cos_path;
       if (!compile_status || !team_id || !code_id || !contest_name) {
         return res.status(422).send("422 Unprocessable Entity: Missing credentials");
       }
@@ -398,12 +407,12 @@ router.post("/compile-finish", async (req, res) => {
           });
         };
         if (compile_status === "Success") {
-          const key = `${contest_name}/code/${team_id}/${code_id}`;
-          const localFilePath = `${utils.base_directory}/${key}`;
+          const key = `${cosPath}/${code_id}`;
+          const localFilePath = `${utils.base_directory}/${contest_name}/code/${team_id}/${code_id}`;
           await uploadObject(localFilePath, key);
         }
-        const key = `${contest_name}/code/${team_id}/${code_id}.txt`;
-        const localFilePath = `${utils.base_directory}/${key}`;
+        const key = `${cosPath}/${code_id}.log`;
+        const localFilePath = `${utils.base_directory}/${contest_name}/code/${team_id}/${code_id}.log`;
         await uploadObject(localFilePath, key);
 
       } catch (err) {
