@@ -203,57 +203,48 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       }
     }
 
-    // try {
-    //   await fs.mkdir(`${utils.base_directory}/${contest_name}/code/${team_id}`, {
-    //     recursive: true,
-    //     mode: 0o775,
-    //   });
-    // } catch (err) {
-    //   return res.status(500).send("500 Internal Server Error: Make directory failed.");
-    // }
+    console.log("start to get sts")
 
-    // console.log("start to get sts")
+    try {
+      const cos = await initCOS();
+      const config = await getConfig();
 
-    // try {
-    //   const cos = await initCOS();
-    //   const config = await getConfig();
+      const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+          cos.headObject({
+            Bucket: config.bucket,
+            Region: config.region,
+            Key: key,
+          }, (err, data) => {
+              if (data) {
+                cos.getObject({
+                  Bucket: config.bucket,
+                  Region: config.region,
+                  Key: key,
+                  Output: fStream.createWriteStream(outputPath),
+                }, (err) => {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve(true);
+                  }
+                });
+              } else {
+                reject(`key: ${key} Not found.`);
+              }
+            });
+          });
+        };
 
-    //   const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
-    //     return new Promise((resolve, reject) => {
-    //       cos.headObject({
-    //         Bucket: config.bucket,
-    //         Region: config.region,
-    //         Key: key,
-    //       }, (err, data) => {
-    //           if (data) {
-    //             cos.getObject({
-    //               Bucket: config.bucket,
-    //               Region: config.region,
-    //               Key: key,
-    //               Output: fStream.createWriteStream(outputPath),
-    //             }, (err) => {
-    //               if (err) {
-    //                 reject(err);
-    //               } else {
-    //                 resolve(true);
-    //               }
-    //             });
-    //           } else {
-    //             reject(`key: ${key} Not found.`);
-    //           }
-    //         });
-    //       });
-    //     };
+      console.log("start to download files")
 
-    //   console.log("start to download files")
+      const key = `${contest_name}/code/${team_id}/${code_id}.${language}`;
+      const outputPath = `${utils.base_directory}/${key}`;
+      await downloadObject(key, outputPath);
 
-    //   const key = `${contest_name}/code/${team_id}/${code_id}.${language}`;
-    //   const outputPath = `${utils.base_directory}/${key}`;
-    //   await downloadObject(key, outputPath);
-
-    // } catch (err) {
-    //   return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
-    // }
+    } catch (err) {
+      return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
+    }
 
     try {
       const docker =
