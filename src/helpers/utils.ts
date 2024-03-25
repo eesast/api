@@ -1,7 +1,7 @@
 import { gql } from "graphql-request";
 import { client } from "..";
 
-export const base_directory = process.env.NODE_ENV === "production" ? '/data' : '/Users/zhenzhengdehuoyubai/Desktop/Software/code/data';
+export const base_directory = process.env.NODE_ENV === "production" ? '/data' : process.env.BASE_DIR!;
 
 // query contest_name from contest_id
 export const get_contest_name: any = async (contest_id: string) => {

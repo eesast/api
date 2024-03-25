@@ -2,12 +2,12 @@ import express from "express";
 import Docker from "dockerode";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import authenticate, { JwtUserPayload, JwtVerifyPayload, JwtCompilerPayload } from "../middlewares/authenticate";
+import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
 import { gql } from "graphql-request";
 import { client } from "..";
 import getSTS from "../helpers/sts";
 import fStream from 'fs';
-import COS, { util } from "cos-nodejs-sdk-v5";
+import COS from "cos-nodejs-sdk-v5";
 import { join } from "path";
 import * as utils from "../helpers/utils";
 
@@ -54,14 +54,14 @@ async function getConfig() {
 
 
 /**
- * POST upload code, for test only
+ * PUT upload code, for test only
  * @param {string} contest_name
  * @param {uuid} code_id
  * @param {uuid} team_id
  * @param {string} suffix
  * @param {string} path
 */
-router.post("/upload", async (req, res) => {
+router.put("/upload", async (req, res) => {
 
   const contest_name = req.body.contest_name;
   const code_id = req.body.code_id;
@@ -108,14 +108,14 @@ router.post("/upload", async (req, res) => {
 })
 
 /**
- * POST download code, for test only
+ * GET download code, for test only
  * @param {string} contest_name
  * @param {uuid} code_id
  * @param {uuid} team_id
  * @param {string} suffix
  * @param {string} path
 */
-router.post("/download", async (req, res) => {
+router.get("/download", async (req, res) => {
   const contest_name = req.body.contest_name;
   const code_id = req.body.code_id;
   const team_id = req.body.team_id;
