@@ -20,6 +20,7 @@ async function initCOS() {
     "name/cos:GetObject",
     "name/cos:DeleteObject",
     "name/cos:HeadObject",
+    "name/cos:PutObject",
   ], "*");
 
   const cos = new COS({
@@ -42,29 +43,140 @@ async function initCOS() {
   return cos;
 }
 
+async function getConfig() {
+  const config = {
+    bucket: process.env.COS_BUCKET!,
+    region: 'ap-beijing',
+  };
+  return config;
 
-const config = {
-  bucket: process.env.COS_BUCKET!,
-  region: 'ap-beijing',
-};
+}
 
+
+/**
+ * POST upload code, for test only
+ * @param {string} contest_name
+ * @param {uuid} code_id
+ * @param {uuid} team_id
+ * @param {string} suffix
+ * @param {string} path
+*/
+router.post("/upload", async (req, res) => {
+
+  const contest_name = req.body.contest_name;
+  const code_id = req.body.code_id;
+  const team_id = req.body.team_id;
+  const suffix = req.body.suffix;
+  const path = req.body.path;
+
+  const cos = await initCOS();
+  const config = await getConfig();
+
+  const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const fileStream = fStream.createReadStream(localFilePath);
+      fileStream.on('error', (err) => {
+        console.log('File Stream Error', err);
+        reject('Failed to read local file');
+      });
+      cos.putObject({
+        Bucket: config.bucket,
+        Region: config.region,
+        Key: bucketKey,
+        Body: fileStream,
+      }, (err, data) => {
+        if (err) {
+          console.log(err);
+          reject('Failed to upload object to COS');
+        } else {
+          console.log('Upload Success', data);
+          resolve(true);
+        }
+      });
+    });
+  };
+  if (!suffix) {
+    let key = `${contest_name}/code/${team_id}/${code_id}`;
+    let localFilePath = `${path}/${code_id}`;
+    await uploadObject(localFilePath, key);
+  } else {
+    let key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
+    let localFilePath = `${path}/${code_id}.${suffix}`;
+    await uploadObject(localFilePath, key);
+  }
+  return res.status(200).send("200 OK: Upload success");
+})
+
+/**
+ * POST download code, for test only
+ * @param {string} contest_name
+ * @param {uuid} code_id
+ * @param {uuid} team_id
+ * @param {string} suffix
+ * @param {string} path
+*/
+router.post("/download", async (req, res) => {
+  const contest_name = req.body.contest_name;
+  const code_id = req.body.code_id;
+  const team_id = req.body.team_id;
+  const suffix = req.body.suffix;
+  const path = req.body.path;
+
+  const cos = await initCOS();
+  const config = await getConfig();
+
+  const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      cos.headObject({
+        Bucket: config.bucket,
+        Region: config.region,
+        Key: key,
+      }, (err, data) => {
+        if (data) {
+          cos.getObject({
+            Bucket: config.bucket,
+            Region: config.region,
+            Key: key,
+            Output: fStream.createWriteStream(outputPath),
+          }, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(true);
+            }
+          });
+        } else {
+          reject(`key: ${key} Not found.`);
+        }
+      });
+    });
+  };
+  if (!suffix) {
+    let key = `${contest_name}/code/${team_id}/${code_id}`;
+    let outputPath = `${path}/${code_id}`;
+    await downloadObject(key, outputPath);
+  } else {
+    let key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
+    let outputPath = `${path}/${code_id}.${suffix}`;
+    await downloadObject(key, outputPath);
+  }
+  return res.status(200).send("200 OK: Download success");
+})
 
 /**
  * POST compile start
  * @param {token}
  * @param {string} contest_name
- * @param {string} path
  * @param {uuid} code_id
  * @param {string} language
  **/
 router.post("/compile-start", authenticate(), async (req, res) => {
   try {
     const contest_name = req.body.contest_name;
-    const path = req.body.path;
     const code_id = req.body.code_id;
     const language = req.body.language;
     const user_uuid = req.auth.user.uuid;
-    if (!contest_name || !path || !code_id || !language) {
+    if (!contest_name || !code_id || !language) {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
@@ -91,56 +203,57 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       }
     }
 
-    try {
-      await fs.mkdir(`${utils.base_directory}/${contest_name}/code/${team_id}`, {
-        recursive: true,
-        mode: 0o775,
-      });
-    } catch (err) {
-      return res.status(500).send("500 Internal Server Error: Make directory failed.");
-    }
+    // try {
+    //   await fs.mkdir(`${utils.base_directory}/${contest_name}/code/${team_id}`, {
+    //     recursive: true,
+    //     mode: 0o775,
+    //   });
+    // } catch (err) {
+    //   return res.status(500).send("500 Internal Server Error: Make directory failed.");
+    // }
 
-    console.log("start to get sts")
+    // console.log("start to get sts")
 
-    try {
-      const cos = await initCOS();
+    // try {
+    //   const cos = await initCOS();
+    //   const config = await getConfig();
 
-      const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-          cos.headObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: key,
-          }, (err, data) => {
-              if (data) {
-                cos.getObject({
-                  Bucket: config.bucket,
-                  Region: config.region,
-                  Key: key,
-                  Output: fStream.createWriteStream(outputPath),
-                }, (err) => {
-                  if (err) {
-                    reject(err);
-                  } else {
-                    resolve(true);
-                  }
-                });
-              } else {
-                reject(`key: ${key} Not found.`);
-              }
-            });
-          });
-        };
+    //   const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
+    //     return new Promise((resolve, reject) => {
+    //       cos.headObject({
+    //         Bucket: config.bucket,
+    //         Region: config.region,
+    //         Key: key,
+    //       }, (err, data) => {
+    //           if (data) {
+    //             cos.getObject({
+    //               Bucket: config.bucket,
+    //               Region: config.region,
+    //               Key: key,
+    //               Output: fStream.createWriteStream(outputPath),
+    //             }, (err) => {
+    //               if (err) {
+    //                 reject(err);
+    //               } else {
+    //                 resolve(true);
+    //               }
+    //             });
+    //           } else {
+    //             reject(`key: ${key} Not found.`);
+    //           }
+    //         });
+    //       });
+    //     };
 
-      console.log("start to download files")
+    //   console.log("start to download files")
 
-      const key = `${contest_name}/code/${team_id}/${code_id}.${language}`;
-      const outputPath = `${utils.base_directory}/${key}`;
-      await downloadObject(key, outputPath);
+    //   const key = `${contest_name}/code/${team_id}/${code_id}.${language}`;
+    //   const outputPath = `${utils.base_directory}/${key}`;
+    //   await downloadObject(key, outputPath);
 
-    } catch (err) {
-      return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
-    }
+    // } catch (err) {
+    //   return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
+    // }
 
     try {
       const docker =
@@ -164,9 +277,9 @@ router.post("/compile-start", authenticate(), async (req, res) => {
 
       console.log("start to create container")
       const url =
-        process.env.NODE_ENV == "production"
+        process.env.NODE_ENV === "production"
           ? "https://api.eesast.com/code/compile-finish"
-          : "http://172.17.0.1:28888/code/compile-finish";
+          : "http://128.0.0.1:28888/code/compile-finish";
       const compiler_token = jwt.sign(
         {
           code_id: code_id,
@@ -201,10 +314,11 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         name: `${contest_name}_Compiler_${code_id}`
       });
       await container.start();
+      console.log("container started")
 
       await client.request(
         gql`
-          mutation update_compile_status($code_id: uuid!, $status: string!) {
+          mutation update_compile_status($code_id: uuid!, $status: String!) {
             update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
               returning {
                 compile_status
@@ -217,10 +331,10 @@ router.post("/compile-start", authenticate(), async (req, res) => {
           status: "Compiling",
         }
       );
-      console.log("container started")
+      console.log("update compile status success")
 
       if (process.env.NODE_ENV !== "production") {
-        return res.status(200).json({ compiler_token }).send("200 OK: Create container success");
+        return res.status(200).send("200 OK: Create container success. Compiler token: " + compiler_token);
       } else {
         return res.status(200).send("200 OK: Create container success");
       }
@@ -241,7 +355,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
  * @param {string} token
  * @param {string} compile_status
 */
-router.put("/compile-finish", async (req, res) => {
+router.post("/compile-finish", async (req, res) => {
   try {
     const authHeader = req.get("Authorization");
     if (!authHeader) {
@@ -267,6 +381,7 @@ router.put("/compile-finish", async (req, res) => {
 
       try {
         const cos = await initCOS();
+        const config = await getConfig();
 
         const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
           return new Promise((resolve, reject) => {
@@ -291,14 +406,14 @@ router.put("/compile-finish", async (req, res) => {
             });
           });
         };
-
-        for (let suffix in ["", ".txt"]) {
-          if (compile_status === "Failed" && suffix === "")
-            continue;
-          let key = `${contest_name}/code/${team_id}/${code_id}${suffix}`;
+        if (compile_status === "Success") {
+          let key = `${contest_name}/code/${team_id}/${code_id}`;
           let localFilePath = `${utils.base_directory}/${key}`;
           await uploadObject(localFilePath, key);
         }
+        let key = `${contest_name}/code/${team_id}/${code_id}.txt`;
+        let localFilePath = `${utils.base_directory}/${key}`;
+        await uploadObject(localFilePath, key);
 
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
@@ -307,7 +422,7 @@ router.put("/compile-finish", async (req, res) => {
       try {
         await client.request(
           gql`
-            mutation update_compile_status($code_id: uuid!, $status: string!) {
+            mutation update_compile_status($code_id: uuid!, $status: String!) {
               update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
                 returning {
                   compile_status

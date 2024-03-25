@@ -59,7 +59,7 @@ const authenticate: (
           .send("401 Unauthorized: Token expired or invalid");
       }
       const payload = decoded as JwtUserPayload;
-      console.log(payload.uuid); //delete
+      // console.log(payload.uuid); //delete
       try {
         const user = (await client.request(
           gql`

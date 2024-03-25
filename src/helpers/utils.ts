@@ -1,13 +1,13 @@
 import { gql } from "graphql-request";
 import { client } from "..";
 
-export const base_directory = process.env.NODE_ENV === "production" ? '/data' : '/home/rsync/contest';
+export const base_directory = process.env.NODE_ENV === "production" ? '/data' : '/Users/zhenzhengdehuoyubai/Desktop/Software/code/data';
 
 // query contest_name from contest_id
 export const get_contest_name: any = async (contest_id: string) => {
   const query_contest_name = await client.request(
     gql`
-      query get_contest_name($contest_id: uuid) {
+      query get_contest_name($contest_id: uuid!) {
         contest(where: { id: { _eq: $contest_id } }) {
           name
         }
@@ -24,7 +24,7 @@ export const get_contest_name: any = async (contest_id: string) => {
 export const get_contest_id: any = async (contest_name: string) => {
   const query_contest_id = await client.request(
     gql`
-      query get_contest_id($contest_name: string) {
+      query get_contest_id($contest_name: String!) {
         contest(where: { name: { _eq: $contest_name } }) {
           id
         }
@@ -41,7 +41,7 @@ export const get_contest_id: any = async (contest_name: string) => {
 export const get_team_from_user: any = async (user_uuid: string, contest_id: string) => {
   const query_team_id = await client.request(
     gql`
-      query get_team_id($user_uuid: uuid, $contest_id: uuid) {
+      query get_team_id($user_uuid: uuid!, $contest_id: uuid!) {
         contest_team_member(where: {_and: {contest_team: {contest_id: {_eq: $contest_id}}, user_uuid: {_eq: $user_uuid}}}) {
           team_id
         }
@@ -59,7 +59,7 @@ export const get_team_from_user: any = async (user_uuid: string, contest_id: str
 export const get_team_from_code: any = async (code_id: string) => {
   const query_team_id = await client.request(
     gql`
-      query get_team_id($code_id: uuid) {
+      query get_team_id($code_id: uuid!) {
         contest_team_code(where: {code_id: {_eq: $code_id}}) {
           team_id
         }
