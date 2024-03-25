@@ -102,25 +102,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
 
     console.log("start to get sts")
 
-    // // 删除文件, 写成Promise
-    // const deleteFile = async function deleteAllFilesInDir(directoryPath: string) {
-    //   const files = await fs.readdir(directoryPath); // 获取目录下所有文件的名称
-    //   await Promise.all(files.map(async (file) => {
-    //     const filePath = join(directoryPath, file); // 组装文件的完整路径
-    //     const stats = await fs.stat(filePath); // 获取文件的详细信息
-    //     if (stats.isDirectory()) {
-    //       await deleteAllFilesInDir(filePath); // 递归删除子目录下的所有文件
-    //       await fs.rmdir(filePath); // 删除子目录
-    //     } else {
-    //       await fs.unlink(filePath); // 删除文件
-    //     }
-    //   }));
-    // }
-
-    // await deleteFile(`${base_directory}/${contest_name}/code/${team_id}`);
-
     try {
-
       const cos = await initCOS();
 
       const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
@@ -203,7 +185,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
           `URL=${url}`,
           `TOKEN=${compiler_token}`,
           `CODE_ID=${code_id}`,
-          `LANGUAGE=${language}`
+          `LANG=${language}`
         ],
         HostConfig: {
           Binds: [
@@ -282,43 +264,44 @@ router.put("/compile-finish", async (req, res) => {
       if (compile_status !== "Success" && compile_status !== "Failed")
         return res.status(400).send("400 Bad Request: Invalid compile status");
 
+
       try {
-        if (compile_status === "Success") {
+        const cos = await initCOS();
 
-          const cos = await initCOS();
-
-          const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
-            return new Promise((resolve, reject) => {
-              const fileStream = fStream.createReadStream(localFilePath);
-              fileStream.on('error', (err) => {
-                console.log('File Stream Error', err);
-                reject('Failed to read local file');
-              });
-              cos.putObject({
-                Bucket: config.bucket,
-                Region: config.region,
-                Key: bucketKey,
-                Body: fileStream,
-              }, (err, data) => {
-                if (err) {
-                  console.log(err);
-                  reject('Failed to upload object to COS');
-                } else {
-                  console.log('Upload Success', data);
-                  resolve(true);
-                }
-              });
+        const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
+          return new Promise((resolve, reject) => {
+            const fileStream = fStream.createReadStream(localFilePath);
+            fileStream.on('error', (err) => {
+              console.log('File Stream Error', err);
+              reject('Failed to read local file');
             });
-          };
+            cos.putObject({
+              Bucket: config.bucket,
+              Region: config.region,
+              Key: bucketKey,
+              Body: fileStream,
+            }, (err, data) => {
+              if (err) {
+                console.log(err);
+                reject('Failed to upload object to COS');
+              } else {
+                console.log('Upload Success', data);
+                resolve(true);
+              }
+            });
+          });
+        };
 
-          for (let suffix in ["", "log"]) {
-            let key = `${contest_name}/code/${team_id}/${code_id}/${suffix}`;
-            let localFilePath = `${utils.base_directory}/${key}`;
-            await uploadObject(localFilePath, key);
-          }
+        for (let suffix in ["", "log"]) {
+          if (compile_status === "Failed" && suffix === "")
+            continue;
+          let key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
+          let localFilePath = `${utils.base_directory}/${key}`;
+          await uploadObject(localFilePath, key);
         }
+
       } catch (err) {
-        return res.status(500).send("500 Internal Server Error: Upload code failed. " + err);
+        return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
       }
 
       try {
@@ -337,10 +320,32 @@ router.put("/compile-finish", async (req, res) => {
             status: compile_status,
           }
         );
-        return res.status(200).send("200 OK: Update compile status success");
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Update compile status failed. " + err);
       }
+
+      try {
+        const deleteFile = async function deleteAllFilesInDir(directoryPath: string) {
+          const files = await fs.readdir(directoryPath);
+          await Promise.all(files.map(async (file) => {
+            const filePath = join(directoryPath, file);
+            const stats = await fs.stat(filePath);
+            if (stats.isDirectory()) {
+              await deleteAllFilesInDir(filePath);
+              await fs.rmdir(filePath);
+            } else {
+              await fs.unlink(filePath);
+            }
+          }));
+        }
+
+        await deleteFile(`${utils.base_directory}/${contest_name}/code/${team_id}`);
+
+      } catch (err) {
+        return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
+      }
+
+      return res.status(200).send("200 OK: Update compile status success");
     });
   } catch (err) {
     return res.status(500).send("500 Internal Server Error: Unknown error. " + err);
