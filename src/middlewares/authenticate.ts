@@ -17,6 +17,11 @@ export interface JwtVerifyPayload {
   phone: string;
   code: string; // hash加密后的验证码
 }
+export interface JwtCompilerPayload {
+  code_id: string;
+  team_id: string;
+  contest_name: string;
+}
 export interface UserInfo {
   uuid: string;
   username: string;

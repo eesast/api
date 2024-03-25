@@ -2,7 +2,7 @@ import express from "express";
 import Docker from "dockerode";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import authenticate, { JwtUserPayload, JwtVerifyPayload } from "../middlewares/authenticate";
+import authenticate, { JwtUserPayload, JwtVerifyPayload, JwtCompilerPayload } from "../middlewares/authenticate";
 import { gql } from "graphql-request";
 import { client } from "..";
 import getSTS from "../helpers/sts";
@@ -14,24 +14,40 @@ import * as utils from "../helpers/utils";
 
 const router = express.Router();
 
-interface JwtCompilerPayload {
-  team_id: string;
-  contest_id: string;
+
+async function initCOS() {
+  const sts = await getSTS([
+    "name/cos:GetObject",
+    "name/cos:DeleteObject",
+    "name/cos:HeadObject",
+  ], "*");
+
+  const cos = new COS({
+    getAuthorization: async (options, callback) => {
+      try {
+        if (!sts) throw (Error("Credentials invalid!"));
+        callback({
+          TmpSecretId: sts.credentials.tmpSecretId,
+          TmpSecretKey: sts.credentials.tmpSecretKey,
+          SecurityToken: sts.credentials.sessionToken,
+          StartTime: sts.startTime,
+          ExpiredTime: sts.expiredTime,
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  });
+
+  return cos;
 }
 
 
-// /code/compile-start：下载代码文件并启动编译镜像。
-// 请求方法：POST
-// 请求：body中有{contest_name: string, path: string, code_id: uuid, language: string}，
-//      其中contest_name是数据库中的name、用于确定用于编译的镜像，path为代码文件在cos上的绝对路径、用于下载，
-//      code_id用于更改数据库，language为编程语言（增加其他语言前固定为cpp，不用管）
-// 响应：200：Compiling...
-// 错误：
-// 422：422 Unprocessable Entity: Missing credentials（请求缺失参数）
-// 404：404 Not Found: Code unavailable（无法成功下载代码）
-// 400：400 Bad Request: Too many codes for a single team（队伍代码数超出限额）
-// 409：409 Confilct: Code already in compilation（代码正在或已编译）
-// 500：undefined（其他内部错误，返回报错信息）
+const config = {
+  bucket: process.env.COS_BUCKET!,
+  region: 'ap-beijing',
+};
+
 
 /**
  * POST compile start
@@ -104,35 +120,8 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     // await deleteFile(`${base_directory}/${contest_name}/code/${team_id}`);
 
     try {
-      const sts = await getSTS([
-        "name/cos:GetObject",
-        "name/cos:DeleteObject",
-        "name/cos:HeadObject",
-      ], "*");
 
-      const cos = new COS({
-        getAuthorization: async (options: object, callback: (
-          params: COS.GetAuthorizationCallbackParams
-        ) => void) => {
-          try {
-            if (!sts) throw (Error("Credentials invalid!"));
-            callback({
-              TmpSecretId: sts.credentials.tmpSecretId,
-              TmpSecretKey: sts.credentials.tmpSecretKey,
-              SecurityToken: sts.credentials.sessionToken,
-              StartTime: sts.startTime,
-              ExpiredTime: sts.expiredTime,
-            });
-          } catch (err) {
-            console.log(err);
-          }
-        }
-      });
-
-      const config = {
-        bucket: process.env.COS_BUCKET!,
-        region: 'ap-beijing',
-      };
+      const cos = await initCOS();
 
       const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
@@ -198,8 +187,9 @@ router.post("/compile-start", authenticate(), async (req, res) => {
           : "http://172.17.0.1:28888/code/compile-finish";
       const compiler_token = jwt.sign(
         {
+          code_id: code_id,
           team_id: team_id,
-          contest_id: contest_id,
+          contest_name: contest_name,
         } as JwtCompilerPayload,
         process.env.SECRET!,
         {
@@ -211,10 +201,14 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         Image: utils.contest_image_map[contest_name].COMPILER_IMAGE,
         Env: [
           `URL=${url}`,
-          `TOKEN=${compiler_token}`
+          `TOKEN=${compiler_token}`,
+          `CODE_ID=${code_id}`,
+          `LANGUAGE=${language}`
         ],
         HostConfig: {
-          Binds: [`${utils.base_directory}/${contest_name}/code/${team_id}:/usr/local/code`],
+          Binds: [
+            `${utils.base_directory}/${contest_name}/code/${team_id}:/usr/local/code`,
+          ],
           AutoRemove: true,
           NetworkMode: "host"
         },
@@ -238,15 +232,15 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         `,
         {
           code_id: code_id,
-          status: "compiling",
+          status: "Compiling",
         }
       );
       console.log("container started")
 
       if (process.env.NODE_ENV !== "production") {
-        return res.status(200).json({ compiler_token });
+        return res.status(200).json({ compiler_token }).send("200 OK: Create container success");
       } else {
-        return res.status(200).send("ok!");
+        return res.status(200).send("200 OK: Create container success");
       }
 
     } catch (err) {
@@ -257,171 +251,215 @@ router.post("/compile-start", authenticate(), async (req, res) => {
   }
 });
 
+
+
+
 /**
- * PUT compile info
- */
-router.put("/compileInfo", async (req, res) => {
+ * POST compile finish
+ * @param {string} token
+ * @param {string} compile_status
+*/
+router.put("/compile-finish", async (req, res) => {
   try {
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
     }
-
     const token = authHeader.substring(7);
     return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
       if (err || !decoded) {
-        return res
-          .status(401)
-          .send("401 Unauthorized: Token expired or invalid");
+        return res.status(401).send("401 Unauthorized: Token expired or invalid");
+      }
+      const payload = decoded as JwtCompilerPayload;
+      const code_id = payload.code_id;
+      const team_id = payload.team_id;
+      const contest_name = payload.contest_name;
+      const compile_status = req.body.compile_status;
+      if (!compile_status || !team_id || !code_id || !contest_name) {
+        return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+      }
+      console.log(`${team_id}:${code_id}:compile:${compile_status}`);
+      if (compile_status !== "Success" && compile_status !== "Failed")
+        return res.status(400).send("400 Bad Request: Invalid compile status");
+
+      try {
+        if (compile_status === "Success") {
+
+          const cos = await initCOS();
+
+          const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
+            return new Promise((resolve, reject) => {
+              const fileStream = fStream.createReadStream(localFilePath);
+              fileStream.on('error', (err) => {
+                console.log('File Stream Error', err);
+                reject('Failed to read local file');
+              });
+              cos.putObject({
+                Bucket: config.bucket,
+                Region: config.region,
+                Key: bucketKey,
+                Body: fileStream,
+              }, (err, data) => {
+                if (err) {
+                  console.log(err);
+                  reject('Failed to upload object to COS');
+                } else {
+                  console.log('Upload Success', data);
+                  resolve(true);
+                }
+              });
+            });
+          };
+
+          for (let suffix in ["", "log"]) {
+            let key = `${contest_name}/code/${team_id}/${code_id}/${suffix}`;
+            let localFilePath = `${utils.base_directory}/${key}`;
+            await uploadObject(localFilePath, key);
+          }
+        }
+      } catch (err) {
+        return res.status(500).send("500 Internal Server Error: Upload code failed. " + err);
       }
 
-      const payload = decoded as JwtCompilerPayload;
-      const team_id = payload.team_id;
-      const contest_id = payload.contest_id;
-      const compile_status: string = req.body.compile_status;
-      console.log(`${team_id}:compile:${compile_status}`);
-      if (compile_status != "compiled" && compile_status != "failed")
-        return res.status(400).send("error: implicit compile status");
       try {
         await client.request(
           gql`
-            mutation update_compile_status($team_id: uuid!, $status: String, $contest_id: uuid) {
-              update_contest_team(where: {_and: [{contest_id: {_eq: $contest_id}}, {team_id: {_eq: $team_id}}]}, _set: {status: $status}) {
+            mutation update_compile_status($code_id: uuid!, $status: string!) {
+              update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
                 returning {
-                  status
+                  compile_status
                 }
               }
             }
           `,
           {
-            contest_id: contest_id,
-            team_id: team_id,
+            code_id: code_id,
             status: compile_status,
           }
         );
-        return res.status(200).send("compile_info ok!");
+        return res.status(200).send("200 OK: Update compile status success");
       } catch (err) {
-        return res.status(400).send(err);
+        return res.status(500).send("500 Internal Server Error: Update compile status failed. " + err);
       }
     });
   } catch (err) {
-    return res.status(400).send(err);
+    return res.status(500).send("500 Internal Server Error: Unknown error. " + err);
   }
 });
 
-/**
- * GET compile logs
- * @param {token}
- * @param {uuid} contest_id
- * @param {string} team_id
- * @param {number} usr_seq
- */
-router.get("/logs/:team_id/:usr_seq", async (req, res) => {
-  const authHeader = req.get("Authorization");
-  if (!authHeader) {
-    return res.status(401).send("401 Unauthorized: Missing token");
-  }
-  const token = authHeader.substring(7);
-  return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
-    if (err || !decoded) {
-      return res.status(401).send("401 Unauthorized: Token expired or invalid");
-    }
+// /**
+//  * GET compile logs
+//  * @param {token}
+//  * @param {uuid} contest_id
+//  * @param {string} team_id
+//  * @param {number} usr_seq
+//  */
+// router.get("/logs/:team_id/:usr_seq", async (req, res) => {
+//   const authHeader = req.get("Authorization");
+//   if (!authHeader) {
+//     return res.status(401).send("401 Unauthorized: Missing token");
+//   }
+//   const token = authHeader.substring(7);
+//   return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+//     if (err || !decoded) {
+//       return res.status(401).send("401 Unauthorized: Token expired or invalid");
+//     }
 
-    const payload = decoded as JwtUserPayload;
-    const user_uuid = payload.uuid;
-    const contest_id = req.body.contest_id;
-    const team_id = req.params.team_id;
-    const usr_seq = req.params.usr_seq;
-    const contest_name = await get_contest_name(contest_id);
-    const query_if_manager = await client.request(
-      gql`
-        query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
-          contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
-            user_uuid
-          }
-        }
-      `,
-      {
-        contest_id: contest_id,
-        user_uuid: user_uuid
-      }
-    );
-    const is_manager = query_if_manager.contest_manager != null;
-    if (is_manager) {
-      const query_if_team_exists = await client.request(
-        gql`
-          query query_team_exists($contest_id: uuid!, $team_id: uuid!) {
-            contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}) {
-              team_id
-            }
-          }
-        `,
-        {
-          contest_id: contest_id,
-          team_id: team_id
-        }
-      );
-      const team_exists = query_if_team_exists.contest_team != null;
-      if (team_exists) {
-        try {
-          res.set("Cache-Control", "no-cache");
-          res.set("Expires", "0");
-          res.set("Pragma", "no-cache");
-          return res
-            .status(200)
-            .sendFile(`${base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
-              cacheControl: false,
-            });
-        } catch (err) {
-          return res.status(400).send(err);
-        }
-      } else return res.status(404).send("队伍不存在！");
-    } else {
-      try {
-        const query_in_team = await client.request(
-          gql`
-            query query_if_in_team($team_id: uuid!, $user_uuid: uuid!, $contest_id: uuid!) {
-              contest_team(
-                where: {
-                  _and: [
-                    { contest_id: { _eq: $contest_id } }
-                    { team_id: { _eq: $team_id } }
-                    {
-                      _or: [
-                        { team_leader_uuid: { _eq: $user_uuid } }
-                        { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
-                      ]
-                    }
-                  ]
-                }
-              ) {
-                team_id
-              }
-            }
-          `,
-          {
-            contest_id: contest_id,
-            team_id: team_id,
-            user_uuid: user_uuid,
-          }
-        );
-        const is_in_team = query_in_team.contest_team.length != 0;
-        if (is_in_team) {
-          res.set("Cache-Control", "no-cache");
-          res.set("Expires", "0");
-          res.set("Pragma", "no-cache");
-          return res
-            .status(200)
-            .sendFile(`${base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
-              cacheControl: false,
-            });
-        } else
-          return res.status(401).send("你不在队伍中");
-      } catch (err) {
-        return res.status(400).send(err);
-      }
-    }
-  });
-});
+//     const payload = decoded as JwtUserPayload;
+//     const user_uuid = payload.uuid;
+//     const contest_id = req.body.contest_id;
+//     const team_id = req.params.team_id;
+//     const usr_seq = req.params.usr_seq;
+//     const contest_name = await utils.get_contest_name(contest_id);
+//     const query_if_manager = await client.request(
+//       gql`
+//         query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
+//           contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
+//             user_uuid
+//           }
+//         }
+//       `,
+//       {
+//         contest_id: contest_id,
+//         user_uuid: user_uuid
+//       }
+//     );
+//     const is_manager = query_if_manager.contest_manager != null;
+//     if (is_manager) {
+//       const query_if_team_exists = await client.request(
+//         gql`
+//           query query_team_exists($contest_id: uuid!, $team_id: uuid!) {
+//             contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}) {
+//               team_id
+//             }
+//           }
+//         `,
+//         {
+//           contest_id: contest_id,
+//           team_id: team_id
+//         }
+//       );
+//       const team_exists = query_if_team_exists.contest_team != null;
+//       if (team_exists) {
+//         try {
+//           res.set("Cache-Control", "no-cache");
+//           res.set("Expires", "0");
+//           res.set("Pragma", "no-cache");
+//           return res
+//             .status(200)
+//             .sendFile(`${utils.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
+//               cacheControl: false,
+//             });
+//         } catch (err) {
+//           return res.status(400).send(err);
+//         }
+//       } else return res.status(404).send("队伍不存在！");
+//     } else {
+//       try {
+//         const query_in_team = await client.request(
+//           gql`
+//             query query_if_in_team($team_id: uuid!, $user_uuid: uuid!, $contest_id: uuid!) {
+//               contest_team(
+//                 where: {
+//                   _and: [
+//                     { contest_id: { _eq: $contest_id } }
+//                     { team_id: { _eq: $team_id } }
+//                     {
+//                       _or: [
+//                         { team_leader_uuid: { _eq: $user_uuid } }
+//                         { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
+//                       ]
+//                     }
+//                   ]
+//                 }
+//               ) {
+//                 team_id
+//               }
+//             }
+//           `,
+//           {
+//             contest_id: contest_id,
+//             team_id: team_id,
+//             user_uuid: user_uuid,
+//           }
+//         );
+//         const is_in_team = query_in_team.contest_team.length != 0;
+//         if (is_in_team) {
+//           res.set("Cache-Control", "no-cache");
+//           res.set("Expires", "0");
+//           res.set("Pragma", "no-cache");
+//           return res
+//             .status(200)
+//             .sendFile(`${utils.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
+//               cacheControl: false,
+//             });
+//         } else
+//           return res.status(401).send("你不在队伍中");
+//       } catch (err) {
+//         return res.status(400).send(err);
+//       }
+//     }
+//   });
+// });
 
 export default router;
