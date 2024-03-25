@@ -2,14 +2,15 @@ import express from "express";
 import Docker from "dockerode";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import { JwtUserPayload } from "../middlewares/authenticate";
+import authenticate, { JwtUserPayload, JwtVerifyPayload } from "../middlewares/authenticate";
 import { gql } from "graphql-request";
 import { client } from "..";
 import getSTS from "../helpers/sts";
 import fStream from 'fs';
-import COS from "cos-nodejs-sdk-v5";
+import COS, { util } from "cos-nodejs-sdk-v5";
 import { join } from "path";
-import { base_directory, get_contest_name, contest_image_map } from "../helpers/utils";
+import * as utils from "../helpers/utils";
+
 
 const router = express.Router();
 
@@ -18,159 +19,128 @@ interface JwtCompilerPayload {
   contest_id: string;
 }
 
-interface Url {
-  key: string;
-  path: string;
-}
+
+// /code/compile-start：下载代码文件并启动编译镜像。
+// 请求方法：POST
+// 请求：body中有{contest_name: string, path: string, code_id: uuid, language: string}，
+//      其中contest_name是数据库中的name、用于确定用于编译的镜像，path为代码文件在cos上的绝对路径、用于下载，
+//      code_id用于更改数据库，language为编程语言（增加其他语言前固定为cpp，不用管）
+// 响应：200：Compiling...
+// 错误：
+// 422：422 Unprocessable Entity: Missing credentials（请求缺失参数）
+// 404：404 Not Found: Code unavailable（无法成功下载代码）
+// 400：400 Bad Request: Too many codes for a single team（队伍代码数超出限额）
+// 409：409 Confilct: Code already in compilation（代码正在或已编译）
+// 500：undefined（其他内部错误，返回报错信息）
 
 /**
- * POST compile code of team_id
- * @param token (user_uuid)
- * @param {uuid} req.body.contest_id
- * @param {uuid} req.body.team_id
- */
-// query whether is manager, query whether is in team
-router.post("/compile", async (req, res) => {
+ * POST compile start
+ * @param {token}
+ * @param {string} contest_name
+ * @param {string} path
+ * @param {uuid} code_id
+ * @param {string} language
+ **/
+router.post("/compile-start", authenticate(), async (req, res) => {
   try {
-    const contest_id = req.body.contest_id;
-    const team_id = req.body.team_id;
-    const authHeader = req.get("Authorization");
-    if (!authHeader) {
-      return res.status(401).send("401 Unauthorized: Missing token");
+    const contest_name = req.body.contest_name;
+    const path = req.body.path;
+    const code_id = req.body.code_id;
+    const language = req.body.language;
+    const user_uuid = req.auth.user.uuid;
+    if (!contest_name || !path || !code_id || !language) {
+      return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
-    const token = authHeader.substring(7);
-    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
-      if (err || !decoded) {
-        return res
-          .status(401)
-          .send("401 Unauthorized: Token expired or invalid");
+
+    const contest_id = await utils.get_contest_id(contest_name);
+    const team_id = await utils.get_team_from_code(code_id);
+    if (!team_id) {
+      return res.status(404).send("404 Not Found: Code unavailable");
+    }
+    const is_manager = await utils.get_maneger_from_user(user_uuid, contest_id);
+    if (!is_manager) {
+      const user_team_id = await utils.get_team_from_user(user_uuid, contest_id);
+      if (!user_team_id) {
+        return res.status(401).send("401 Unauthorized: User not in team");
+      } else if (user_team_id !== team_id) {
+        return res.status(401).send("401 Unauthorized: User and code not in the same team");
       }
-      const payload = decoded as JwtUserPayload;
-      const user_uuid = payload.uuid;
-      try {
-        const query_if_manager = await client.request(
-          gql`
-            query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
-              contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
-                user_uuid
-              }
-            }
-          `,
-          {
-            contest_id: contest_id,
-            user_uuid: user_uuid
-          }
-        );
-        const is_manager = query_if_manager.contest_manager.length != 0;
-        if (!is_manager) {
-          const query_in_team = await client.request(
-            gql`
-              query query_if_in_team($team_id: uuid!, $user_uuid: uuid!, $contest_id: uuid!) {
-                contest_team(
-                  where: {
-                    _and: [
-                      { contest_id: { _eq: $contest_id } }
-                      { team_id: { _eq: $team_id } }
-                      {
-                        _or: [
-                          { team_leader_uuid: { _eq: $user_uuid } }
-                          { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
-                        ]
-                      }
-                    ]
-                  }
-                ) {
-                  team_id
-                }
-              }
-            `,
-            {
-              contest_id: contest_id,
-              team_id: team_id,
-              user_uuid: user_uuid
-            }
-          );
-          const is_in_team = query_in_team.contest_team.length != 0;
-          if (!is_in_team) {
-            return res.status(401).send("当前用户不在队伍中");
-          }
-        }
+    }
 
-        const contest_name = await get_contest_name(contest_id);
+    if (language !== "cpp") {
+      if (language === "py") {
+        return res.status(400).send("400 Bad Request: Interpreted language do not require compilation.");
+      } else {
+        return res.status(400).send("400 Bad Request: Unsupported language.");
+      }
+    }
 
-        await fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}`, {
-          recursive: true,
-          mode: 0o775,
-        });
+    try {
+      await fs.mkdir(`${utils.base_directory}/${contest_name}/code/${team_id}`, {
+        recursive: true,
+        mode: 0o775,
+      });
+    } catch (err) {
+      return res.status(500).send("500 Internal Server Error: Make directory failed.");
+    }
 
-        const player_num = 5;
-        let query_string = "";
-        for (let i = 0; i < player_num; ++i) {
-          const j = i + 1;
-          query_string += `
-            code${j}
-            code_type${j}
-          `
-        }
-        const get_contest_codes = await client.request(
-          gql`query get_team_codes($team_id: uuid){
-            contest_code(where: {team_id: {_eq: $team_id}}) {
-              ${query_string}
-            }
-          }`,
-          {
-            team_id: team_id
-          }
-        );
+    console.log("start to get sts")
 
-        //判断是否为cpp或python
-        for (let i = 0; i < player_num; ++i) {
-          const j = i + 1;
-          if ((get_contest_codes.contest_code[0]['code_type' + j] != "cpp" && get_contest_codes.contest_code[0]['code_type' + j] != "py") ||
-            !get_contest_codes.contest_code[0]['code' + j]) {
-            return res.status(400).send("未完成全部文件上传");
+    // // 删除文件, 写成Promise
+    // const deleteFile = async function deleteAllFilesInDir(directoryPath: string) {
+    //   const files = await fs.readdir(directoryPath); // 获取目录下所有文件的名称
+    //   await Promise.all(files.map(async (file) => {
+    //     const filePath = join(directoryPath, file); // 组装文件的完整路径
+    //     const stats = await fs.stat(filePath); // 获取文件的详细信息
+    //     if (stats.isDirectory()) {
+    //       await deleteAllFilesInDir(filePath); // 递归删除子目录下的所有文件
+    //       await fs.rmdir(filePath); // 删除子目录
+    //     } else {
+    //       await fs.unlink(filePath); // 删除文件
+    //     }
+    //   }));
+    // }
+
+    // await deleteFile(`${base_directory}/${contest_name}/code/${team_id}`);
+
+    try {
+      const sts = await getSTS([
+        "name/cos:GetObject",
+        "name/cos:DeleteObject",
+        "name/cos:HeadObject",
+      ], "*");
+
+      const cos = new COS({
+        getAuthorization: async (options: object, callback: (
+          params: COS.GetAuthorizationCallbackParams
+        ) => void) => {
+          try {
+            if (!sts) throw (Error("Credentials invalid!"));
+            callback({
+              TmpSecretId: sts.credentials.tmpSecretId,
+              TmpSecretKey: sts.credentials.tmpSecretKey,
+              SecurityToken: sts.credentials.sessionToken,
+              StartTime: sts.startTime,
+              ExpiredTime: sts.expiredTime,
+            });
+          } catch (err) {
+            console.log(err);
           }
         }
+      });
 
-        console.log("start to get sts")
-        const sts = await getSTS([
-          "name/cos:GetObject",
-          "name/cos:DeleteObject",
-          "name/cos:HeadObject",
-        ], "*");
-        console.log("start to cos")
-        const cos = new COS({
-          getAuthorization: async (options: object, callback: (
-            params: COS.GetAuthorizationCallbackParams
-          ) => void) => {
-            try {
-              if (!sts) throw (Error("Credentials invalid!"));
-              callback({
-                TmpSecretId: sts.credentials.tmpSecretId,
-                TmpSecretKey: sts.credentials.tmpSecretKey,
-                SecurityToken: sts.credentials.sessionToken,
-                StartTime: sts.startTime,
-                ExpiredTime: sts.expiredTime,
-              });
-            } catch (err) {
-              console.log(err);
-            }
-          }
-        });
+      const config = {
+        bucket: process.env.COS_BUCKET!,
+        region: 'ap-beijing',
+      };
 
-        const config = {
-          bucket: process.env.COS_BUCKET!,
-          region: 'ap-beijing',
-        };
-
-        console.log('start to get object')
-        const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
-          return new Promise((resolve, reject) => {
-            cos.headObject({
-              Bucket: config.bucket,
-              Region: config.region,
-              Key: key,
-            }, (err, data) => {
+      const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+          cos.headObject({
+            Bucket: config.bucket,
+            Region: config.region,
+            Key: key,
+          }, (err, data) => {
               if (data) {
                 cos.getObject({
                   Bucket: config.bucket,
@@ -191,114 +161,99 @@ router.post("/compile", async (req, res) => {
           });
         };
 
-        const urls: Url[] = [];
-        const codes = get_contest_codes.contest_code[0];
-        for (let i = 0; i < player_num; ++i) {
-          const j = i + 1;
-          urls.push({ key: `${codes['code' + j]}`, path: `${base_directory}/${contest_name}/code/${team_id}/player${j}.${codes['code_type' + j]}` });
-        }
-        const downloadAllFiles = async function downloadAllFiles() {
-          const promises = urls.map((url) => downloadObject(url.key, url.path));
-          await Promise.all(promises);
-        };
+      console.log("start to download files")
 
-        // 删除文件, 写成Promise
-        const deleteFile = async function deleteAllFilesInDir(directoryPath: string) {
-          const files = await fs.readdir(directoryPath); // 获取目录下所有文件的名称
-          await Promise.all(files.map(async (file) => {
-            const filePath = join(directoryPath, file); // 组装文件的完整路径
-            const stats = await fs.stat(filePath); // 获取文件的详细信息
-            if (stats.isDirectory()) {
-              await deleteAllFilesInDir(filePath); // 递归删除子目录下的所有文件
-              await fs.rmdir(filePath); // 删除子目录
-            } else {
-              await fs.unlink(filePath); // 删除文件
-            }
-          }));
-        }
+      const key = `${contest_name}/code/${team_id}/${code_id}.${language}`;
+      const outputPath = `${utils.base_directory}/${key}`;
+      await downloadObject(key, outputPath);
 
-        await deleteFile(`${base_directory}/${contest_name}/code/${team_id}`);
+    } catch (err) {
+      return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
+    }
 
-        await downloadAllFiles();
+    try {
+      const docker =
+        process.env.DOCKER === "remote"
+          ? new Docker({
+            host: process.env.DOCKER_URL!,
+            port: process.env.DOCKER_PORT!,
+          })
+          : new Docker();
 
-        const docker =
-          process.env.DOCKER === "remote"
-            ? new Docker({
-              host: process.env.DOCKER_URL,
-              port: process.env.DOCKER_PORT,
-            })
-            : new Docker();
-        let containerRunning = false;
-        const containerList = await docker.listContainers();
-        containerList.forEach((containerInfo) => {
-          if (containerInfo.Names.includes(`/${contest_name}_Compiler_${team_id}`)) {
+      let containerRunning = false;
+      const containerList = await docker.listContainers();
+      containerList.forEach((containerInfo) => {
+        if (containerInfo.Names.includes(`${contest_name}_Compiler_${code_id}`)) {
             containerRunning = true;
           }
-        });
-        if (!containerRunning) {
-          const url =
-            process.env.NODE_ENV == "production"
-              ? "https://api.eesast.com/code/compileInfo"
-              : "http://172.17.0.1:28888/code/compileInfo";
-          const compiler_token = jwt.sign(
-            {
-              team_id: team_id,
-              contest_id: contest_id,
-            } as JwtCompilerPayload,
-            process.env.SECRET!,
-            {
-              expiresIn: "10m",
-            }
-          );
-          const container = await docker.createContainer({
-            Image: contest_image_map[contest_name].COMPILER_IMAGE,
-            Env: [
-              `URL=${url}`,
-              `TOKEN=${compiler_token}`
-            ],
-            HostConfig: {
-              Binds: [`${base_directory}/${contest_name}/code/${team_id}:/usr/local/mnt`],
-              AutoRemove: true,
-              NetworkMode: "host"
-            },
-            AttachStdin: false,
-            AttachStdout: false,
-            AttachStderr: false,
-            //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
-            name: `${contest_name}_Compiler_${team_id}`
-          });
-          await client.request(
-            gql`
-              mutation update_compile_status(
-                $team_id: uuid!
-                $status: String
-                $contest_id: uuid
-              ) {
-                update_contest_team(where: {_and: {contest_id: {_eq: $contest_id}, team_id: {_eq: $team_id}}}, _set: {status: $status}) {
-                  returning {
-                    status
-                  }
-                }
-              }
-            `,
-            {
-              contest_id: contest_id,
-              team_id: team_id,
-              status: "compiling",
-            }
-          );
-          await container.start();
-          if (process.env.NODE_ENV !== "production") {
-            return res.status(200).json({ compiler_token });
-          }
-        }
-        res.status(200).send("ok!");
-      } catch (err: unknown) {
-        return res.status(400).send(err?.toString());
+      });
+      if (containerRunning) {
+        return res.status(409).send("409 Confilct: Code already in compilation");
       }
-    });
-  } catch (err: unknown) {
-    return res.status(400).send(err?.toString());
+
+      console.log("start to create container")
+      const url =
+        process.env.NODE_ENV == "production"
+          ? "https://api.eesast.com/code/compile-finish"
+          : "http://172.17.0.1:28888/code/compile-finish";
+      const compiler_token = jwt.sign(
+        {
+          team_id: team_id,
+          contest_id: contest_id,
+        } as JwtCompilerPayload,
+        process.env.SECRET!,
+        {
+          expiresIn: utils.contest_image_map[contest_name].COMPILER_TIMEOUT,
+        }
+      );
+
+      const container = await docker.createContainer({
+        Image: utils.contest_image_map[contest_name].COMPILER_IMAGE,
+        Env: [
+          `URL=${url}`,
+          `TOKEN=${compiler_token}`
+        ],
+        HostConfig: {
+          Binds: [`${utils.base_directory}/${contest_name}/code/${team_id}:/usr/local/code`],
+          AutoRemove: true,
+          NetworkMode: "host"
+        },
+        AttachStdin: false,
+        AttachStdout: false,
+        AttachStderr: false,
+        //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
+        name: `${contest_name}_Compiler_${code_id}`
+      });
+      await container.start();
+
+      await client.request(
+        gql`
+          mutation update_compile_status($code_id: uuid!, $status: string!) {
+            update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
+              returning {
+                compile_status
+              }
+            }
+          }
+        `,
+        {
+          code_id: code_id,
+          status: "compiling",
+        }
+      );
+      console.log("container started")
+
+      if (process.env.NODE_ENV !== "production") {
+        return res.status(200).json({ compiler_token });
+      } else {
+        return res.status(200).send("ok!");
+      }
+
+    } catch (err) {
+      return res.status(500).send("500 Internal Server Error: Create container failed. " + err);
+    }
+  } catch (err) {
+    return res.status(500).send("500 Internal Server Error: Unknown error. " + err);
   }
 });
 
