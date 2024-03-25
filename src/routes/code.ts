@@ -292,10 +292,10 @@ router.put("/compile-finish", async (req, res) => {
           });
         };
 
-        for (let suffix in ["", "log"]) {
+        for (let suffix in ["", ".txt"]) {
           if (compile_status === "Failed" && suffix === "")
             continue;
-          let key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
+          let key = `${contest_name}/code/${team_id}/${code_id}${suffix}`;
           let localFilePath = `${utils.base_directory}/${key}`;
           await uploadObject(localFilePath, key);
         }
