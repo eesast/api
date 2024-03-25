@@ -96,12 +96,12 @@ router.put("/upload", async (req, res) => {
     });
   };
   if (!suffix) {
-    let key = `${contest_name}/code/${team_id}/${code_id}`;
-    let localFilePath = `${path}/${code_id}`;
+    const key = `${contest_name}/code/${team_id}/${code_id}`;
+    const localFilePath = `${path}/${code_id}`;
     await uploadObject(localFilePath, key);
   } else {
-    let key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
-    let localFilePath = `${path}/${code_id}.${suffix}`;
+    const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
+    const localFilePath = `${path}/${code_id}.${suffix}`;
     await uploadObject(localFilePath, key);
   }
   return res.status(200).send("200 OK: Upload success");
@@ -152,12 +152,12 @@ router.get("/download", async (req, res) => {
     });
   };
   if (!suffix) {
-    let key = `${contest_name}/code/${team_id}/${code_id}`;
-    let outputPath = `${path}/${code_id}`;
+    const key = `${contest_name}/code/${team_id}/${code_id}`;
+    const outputPath = `${path}/${code_id}`;
     await downloadObject(key, outputPath);
   } else {
-    let key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
-    let outputPath = `${path}/${code_id}.${suffix}`;
+    const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
+    const outputPath = `${path}/${code_id}.${suffix}`;
     await downloadObject(key, outputPath);
   }
   return res.status(200).send("200 OK: Download success");
@@ -407,12 +407,12 @@ router.post("/compile-finish", async (req, res) => {
           });
         };
         if (compile_status === "Success") {
-          let key = `${contest_name}/code/${team_id}/${code_id}`;
-          let localFilePath = `${utils.base_directory}/${key}`;
+          const key = `${contest_name}/code/${team_id}/${code_id}`;
+          const localFilePath = `${utils.base_directory}/${key}`;
           await uploadObject(localFilePath, key);
         }
-        let key = `${contest_name}/code/${team_id}/${code_id}.txt`;
-        let localFilePath = `${utils.base_directory}/${key}`;
+        const key = `${contest_name}/code/${team_id}/${code_id}.txt`;
+        const localFilePath = `${utils.base_directory}/${key}`;
         await uploadObject(localFilePath, key);
 
       } catch (err) {
