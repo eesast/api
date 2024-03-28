@@ -1,9 +1,8 @@
 import express from "express";
-import { JwtUserPayload } from "../middlewares/authenticate";
+import authenticate from "../middlewares/authenticate";
 import getSTS from "../helpers/sts";
 import { client } from "..";
 import { gql } from "graphql-request";
-import jwt from "jsonwebtoken";
 
 const router = express.Router();
 const generalActions = [
@@ -26,114 +25,27 @@ const viewActions = [
 ]
 let user_uuid: string, role: string;
 
-router.get("/*", async (req, res, next) => {
+router.get("/*",authenticate(), async (req, res, next) => {
   try{
-    const authHeader = req.get("Authorization");
-    if (!authHeader) {
-      return res.status(401).send("401 Unauthorized: Missing token");
+    user_uuid = req.auth.user.uuid;
+    role = req.auth.user.role;
+    // admin gets all permissions, otherwise throw to next route.
+    if (role == 'admin') {
+      const sts = await getSTS(generalActions, "*");
+      return res.status(200).send(sts);                   //返回sts密钥
     }
-    const token = authHeader.substring(7);
-    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
-      try{
-        if (err || !decoded) {
-          return res
-            .status(401)
-            .send("401 Unauthorized: Token expired or invalid");
-        }
-        const payload = decoded as JwtUserPayload;
-        user_uuid = payload.uuid;
-        role = payload.role;
-        // admin gets all permissions, otherwise throw to next route.
-        if (role == 'counselor' || role == 'root' || role == 'admin') {
-          const sts = await getSTS(generalActions, "*");
-          return res.status(200).send(sts);
-        }
-        else
-          next('route');
-      } catch (err) {
-        return res.status(500).send(err);
-      }
-    });
+    else
+      next('route');
   } catch (err) {
     return res.status(500).send(err);
   }
 });
 
+//info
 router.get("/upload/*", async (req, res) => {
   try{
-    const sts = await getSTS(viewActions, `upload/*`);
+    const sts = await getSTS(role === "counselor" ? generalActions : viewActions, `upload/*`);
     return res.status(200).send(sts);
-  } catch (err) {
-    return res.status(500).send(err);
-  }
-});
-
-router.get("/contest_upload/*", async (req, res) => {
-  try{
-    const sts = await getSTS(viewActions, `contest_upload/*`);
-    return res.status(200).send(sts);
-  } catch (err) {
-    return res.status(500).send(err);
-  }
-});
-
-router.get("/code/:contest_id/:team_id/*", async (req, res) => {
-  try{
-    if (role == 'student') {
-      const contest_id = req.params.contest_id;
-      const team_id = req.params.team_id;
-      const query_if_manager = await client.request(
-        gql`
-          query query_is_manager($contest_id: uuid, $user_uuid: String) {
-            contest_manager(where: {_and: {contest_id: {_eq: $contest_id}, user_uuid: {_eq: $user_uuid}}}) {
-              user_uuid
-            }
-          }
-        `,
-        { 
-          contest_id: contest_id, 
-          user_uuid: user_uuid 
-        }
-      );
-      const is_manager = query_if_manager.contest_manager.length != 0;
-      if (is_manager) {
-        const sts = await getSTS(generalActions, `code/${contest_id}/${team_id}/*`);
-        return res.status(200).send(sts);
-      }
-      else {
-        const query_in_team = await client.request(
-          gql`
-            query query_if_in_team($team_id: uuid, $user_uuid: String, $contest_id: uuid) {
-              contest_team(
-                where: {
-                  _and: [
-                    { contest_id: { _eq: $contest_id } }
-                    { team_id: { _eq: $team_id } }
-                    {
-                      _or: [
-                        { team_leader_uuid: { _eq: $user_uuid } }
-                        { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
-                      ]
-                    }
-                  ]
-                }
-              ) {
-                team_id
-              }
-            }
-          `,
-          { 
-            contest_id: contest_id, 
-            team_id: team_id, 
-            user_uuid: user_uuid 
-          }
-        );
-        const is_in_team = query_in_team.contest_team.length != 0;
-        if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
-        const sts = await getSTS(generalActions, `code/${contest_id}/${team_id}/*`);
-        return res.status(200).send(sts);
-      }
-    }
   } catch (err) {
     return res.status(500).send(err);
   }
@@ -167,6 +79,10 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
         return res.status(401).send("当前用户没有该申请的权限");
       }
     }
+    else if (role === "counselor") {
+      const sts = await getSTS(generalActions, `chat_record/*`);
+      return res.status(200).send(sts);
+    }
     else {
       return res.status(401).send("401 Unauthorized");
     }
@@ -175,4 +91,195 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
   }
 });
 
+//contest
+router.get("/:name/code/:team_id/*", async (req, res) => {
+  try{
+    if (role != 'anonymous') {
+      const name = req.params.name;
+      const team_id = req.params.team_id;
+      const query_if_manager = await client.request(
+        gql`
+          query query_is_manager($name: string, $user_uuid: uuid) {
+            contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+              user_uuid
+            }
+          }
+        `,
+        {
+          name: name,
+          user_uuid: user_uuid
+        }
+      );
+      const is_manager = query_if_manager.contest_manager.length != 0;
+      if (is_manager) {
+        const sts = await getSTS(generalActions, `${name}/code/${team_id}/*`);
+        return res.status(200).send(sts);
+      }
+      else {
+        const query_in_team = await client.request(
+          gql`
+            query query_if_in_team($team_id: uuid, $user_uuid: uuid, $name: string) {
+              contest_team(
+                where: {
+                  _and: [
+                    {contest: {name: {_eq: $name}}
+                    { team_id: { _eq: $team_id } }
+                    {
+                      _or: [
+                        { team_leader_uuid: { _eq: $user_uuid } }
+                        { contest_team_members: { user_uuid: { _eq: $user_uuid } } }
+                      ]
+                    }
+                  ]
+                }
+              ) {
+                team_id
+              }
+            }
+          `,
+          {
+            name: name,
+            team_id: team_id,
+            user_uuid: user_uuid
+          }
+        );
+        const is_in_team = query_in_team.contest_team.length != 0;
+        if (!is_in_team) return res.status(401).send("当前用户不在队伍中");
+        const sts = await getSTS(generalActions, `${name}/code/${team_id}/*`);
+        return res.status(200).send(sts);
+      }
+    }
+    else{
+      return res.status(401).send("Unauthorized");
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
+router.get("/:name/notice/*", async (req, res) => {
+  try{
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
+          }
+        }
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
+      }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/notice/*`);
+      return res.status(200).send(sts);
+    }
+    else {
+      const sts = await getSTS(viewActions, `${name}/notice/*`);
+      return res.status(200).send(sts);
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
+router.get("/:name/competition/*", async (req, res) => {
+  //only manager can adit competition playback files
+  try{
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
+          }
+        }
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
+      }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/competition/*`);
+      return res.status(200).send(sts);
+    }
+    else {
+      const sts = await getSTS(viewActions, `${name}/competition/*`);
+      return res.status(200).send(sts);
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+}
+);
+
+router.get("/:name/map/*", async (req, res) => {
+  //only manager can adit map
+  try{
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
+          }
+        }
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
+      }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/map/*`);
+      return res.status(200).send(sts);
+    }
+    else {
+      const sts = await getSTS(viewActions, `${name}/map/*`);
+      return res.status(200).send(sts);
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+}
+);
+
+router.get("/:name/arena/*", async (req, res) => {
+  //only manager can adit arena
+  try{
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
+          }
+        }
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
+      }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/arena/*`);
+      return res.status(200).send(sts);
+    }
+    else {
+      const sts = await getSTS(viewActions, `${name}/arena/*`);
+      return res.status(200).send(sts);
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+}
+);
 export default router;
