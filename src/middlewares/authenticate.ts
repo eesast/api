@@ -48,8 +48,22 @@ const authenticate: (
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.get("Authorization");
-    if (!authHeader) {
-      return res.status(401).send("401 Unauthorized: Missing token");
+    if(!authHeader) {
+      req.auth = { user: {
+        uuid: "00000000-0000-0000-0000-000000000000",
+        role: "anonymous",
+        realname: "Anonymous",
+        phone: "00000000000",
+        student_no: "00000000000",
+        department: "00000000000",
+        class: "00000000000",
+        tsinghua_email: "00000000000",
+        github_id: "00000000000",
+        username: "",
+        password: "",
+        email: "anonymous"
+      } };
+      return next();
     }
 
     const token = authHeader.substring(7);
