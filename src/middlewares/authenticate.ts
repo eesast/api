@@ -49,7 +49,7 @@ const authenticate: (
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.get("Authorization");
     if(!authHeader) {
-      if (acceptableRoles.length === 0 || acceptableRoles.includes("anonymous")) {
+      if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes("anonymous")) {
         const user = {
           uuid: "00000000-0000-0000-0000-000000000000",
           role: "anonymous",
