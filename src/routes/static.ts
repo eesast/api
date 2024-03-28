@@ -1,9 +1,8 @@
 import express from "express";
-import { JwtUserPayload } from "../middlewares/authenticate";
+import authenticate from "../middlewares/authenticate";
 import getSTS from "../helpers/sts";
 import { client } from "..";
 import { gql } from "graphql-request";
-import jwt from "jsonwebtoken";
 
 const router = express.Router();
 const generalActions = [
@@ -26,34 +25,19 @@ const viewActions = [
 ]
 let user_uuid: string, role: string;
 
-router.get("/*", async (req, res, next) => {
+router.use(authenticate());
+
+router.get("/*",authenticate(), async (req, res, next) => {
   try{
-    const authHeader = req.get("Authorization");
-    if (!authHeader) {
-      return res.status(401).send("401 Unauthorized: Missing token");
+    user_uuid = req.auth?.user.uuid;
+    role = req.auth?.user.role;
+    // admin gets all permissions, otherwise throw to next route.
+    if (role == 'admin') {
+      const sts = await getSTS(generalActions, "*");
+      return res.status(200).send(sts);                   //返回sts密钥
     }
-    const token = authHeader.substring(7);
-    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
-      try{
-        if (err || !decoded) {
-          return res
-            .status(401)
-            .send("401 Unauthorized: Token expired or invalid");
-        }
-        const payload = decoded as JwtUserPayload;
-        user_uuid = payload.uuid;
-        role = payload.role;
-        // admin gets all permissions, otherwise throw to next route.
-        if (role == 'admin') {
-          const sts = await getSTS(generalActions, "*");
-          return res.status(200).send(sts);                   //返回sts密钥
-        }
-        else
-          next('route');
-      } catch (err) {
-        return res.status(500).send(err);
-      }
-    });
+    else
+      next('route');
   } catch (err) {
     return res.status(500).send(err);
   }
