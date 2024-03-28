@@ -17,6 +17,12 @@ export interface JwtVerifyPayload {
   phone: string;
   code: string; // hash加密后的验证码
 }
+export interface JwtCompilerPayload {
+  code_id: string;
+  team_id: string;
+  contest_name: string;
+  cos_path: string;
+}
 export interface UserInfo {
   uuid: string;
   username: string;
@@ -54,7 +60,7 @@ const authenticate: (
           .send("401 Unauthorized: Token expired or invalid");
       }
       const payload = decoded as JwtUserPayload;
-      console.log(payload.uuid); //delete
+      // console.log(payload.uuid); //delete
       try {
         const user = (await client.request(
           gql`
