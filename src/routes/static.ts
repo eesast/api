@@ -25,12 +25,10 @@ const viewActions = [
 ]
 let user_uuid: string, role: string;
 
-router.use(authenticate());
-
 router.get("/*",authenticate(), async (req, res, next) => {
   try{
-    user_uuid = req.auth?.user.uuid;
-    role = req.auth?.user.role;
+    user_uuid = req.auth.user.uuid;
+    role = req.auth.user.role;
     // admin gets all permissions, otherwise throw to next route.
     if (role == 'admin') {
       const sts = await getSTS(generalActions, "*");
@@ -46,7 +44,7 @@ router.get("/*",authenticate(), async (req, res, next) => {
 //info
 router.get("/upload/*", async (req, res) => {
   try{
-    const sts = await getSTS(viewActions, `upload/*`);
+    const sts = await getSTS(role === "counselor" ? generalActions : viewActions, `upload/*`);
     return res.status(200).send(sts);
   } catch (err) {
     return res.status(500).send(err);
@@ -80,6 +78,10 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
       else {
         return res.status(401).send("当前用户没有该申请的权限");
       }
+    }
+    else if (role === "counselor") {
+      const sts = await getSTS(generalActions, `chat_record/*`);
+      return res.status(200).send(sts);
     }
     else {
       return res.status(401).send("401 Unauthorized");
@@ -183,8 +185,7 @@ router.get("/:name/notice/*", async (req, res) => {
   } catch (err) {
     return res.status(500).send(err);
   }
-}
-);
+});
 
 router.get("/:name/competition/*", async (req, res) => {
   //only manager can adit competition playback files
