@@ -59,6 +59,7 @@ router.get("/*", async (req, res, next) => {
   }
 });
 
+//info
 router.get("/upload/*", async (req, res) => {
   try{
     const sts = await getSTS(viewActions, `upload/*`);
@@ -68,6 +69,43 @@ router.get("/upload/*", async (req, res) => {
   }
 });
 
+router.get("/chat_record/:application_id/*", async (req, res) => {
+  try{
+    if (role == 'student' || role == 'teacher') {
+      const application_id = req.params.application_id;
+      const applications = await client.request(
+        gql`
+          query query_if_in_application($application_id: uuid) {
+            mentor_application(where: {id: {_eq: $application_id}}) {
+              mentor_uuid
+              student_uuid
+            }
+          }
+        `,
+        { application_id: application_id }
+      );
+      if (applications.mentor_application.length == 0)
+        return res.status(404).send("未查找到该申请");
+      const application = applications.mentor_application[0];
+      if ((role == 'student' && user_uuid == application.student_uuid) ||
+          (role == 'teacher' && user_uuid == application.mentor_uuid)
+        ) {
+          const sts = await getSTS(generalActions, `chat_record/${application_id}/*`);
+          return res.status(200).send(sts);
+        }
+      else {
+        return res.status(401).send("当前用户没有该申请的权限");
+      }
+    }
+    else {
+      return res.status(401).send("401 Unauthorized");
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
+//contest
 router.get("/:name/code/:team_id/*", async (req, res) => {
   try{
     if (role != 'anonymous') {
@@ -133,40 +171,130 @@ router.get("/:name/code/:team_id/*", async (req, res) => {
   }
 });
 
-router.get("/chat_record/:application_id/*", async (req, res) => {
+router.get("/:name/notice/*", async (req, res) => {
   try{
-    if (role == 'student' || role == 'teacher') {
-      const application_id = req.params.application_id;
-      const applications = await client.request(
-        gql`
-          query query_if_in_application($application_id: uuid) {
-            mentor_application(where: {id: {_eq: $application_id}}) {
-              mentor_uuid
-              student_uuid
-            }
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
           }
-        `,
-        { application_id: application_id }
-      );
-      if (applications.mentor_application.length == 0)
-        return res.status(404).send("未查找到该申请");
-      const application = applications.mentor_application[0];
-      if ((role == 'student' && user_uuid == application.student_uuid) ||
-          (role == 'teacher' && user_uuid == application.mentor_uuid)
-        ) {
-          const sts = await getSTS(generalActions, `chat_record/${application_id}/*`);
-          return res.status(200).send(sts);
         }
-      else {
-        return res.status(401).send("当前用户没有该申请的权限");
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
       }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/notice/*`);
+      return res.status(200).send(sts);
     }
     else {
-      return res.status(401).send("401 Unauthorized");
+      const sts = await getSTS(viewActions, `${name}/notice/*`);
+      return res.status(200).send(sts);
     }
   } catch (err) {
     return res.status(500).send(err);
   }
-});
+}
+);
 
+router.get("/:name/competition/*", async (req, res) => {
+  //only manager can adit competition playback files
+  try{
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
+          }
+        }
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
+      }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/competition/*`);
+      return res.status(200).send(sts);
+    }
+    else {
+      const sts = await getSTS(viewActions, `${name}/competition/*`);
+      return res.status(200).send(sts);
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+}
+);
+
+router.get("/:name/map/*", async (req, res) => {
+  //only manager can adit map
+  try{
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
+          }
+        }
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
+      }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/map/*`);
+      return res.status(200).send(sts);
+    }
+    else {
+      const sts = await getSTS(viewActions, `${name}/map/*`);
+      return res.status(200).send(sts);
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+}
+);
+
+router.get("/:name/arena/*", async (req, res) => {
+  //only manager can adit arena
+  try{
+    const name = req.params.name;
+    const query_if_manager = await client.request(
+      gql`
+        query query_is_manager($name: string, $user_uuid: uuid) {
+          contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
+            user_uuid
+          }
+        }
+      `,
+      {
+        name: name,
+        user_uuid: user_uuid
+      }
+    );
+    const is_manager = query_if_manager.contest_manager.length != 0;
+    if (is_manager) {
+      const sts = await getSTS(generalActions, `${name}/arena/*`);
+      return res.status(200).send(sts);
+    }
+    else {
+      const sts = await getSTS(viewActions, `${name}/arena/*`);
+      return res.status(200).send(sts);
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+}
+);
 export default router;
