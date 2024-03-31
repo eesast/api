@@ -417,9 +417,11 @@ router.post("/compile-finish", async (req, res) => {
           const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
           await uploadObject(localFilePath, key);
         }
-        const key = `${cosPath}/${code_id}.log`;
-        const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
+        let key = `${cosPath}/${code_id}.log`;
+        let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
         await uploadObject(localFilePath, key);
+        key = `${cosPath}/${code_id}.curl.log`;
+        localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
 
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
