@@ -168,29 +168,29 @@ router.get("/download", async (req, res) => {
   return res.status(200).send("200 OK: Download success");
 })
 
+
 /**
  * POST compile start
  * @param {token}
- * @param {string} contest_name
  * @param {uuid} code_id
- * @param {string} language
- * @param {string} path
+ * @param {string} path (optional, default to contest_name/code/team_id)
  **/
 router.post("/compile-start", authenticate(), async (req, res) => {
   try {
-    const contest_name = req.body.contest_name;
     const code_id = req.body.code_id;
-    const language = req.body.language;
     const user_uuid = req.auth.user.uuid;
-    if (!contest_name || !code_id || !language || !user_uuid) {
+    if (!code_id || !user_uuid) {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const contest_id = await utils.get_contest_id(contest_name);
-    const team_id = await utils.get_team_from_code(code_id);
-    if (!team_id) {
+    const { contest_id, contest_name, team_id, language, compile_status} = await utils.query_code(code_id);
+    if (!contest_id || !team_id || !language) {
       return res.status(404).send("404 Not Found: Code unavailable");
     }
+    if (compile_status === "Completed") {
+      return res.status(400).send("400 Bad Request: Code already compiled");
+    }
+
     const is_manager = await utils.get_maneger_from_user(user_uuid, contest_id);
     if (!is_manager) {
       const user_team_id = await utils.get_team_from_user(user_uuid, contest_id);
@@ -211,6 +211,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
 
     console.log("start to get sts")
     const cosPath = req.body.path ? req.body.path : `${contest_name}/code/${team_id}`;
+    const base_directory = await utils.get_base_directory();
 
     try {
       const cos = await initCOS();
@@ -246,7 +247,10 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       console.log("start to download files")
 
       const key = `${cosPath}/${code_id}.${language}`;
-      const outputPath = `${utils.base_directory}/${contest_name}/code/${team_id}/${code_id}.${language}`;
+      console.log(base_directory)
+      const outputPath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source/${code_id}.${language}`;
+
+      await fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}/source`, { recursive: true });
       await downloadObject(key, outputPath);
 
     } catch (err) {
@@ -301,7 +305,8 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         ],
         HostConfig: {
           Binds: [
-            `${utils.base_directory}/${contest_name}/code/${team_id}:/usr/local/code`,
+            `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source:/usr/local/code`,
+            `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output:/usr/local/output`
           ],
           AutoRemove: true,
           NetworkMode: "host"
@@ -351,7 +356,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
 
 /**
  * POST compile finish
- * @param {string} token
+ * @param {token}
  * @param {string} compile_status
 */
 router.post("/compile-finish", async (req, res) => {
@@ -371,6 +376,7 @@ router.post("/compile-finish", async (req, res) => {
       const contest_name = payload.contest_name;
       const compile_status = req.body.compile_status;
       const cosPath = payload.cos_path;
+      const base_directory = await utils.get_base_directory();
       if (!compile_status || !team_id || !code_id || !contest_name) {
         return res.status(422).send("422 Unprocessable Entity: Missing credentials");
       }
@@ -408,13 +414,15 @@ router.post("/compile-finish", async (req, res) => {
         };
         if (compile_status === "Success") {
           const key = `${cosPath}/${code_id}`;
-          const localFilePath = `${utils.base_directory}/${contest_name}/code/${team_id}/${code_id}`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
           await uploadObject(localFilePath, key);
         }
-        const key = `${cosPath}/${code_id}.log`;
-        const localFilePath = `${utils.base_directory}/${contest_name}/code/${team_id}/${code_id}.log`;
+        let key = `${cosPath}/${code_id}.log`;
+        let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
         await uploadObject(localFilePath, key);
-
+        key = `${cosPath}/${code_id}.curl.log`;
+        localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
+        await uploadObject(localFilePath, key);
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
       }
@@ -447,14 +455,14 @@ router.post("/compile-finish", async (req, res) => {
             const stats = await fs.stat(filePath);
             if (stats.isDirectory()) {
               await deleteAllFilesInDir(filePath);
-              await fs.rmdir(filePath);
             } else {
               await fs.unlink(filePath);
             }
-          }));
+          }
+          ));
+          await fs.rmdir(directoryPath);
         }
-
-        await deleteFile(`${utils.base_directory}/${contest_name}/code/${team_id}`);
+        await deleteFile(`${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
 
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);

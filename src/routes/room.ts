@@ -5,7 +5,7 @@ import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
 import { JwtUserPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
-import { base_directory, get_contest_name } from "../helpers/utils";
+import { get_base_directory, get_contest_name } from "../helpers/utils";
 
 const router = express.Router();
 
@@ -25,6 +25,7 @@ router.post("/", async (req, res) => {
     const team_seq = req.body.team_seq as boolean;
     const map = req.body.map as number;
     const exposed = req.body.exposed as number;
+    const base_directory = await get_base_directory();
     const authHeader = req.get("Authorization");
     if (!authHeader) {
       return res.status(401).send("401 Unauthorized: Missing token");
@@ -213,6 +214,7 @@ router.get("/:room_id", async (req, res) => {
     // }
 
     const contest_name = await get_contest_name(req.body.contest_id);
+    const base_directory = await get_base_directory();
     const videoPath = req.body.arenic === 1 ? `${base_directory}/${contest_name}/arena/${room_id}/video.thuaipb` : `${base_directory}/${contest_name}/competition/${room_id}/video.thuaipb`;
 
     try {

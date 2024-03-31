@@ -1,7 +1,9 @@
 import { gql } from "graphql-request";
 import { client } from "..";
 
-export const base_directory = process.env.NODE_ENV === "production" ? '/data' : process.env.BASE_DIR!;
+export const get_base_directory = async () => {
+  return process.env.NODE_ENV === "production" ? '/data' : process.env.BASE_DIR!;
+}
 
 // query contest_name from contest_id
 export const get_contest_name: any = async (contest_id: string) => {
@@ -88,6 +90,38 @@ export const get_maneger_from_user: any = async (user_uuid: string, contest_id: 
     }
   );
   return query_if_manager.contest_manager[0]?.user_uuid ?? null;
+}
+
+// query language and contest_id from code_id
+export const query_code: any = async (code_id: string) => {
+  const query_all_from_code = await client.request(
+    gql`
+      query get_all_from_code($code_id: uuid!) {
+        contest_team_code(where: {code_id: {_eq: $code_id}}) {
+          team_id
+          language
+          compile_status
+          contest_team {
+            contest_id
+            contest {
+              contest_name
+            }
+          }
+        }
+      }
+    `,
+    {
+      code_id: code_id,
+    }
+  );
+
+  return {
+    contest_id: query_all_from_code.contest_team_code[0]?.contest_team?.contest_id ?? null,
+    contest_name: query_all_from_code.contest_team_code[0]?.contest_team?.contest?.contest_name ?? null,
+    team_id: query_all_from_code.contest_team_code[0]?.team_id ?? null,
+    language: query_all_from_code.contest_team_code[0]?.language ?? null,
+    compile_status: query_all_from_code.contest_team_code[0]?.compile_status ?? null
+  };
 }
 
 
