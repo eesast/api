@@ -6,7 +6,7 @@ import { JwtServerPayload } from "../routes/contest";
 import { gql } from "graphql-request";
 import { client } from "..";
 import fs from "fs";
-import { base_directory, get_contest_name, contest_image_map } from "./utils";
+import { get_base_directory, get_contest_name, contest_image_map } from "./utils";
 
 export interface queue_element {
   contest_id: string;
@@ -44,9 +44,10 @@ const get_port = async (room_id: string, exposed_ports: Array<string>, sub_base_
   return result;
 }
 
-const docker_cron = () => {
+const docker_cron = async () => {
   const port_num = parseInt(process.env.MAX_CONTAINERS as string);
   const exposed_ports = new Array(port_num).fill("");
+  const base_directory = await get_base_directory();
 
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME} * * * * *`, async () => {
     const max_container_num = parseInt(process.env.MAX_CONTAINERS as string);
