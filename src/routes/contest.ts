@@ -256,7 +256,7 @@ router.put("/", async (req, res) => {
 
 
 import * as fs from 'fs';
-import { base_directory, get_contest_name } from "../helpers/utils"
+import { get_base_directory, get_contest_name } from "../helpers/utils"
 /**
  * POST launch contest
  * @param token
@@ -287,9 +287,9 @@ router.post("/", async (req, res) => {
             }
           }
         `,
-        { 
-          contest_id: contest_id, 
-          user_uuid: user_uuid 
+        {
+          contest_id: contest_id,
+          user_uuid: user_uuid
         }
       );
       const is_manager = query_if_manager.contest_manager.length != 0;
@@ -306,13 +306,14 @@ router.post("/", async (req, res) => {
             }
           }
         `,
-        { 
+        {
           contest_id: contest_id,
         }
       );
       const valid_team_ids = query_valid_teams.contest_team;
 
       const contest_name = await get_contest_name(contest_id);
+      const base_directory = await get_base_directory();
       switch (req.body.mode) {
         case 0: {
           for (let i = 0; i < valid_team_ids.length; i++) {
