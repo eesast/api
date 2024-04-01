@@ -2,8 +2,56 @@ import express from "express";
 import fetch from "node-fetch";
 import { gql } from "graphql-request";
 import { client } from "..";
-
+import { CronJob } from "cron";
+import { exec } from "child_process";
+import {message} from "antd";
+import axios from "axios";
 const router = express.Router();
+
+const job = new CronJob("00 00 00 * * *", async () => {
+  exec("python3 UpdateWeekly.py", async (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+    const URL = JSON.parse(stdout);
+
+    let LATESTID = 0;
+    try {
+      const response = await axios.post("/weekly/LatestId");
+      if (response.status === 200){
+        message.success("LatestId获取成功！");
+        LATESTID = response.data;
+      }
+      else throw Error("LatestId failed");
+    } catch (err) {
+      console.log(err);
+      message.error("LatestId获取失败！");
+    }
+    if(URL != "null"){
+      try {
+        const response = await axios.post("/weekly/insert", {
+          id: LATESTID+1,
+          url: URL,
+        });
+        if (response.status === 200)
+          message.success("推送添加成功！");
+        else throw Error("Insert failed");
+      } catch (err) {
+        console.log(err);
+        message.error("推送添加失败！");
+      }
+    }
+  });
+});
+
+// Start the Cron job
+job.start();
 
 router.get("/cover", async (req, res) => {
     try {
