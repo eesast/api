@@ -6,7 +6,7 @@ import { JwtServerPayload } from "../routes/contest";
 import { gql } from "graphql-request";
 import { client } from "..";
 import fs from "fs";
-import { get_base_directory, get_contest_name, contest_image_map } from "./utils";
+import { get_base_directory, get_contest_name, contest_image_map } from "./hasura";
 
 export interface queue_element {
   contest_id: string;

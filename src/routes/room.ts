@@ -5,7 +5,8 @@ import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
 import { JwtUserPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
-import { get_base_directory, get_contest_name } from "../helpers/utils";
+import { get_contest_name } from "../helpers/hasura";
+import { get_base_directory } from "../helpers/utils";
 
 const router = express.Router();
 

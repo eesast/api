@@ -9,6 +9,7 @@ import getSTS from "../helpers/sts";
 import fStream from 'fs';
 import COS from "cos-nodejs-sdk-v5";
 import { join } from "path";
+import * as hasura from "../helpers/hasura";
 import * as utils from "../helpers/utils";
 
 
@@ -183,7 +184,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const { contest_id, contest_name, team_id, language, compile_status} = await utils.query_code(code_id);
+    const { contest_id, contest_name, team_id, language, compile_status} = await hasura.query_code(code_id);
     if (!contest_id || !team_id || !language) {
       return res.status(404).send("404 Not Found: Code unavailable");
     }
@@ -191,9 +192,9 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(400).send("400 Bad Request: Code already compiled");
     }
 
-    const is_manager = await utils.get_maneger_from_user(user_uuid, contest_id);
+    const is_manager = await hasura.get_maneger_from_user(user_uuid, contest_id);
     if (!is_manager) {
-      const user_team_id = await utils.get_team_from_user(user_uuid, contest_id);
+      const user_team_id = await hasura.get_team_from_user(user_uuid, contest_id);
       if (!user_team_id) {
         return res.status(401).send("401 Unauthorized: User not in team");
       } else if (user_team_id !== team_id) {
@@ -498,7 +499,7 @@ router.post("/compile-finish", async (req, res) => {
 //     const contest_id = req.body.contest_id;
 //     const team_id = req.params.team_id;
 //     const usr_seq = req.params.usr_seq;
-//     const contest_name = await utils.get_contest_name(contest_id);
+//     const contest_name = await hasura.get_contest_name(contest_id);
 //     const query_if_manager = await client.request(
 //       gql`
 //         query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
@@ -535,7 +536,7 @@ router.post("/compile-finish", async (req, res) => {
 //           res.set("Pragma", "no-cache");
 //           return res
 //             .status(200)
-//             .sendFile(`${utils.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
+//             .sendFile(`${hasura.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
 //               cacheControl: false,
 //             });
 //         } catch (err) {
@@ -578,7 +579,7 @@ router.post("/compile-finish", async (req, res) => {
 //           res.set("Pragma", "no-cache");
 //           return res
 //             .status(200)
-//             .sendFile(`${utils.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
+//             .sendFile(`${hasura.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
 //               cacheControl: false,
 //             });
 //         } else

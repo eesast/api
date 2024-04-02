@@ -4,6 +4,9 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
 import { JwtUserPayload } from "../middlewares/authenticate";
+import * as fs from 'fs';
+import { get_contest_name } from "../helpers/hasura"
+import { get_base_directory } from "../helpers/utils"
 
 const router = express.Router();
 
@@ -255,8 +258,7 @@ router.put("/", async (req, res) => {
 
 
 
-import * as fs from 'fs';
-import { get_base_directory, get_contest_name } from "../helpers/utils"
+
 /**
  * POST launch contest
  * @param token
