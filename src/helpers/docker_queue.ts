@@ -6,15 +6,15 @@ import { JwtServerPayload } from "../routes/contest";
 import { gql } from "graphql-request";
 import { client } from "..";
 import fs from "fs";
-import { get_base_directory, get_contest_name, contest_image_map } from "./hasura";
+import * as hasura from "./hasura";
+import * as utils from "./utils";
 
 export interface queue_element {
   contest_id: string;
   room_id: string;
-  team_id_1: string;
-  team_id_2: string;
-  map: number;
-  arenic: number;
+  map_id: string;
+  team_label_binds: Array<utils.TeamLabelBind>;
+  competition: number;
   exposed: number;
 }
 
