@@ -114,6 +114,20 @@ router.post("/create", authenticate(), async (req, res) => {
     return res.status(403).send("403 Forbidden: Team player not assigned");
   }
 
+  const players_labels_cum = players_labels.map(player_labels => player_labels.length).reduce((acc, val) => {
+    acc.push(val + (acc.length > 0 ? acc[acc.length - 1] : 0));
+    return acc;
+  } , [] as number[]);
+  console.log("players_labels_sum: ", players_labels_cum);
+  const players_roles = players_labels_cum.map((player_labels_sum, index) => {
+    return player_roles_flat.slice(index > 0 ? players_labels_cum[index - 1] : 0, player_labels_sum);
+  });
+  const players_codes = players_labels_cum.map((player_labels_sum, index) => {
+    return player_codes_flat.slice(index > 0 ? players_labels_cum[index - 1] : 0, player_labels_sum);
+  });
+  console.log("players_roles: ", players_roles);
+  console.log("players_codes: ", players_codes);
+
   const code_status_flat: Array<string> = [], code_languages_flat: Array<string> = [];
   const code_details_promises = player_codes_flat.map(player_code => hasura.get_compile_status(player_code));
   const code_details = await Promise.all(code_details_promises);
@@ -131,9 +145,6 @@ router.post("/create", authenticate(), async (req, res) => {
   }
 
   const base_directory = await utils.get_base_directory();
-  const temp_dir_name = uuidv4();
-  await fs.mkdir(`${base_directory}/${contest_name}/arena/${temp_dir_name}`, { recursive: true });
-  console.log("temp_dir_name: ", temp_dir_name);
 
   const files_exist_promises = player_codes_flat.map((player_code, index) => {
     const language = code_languages_flat[index];
@@ -150,6 +161,7 @@ router.post("/create", authenticate(), async (req, res) => {
   console.log("files_exist: ", files_exist_flat);
 
   if (files_exist_flat.some(file_exist => !file_exist)) {
+    fs.mkdir(`${base_directory}/${contest_name}/code/${team_ids_flat[0]}`, { recursive: true });
     const cos = await utils.initCOS();
     const config = await utils.getConfig();
     const download_promises = player_codes_flat.map((player_code, index) => {
@@ -168,13 +180,47 @@ router.post("/create", authenticate(), async (req, res) => {
     }
   }
 
-  const copy_promises = player_codes_flat.map((player_code, index) => {
-    const language = code_languages_flat[index];
-    const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
-    return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-      `${base_directory}/${contest_name}/arena/${temp_dir_name}/${code_file_name}`);
+  const files_count_promises = team_ids.map(team_id => {
+    return fs.readdir(`${base_directory}/${contest_name}/code/${team_id}`)
+      .then(files => {
+        return files.length;
+      })
+      .catch(() => {
+        return 0;
+      });
   });
-  await Promise.all(copy_promises);
+  const files_count = await Promise.all(files_count_promises);
+  console.log("files_count: ", files_count);
+
+  const files_clean_promises = team_ids.map((team_id, index) => {
+    if (files_count[index] < 18) {
+      return Promise.resolve(true);
+    }
+    return fs.readdir(`${base_directory}/${contest_name}/code/${team_id}`)
+      .then(files => {
+        const files_stat_promises = files.map(file => {
+          return fs.stat(`${base_directory}/${contest_name}/code/${team_id}/${file}`)
+            .then(stat => {
+              return { file, stat };
+            });
+        });
+        return Promise.all(files_stat_promises);
+      })
+      .then(files_stat => {
+          const files_stat_sorted = files_stat.sort((a, b) => a.stat.mtime.getTime() - b.stat.mtime.getTime());
+          const files_stat_filtered = files_stat_sorted.filter(file_stat => {
+            return !players_codes[index].includes(file_stat.file.split(".")[0]);
+          });
+
+          const files_stat_to_delete = files_stat_filtered.slice(0, files_stat_filtered.length - 6);
+          const delete_promises = files_stat_to_delete.map(file_stat => {
+            return fs.unlink(`${base_directory}/${contest_name}/code/${team_id}/${file_stat.file}`);
+          });
+          return Promise.all(delete_promises);
+        }
+      )
+  });
+  await Promise.all(files_clean_promises);
 
   const room_id = hasura.insert_room(contest_id, "Waiting", map_id);
   console.log("room_id: ", room_id);
@@ -182,27 +228,19 @@ router.post("/create", authenticate(), async (req, res) => {
     return res.status(500).send("500 Internal Server Error: Room not created");
   }
 
-  const players_labels_cum = players_labels.map(player_labels => player_labels.length).reduce((acc, val) => {
-    acc.push(val + (acc.length > 0 ? acc[acc.length - 1] : 0));
-    return acc;
-  } , [] as number[]);
-  console.log("players_labels_sum: ", players_labels_cum);
-  const players_roles = players_labels_cum.map((player_labels_sum, index) => {
-    return player_roles_flat.slice(index > 0 ? players_labels_cum[index - 1] : 0, player_labels_sum);
-  });
-  const players_codes = players_labels_cum.map((player_labels_sum, index) => {
-    return player_codes_flat.slice(index > 0 ? players_labels_cum[index - 1] : 0, player_labels_sum);
-  });
-  console.log("players_roles: ", players_roles);
-  console.log("players_codes: ", players_codes);
-
   const insert_room_teams_affected_rows = await hasura.insert_room_teams(room_id, team_ids, team_labels, players_roles, players_codes);
   if (insert_room_teams_affected_rows !== team_ids.length) {
     return res.status(500).send("500 Internal Server Error: Room teams not created");
   }
 
-  await fs.rename(`${base_directory}/${contest_name}/arena/${temp_dir_name}`, `${base_directory}/${contest_name}/arena/${room_id}`);
-
+  await fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}`, { recursive: true });
+  const copy_promises = player_codes_flat.map((player_code, index) => {
+    const language = code_languages_flat[index];
+    const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
+    return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+      `${base_directory}/${contest_name}/arena/${room_id}/${code_file_name}`);
+  });
+  await Promise.all(copy_promises);
 
 });
 
