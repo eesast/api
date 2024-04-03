@@ -104,6 +104,7 @@ export const get_compile_status: any = async (code_id: string) => {
       query get_compile_status($code_id: uuid!) {
         contest_team_code(where: {code_id: {_eq: $code_id}}) {
           compile_status
+          language
         }
       }
     `,
@@ -111,7 +112,10 @@ export const get_compile_status: any = async (code_id: string) => {
       code_id: code_id,
     }
   );
-  return query_compile_status.contest_team_code[0]?.compile_status ?? null;
+  return {
+    compile_status: query_compile_status.contest_team_code[0]?.compile_status ?? null,
+    language: query_compile_status.contest_team_code[0]?.language ?? null
+  }
 };
 
 // query manager_uuid from user_uuid and contest_id
