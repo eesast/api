@@ -333,21 +333,7 @@ router.post("/compile-finish", async (req, res) => {
       }
 
       try {
-        await client.request(
-          gql`
-            mutation update_compile_status($code_id: uuid!, $status: String!) {
-              update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
-                returning {
-                  compile_status
-                }
-              }
-            }
-          `,
-          {
-            code_id: code_id,
-            status: compile_status,
-          }
-        );
+        await hasura.update_compile_status(code_id, compile_status);
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Update compile status failed. " + err);
       }

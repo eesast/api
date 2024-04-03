@@ -327,3 +327,56 @@ export const insert_room_teams: any = async (room_id: string, team_ids: Array<st
 
   return insert_room_teams.insert_contest_room_team.affected_rows;
 }
+
+
+
+/**
+ * update compile_status
+ * @param {string} contest_id
+ * @param {string} compile_status
+ * @returns {number} affected_rows
+ */
+export const update_compile_status: any = async (code_id: string, compile_status: string) => {
+  const update_compile_status = await client.request(
+    gql`
+      mutation update_compile_status($code_id: uuid!, $compile_status: String!) {
+        update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $compile_status}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      code_id: code_id,
+      compile_status: compile_status,
+    }
+  );
+
+  return update_compile_status.update_contest_team_code.affected_rows;
+}
+
+
+/**
+ * update room status
+ * @param {string} room_id
+ * @param {string} status
+ * @param {number} port
+ * @returns {number} affected_rows
+ */
+export const update_room_status: any = async (room_id: string, status: string, port: number | null) => {
+  const update_room_status = await client.request(
+    gql`
+      mutation update_room_status($room_id: uuid!, $status: String!, $port: Int) {
+        update_contest_room(where: {room_id: {_eq: $room_id}}, _set: {status: $status, port: $port}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      room_id: room_id,
+      status: status,
+      port: port
+    }
+  );
+
+  return update_room_status.update_contest_room.affected_rows;
+}

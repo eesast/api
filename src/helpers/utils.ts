@@ -10,9 +10,13 @@ export const get_base_directory = async () => {
 
 type ContestImages = {
   [key: string]: {
-    RUNNER_IMAGE: string;
     COMPILER_IMAGE: string;
     COMPILER_TIMEOUT: string;
+    RUNNER_IMAGE?: string;
+    SERVER_IMAGE?: string;
+    ClIENT_IMAGE?: string;
+    ENVOY_IMAGE?: string;
+    RUNNER_TIMEOUT: string;
   };
 };
 
@@ -20,12 +24,16 @@ export const contest_image_map: ContestImages = {
   "THUAI6": {
     RUNNER_IMAGE: "eesast/thuai6_run",
     COMPILER_IMAGE: "eesast/thuai6_cpp",
-    COMPILER_TIMEOUT: "10m"
+    COMPILER_TIMEOUT: "10m",
+    RUNNER_TIMEOUT: "30m",
   },
   "THUAI7": {
-    RUNNER_IMAGE: "eesast/thuai7_run",
     COMPILER_IMAGE: "eesast/thuai7_cpp",
-    COMPILER_TIMEOUT: "10m"
+    COMPILER_TIMEOUT: "10m",
+    SERVER_IMAGE: "eesast/thuai7_server",
+    ClIENT_IMAGE: "eesast/thuai7_client",
+    ENVOY_IMAGE: "eesast/thuai7_envoy",
+    RUNNER_TIMEOUT: "30m"
   }
 }
 
