@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import * as fs from "fs/promises";
 import { get_base_directory } from "../helpers/utils";
 import authenticate, { JwtArenaPayload } from "../middlewares/authenticate";
-import { TeamLabelBind, ContestResult, PlayerCodes } from "../helpers/utils";
+import { TeamLabelBind, ContestResult } from "../helpers/utils";
 import * as hasura from "../helpers/hasura"
 
 
@@ -30,17 +30,26 @@ const router = express.Router();
 
 
 router.post("/create", authenticate(), async (req, res) => {
+  const user_uuid = req.auth.user.uuid;
   const contest_name = req.body.contest_name;
   const map_id = req.body.map_id;
-  const team_labels: TeamLabelBind[] = req.body.team_labels;
-  const user_uuid = req.auth.user.uuid;
+  const team_label_binds: TeamLabelBind[] = req.body.team_labels;
+
+  console.log("user_uuid: ", user_uuid);
   console.log("contest_name: ", contest_name);
   console.log("map_id: ", map_id);
-  console.log("team_labels: ", team_labels);
-  console.log("user_uuid: ", user_uuid);
-  if (!contest_name || !team_labels || !map_id || !user_uuid || team_labels.length < 2) {
+  console.log("team_labels: ", team_label_binds);
+  if (!contest_name || !team_label_binds || !map_id || !user_uuid || team_label_binds.length < 2) {
     return res.status(422).send("422 Unprocessable Entity: Missing credentials");
   }
+
+  const {team_ids, team_labels} = team_label_binds.reduce((acc, team_label_bind) => {
+    acc.team_ids.push(team_label_bind.team_id);
+    acc.team_labels.push(team_label_bind.label);
+    return acc;
+  }, {team_ids: [] as string[], team_labels: [] as string[]});
+  console.log("team_ids: ", team_ids);
+  console.log("team_labels: ", team_labels);
 
   const contest_id = await hasura.get_contest_id(contest_name);
   console.log("contest_id: ", contest_id);
@@ -61,39 +70,62 @@ router.post("/create", authenticate(), async (req, res) => {
     console.log("user_team_id: ", user_team_id);
     if (!user_team_id) {
       return res.status(403).send("403 Forbidden: User not in team");
-    } else if (user_team_id !== team_labels[0].team_id) {
+    } else if (user_team_id !== team_ids[0]) {
       return res.status(403).send("403 Forbidden: User not in team");
     }
   }
 
-  const active_rooms = hasura.count_room_team(contest_id, team_labels[0].team_id);
+  const active_rooms = hasura.count_room_team(contest_id, team_ids[0]);
   console.log("active_rooms: ", active_rooms);
   if (active_rooms > 6) {
     return res.status(423).send("423 Locked: Request arena too frequently");
   }
 
-  let teams_codes = {} as {[key: string]: {[key: string]: {code_id: string}}};
-  for (let i = 0; i < team_labels.length; i++) {
-    const players_label = await hasura.get_players_label(contest_id, team_labels[i].label);
-    console.log("players_label: ", players_label);
-    if (!players_label) {
-      return res.status(400).send("400 Bad Request: Players_label not found");
-    }
-    let team_codes = {} as {[key: string]: {code_id: string}};
-    for (let j = 0; j < players_label.length; j++) {
-      const code_id = await hasura.get_player_code(team_labels[i].team_id, players_label[j]);
-      console.log("code_id: ", code_id);
-      if (!code_id) {
-        return res.status(400).send("400 Bad Request: Code_id not found");
-      }
-      team_codes[players_label[j]] = {code_id: code_id};
-    }
-    teams_codes[team_labels[i].team_id] = team_codes;
+  const players_labels_promises = team_labels.map(team_label => hasura.get_players_label(contest_id, team_label));
+  const players_labels: Array<Array<string>> = await Promise.all(players_labels_promises);
+  console.log("players_labels: ", players_labels);
+  if (players_labels.some(player_labels => !player_labels)) {
+    return res.status(400).send("400 Bad Request: Players_label not found");
   }
-  console.log("teams_codes: ", teams_codes);
 
+  const players_roles: Array<Array<string>> = [], players_codes: Array<Array<string>> = [];
+  const players_details_promises = players_labels.map((player_labels: string[], index) => {
+    return player_labels.map(player_label => hasura.get_player_code(team_ids[index], player_label));
+  });
+  const players_details = await Promise.all(players_details_promises);
+  players_details.forEach(player_details => {
+    const roles: string[] = [];
+    const codes: string[] = [];
+    player_details.forEach(player_detail => {
+      roles.push(player_detail.role);
+      codes.push(player_detail.code_id);
+    });
+    players_roles.push(roles);
+    players_codes.push(codes);
+  });
+  console.log("players_roles: ", players_roles);
+  console.log("players_codes: ", players_codes);
+  if (players_roles.some(player_roles => player_roles.some(player_role => !player_role)) || players_codes.some(player_codes => player_codes.some(player_code => !player_code))) {
+    return res.status(403).send("403 Forbidden: Team player not assigned");
+  }
 
+  const compile_status_promises = players_codes.map(player_codes => player_codes.map(player_code => hasura.get_compile_status(player_code)));
+  const compile_status: Array<Array<string>> = await Promise.all(compile_status_promises);
+  console.log("compile_status: ", compile_status);
+  if (compile_status.some(compile_status => compile_status.some(status => status !== "Success" && status !== "No Need"))) {
+    return res.status(403).send("403 Forbidden: Team code not compiled");
+  }
 
+  const room_id = hasura.insert_room(contest_id, "Waiting", map_id);
+  console.log("room_id: ", room_id);
+  if (!room_id) {
+    return res.status(500).send("500 Internal Server Error: Room not created");
+  }
+
+  const insert_room_teams_affected_rows = await hasura.insert_room_teams(room_id, team_ids, team_labels, players_roles, players_codes);
+  if (insert_room_teams_affected_rows !== team_ids.length) {
+    return res.status(500).send("500 Internal Server Error: Room teams not created");
+  }
 
 
 });
