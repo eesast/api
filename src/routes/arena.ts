@@ -8,10 +8,6 @@ import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
 import authenticate, { JwtArenaPayload } from "../middlewares/authenticate";
 import * as hasura from "../helpers/hasura"
-import { v4 as uuidv4 } from 'uuid';
-import getSTS from "../helpers/sts";
-import COS from "cos-nodejs-sdk-v5";
-import fStream from 'fs';
 
 
 const router = express.Router();
@@ -95,8 +91,6 @@ router.post("/create", authenticate(), async (req, res) => {
 
   const player_labels_flat = players_labels.flat();
   const team_ids_flat = team_ids.flatMap((team_id, index) => Array(players_labels[index].length).fill(team_id));
-  // const team_labels_flat = team_labels.flatMap((team_label, index) => Array(players_labels[index].length).fill(team_label));
-
 
   const player_roles_flat: Array<string> = [], player_codes_flat: Array<string> = [];
   const players_details_promises = player_labels_flat.map((player_label, index) =>
@@ -162,7 +156,7 @@ router.post("/create", authenticate(), async (req, res) => {
     fs.mkdir(`${base_directory}/${contest_name}/code/${team_ids_flat[0]}`, { recursive: true });
     const cos = await utils.initCOS();
     const config = await utils.getConfig();
-    const download_promises = player_codes_flat.map((player_code, index) => {
+    const download_promises = Array.from(new Set(player_codes_flat)).map((player_code, index) => {
       if (files_exist_flat[index]) {
         return Promise.resolve(true);
       }

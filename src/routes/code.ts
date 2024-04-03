@@ -1,13 +1,10 @@
 import express from "express";
-import Docker from "dockerode";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
 import { gql } from "graphql-request";
 import { client } from "..";
-import getSTS from "../helpers/sts";
 import fStream from 'fs';
-import COS from "cos-nodejs-sdk-v5";
 import { join } from "path";
 import * as hasura from "../helpers/hasura";
 import * as utils from "../helpers/utils";
@@ -15,43 +12,6 @@ import * as utils from "../helpers/utils";
 
 const router = express.Router();
 
-
-async function initCOS() {
-  const sts = await getSTS([
-    "name/cos:GetObject",
-    "name/cos:DeleteObject",
-    "name/cos:HeadObject",
-    "name/cos:PutObject",
-  ], "*");
-
-  const cos = new COS({
-    getAuthorization: async (options, callback) => {
-      try {
-        if (!sts) throw (Error("Credentials invalid!"));
-        callback({
-          TmpSecretId: sts.credentials.tmpSecretId,
-          TmpSecretKey: sts.credentials.tmpSecretKey,
-          SecurityToken: sts.credentials.sessionToken,
-          StartTime: sts.startTime,
-          ExpiredTime: sts.expiredTime,
-        });
-      } catch (err) {
-        console.log(err);
-      }
-    }
-  });
-
-  return cos;
-}
-
-async function getConfig() {
-  const config = {
-    bucket: process.env.COS_BUCKET!,
-    region: 'ap-beijing',
-  };
-  return config;
-
-}
 
 
 /**
@@ -72,8 +32,8 @@ router.put("/upload", async (req, res) => {
   const suffix = req.body.suffix;
   const path = req.body.path;
 
-  const cos = await initCOS();
-  const config = await getConfig();
+  const cos = await utils.initCOS();
+  const config = await utils.getConfig();
 
   const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
@@ -128,8 +88,8 @@ router.get("/download", async (req, res) => {
   const suffix = req.body.suffix;
   const path = req.body.path;
 
-  const cos = await initCOS();
-  const config = await getConfig();
+  const cos = await utils.initCOS();
+  const config = await utils.getConfig();
 
   const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
@@ -215,36 +175,8 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     const base_directory = await utils.get_base_directory();
 
     try {
-      const cos = await initCOS();
-      const config = await getConfig();
-
-      const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-          cos.headObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: key,
-          }, (err, data) => {
-              if (data) {
-                cos.getObject({
-                  Bucket: config.bucket,
-                  Region: config.region,
-                  Key: key,
-                  Output: fStream.createWriteStream(outputPath),
-                }, (err) => {
-                  if (err) {
-                    reject(err);
-                  } else {
-                    resolve(true);
-                  }
-                });
-              } else {
-                reject(`key: ${key} Not found.`);
-              }
-            });
-          });
-        };
-
+      const cos = await utils.initCOS();
+      const config = await utils.getConfig();
       console.log("start to download files")
 
       const key = `${cosPath}/${code_id}.${language}`;
@@ -252,27 +184,20 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       const outputPath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source/${code_id}.${language}`;
 
       await fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}/source`, { recursive: true });
-      await downloadObject(key, outputPath);
+      await utils.downloadObject(key, outputPath, cos, config);
 
     } catch (err) {
       return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
     }
 
     try {
-      const docker =
-        process.env.DOCKER === "remote"
-          ? new Docker({
-            host: process.env.DOCKER_URL!,
-            port: process.env.DOCKER_PORT!,
-          })
-          : new Docker();
-
+      const docker = await utils.initDocker();
       let containerRunning = false;
       const containerList = await docker.listContainers();
       containerList.forEach((containerInfo) => {
         if (containerInfo.Names.includes(`${contest_name}_Compiler_${code_id}`)) {
             containerRunning = true;
-          }
+        }
       });
       if (containerRunning) {
         return res.status(409).send("409 Confilct: Code already in compilation");
@@ -387,43 +312,22 @@ router.post("/compile-finish", async (req, res) => {
 
 
       try {
-        const cos = await initCOS();
-        const config = await getConfig();
+        const cos = await utils.initCOS();
+        const config = await utils.getConfig();
 
-        const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
-          return new Promise((resolve, reject) => {
-            const fileStream = fStream.createReadStream(localFilePath);
-            fileStream.on('error', (err) => {
-              console.log('File Stream Error', err);
-              reject('Failed to read local file');
-            });
-            cos.putObject({
-              Bucket: config.bucket,
-              Region: config.region,
-              Key: bucketKey,
-              Body: fileStream,
-            }, (err, data) => {
-              if (err) {
-                console.log(err);
-                reject('Failed to upload object to COS');
-              } else {
-                console.log('Upload Success', data);
-                resolve(true);
-              }
-            });
-          });
-        };
         if (compile_status === "Success") {
           const key = `${cosPath}/${code_id}`;
           const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
-          await uploadObject(localFilePath, key);
+          await utils.uploadObject(localFilePath, key, cos, config);
         }
         let key = `${cosPath}/${code_id}.log`;
         let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
-        await uploadObject(localFilePath, key);
+        await utils.uploadObject(localFilePath, key, cos, config);
+
         key = `${cosPath}/${code_id}.curl.log`;
         localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
-        await uploadObject(localFilePath, key);
+        await utils.uploadObject(localFilePath, key, cos, config);
+
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
       }

@@ -1,6 +1,7 @@
 import getSTS from "../helpers/sts";
 import COS from "cos-nodejs-sdk-v5";
 import fStream from 'fs';
+import Docker from "dockerode";
 
 
 export const get_base_directory = async () => {
@@ -103,3 +104,40 @@ export async function downloadObject(key: string, outputPath: string, cos: COS, 
       });
     });
   };
+
+
+export async function uploadObject(localFilePath: string, bucketKey: string, cos: COS, config: any): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const fileStream = fStream.createReadStream(localFilePath);
+    fileStream.on('error', (err) => {
+      console.log('File Stream Error', err);
+      reject('Failed to read local file');
+    });
+    cos.putObject({
+      Bucket: config.bucket,
+      Region: config.region,
+      Key: bucketKey,
+      Body: fileStream,
+    }, (err, data) => {
+      if (err) {
+        console.log(err);
+        reject('Failed to upload object to COS');
+      } else {
+        console.log('Upload Success', data);
+        resolve(true);
+      }
+    });
+  });
+};
+
+
+export async function initDocker() {
+  const docker =
+    process.env.DOCKER === "remote"
+      ? new Docker({
+        host: process.env.DOCKER_URL!,
+        port: process.env.DOCKER_PORT!,
+      })
+      : new Docker();
+  return docker;
+}
