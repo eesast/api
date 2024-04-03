@@ -11,6 +11,7 @@ import fileRouter from "./routes/files";
 import codeRouter from "./routes/code";
 import roomRouter from "./routes/room";
 import contestRouter from "./routes/contest";
+import arenaRouter from "./routes/arena";
 import notificationRouter from "./routes/notification";
 
 const app = express();
@@ -46,6 +47,7 @@ app.use("/files",fileRouter);
 app.use("/code", codeRouter);
 app.use("/room", roomRouter);
 app.use("/contest", contestRouter);
+app.use("/arena", arenaRouter);
 app.use("/notification", notificationRouter);
 
 export default app;

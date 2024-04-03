@@ -23,3 +23,14 @@ export const contest_image_map: ContestImages = {
     COMPILER_TIMEOUT: "10m"
   }
 }
+
+
+export interface TeamLabelBind {
+  team_id: string;
+  label: string;
+}
+
+export interface ContestResult {
+  team_id: string;
+  score: number;
+};

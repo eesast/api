@@ -196,9 +196,9 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     if (!is_manager) {
       const user_team_id = await hasura.get_team_from_user(user_uuid, contest_id);
       if (!user_team_id) {
-        return res.status(401).send("401 Unauthorized: User not in team");
+        return res.status(403).send("403 Forbidden: User not in team");
       } else if (user_team_id !== team_id) {
-        return res.status(401).send("401 Unauthorized: User and code not in the same team");
+        return res.status(403).send("403 Forbidden: User not in team");
       }
     }
 
