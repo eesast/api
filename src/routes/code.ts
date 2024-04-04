@@ -3,7 +3,6 @@ import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
 import fStream from 'fs';
-import { join } from "path";
 import * as hasura from "../helpers/hasura";
 import * as utils from "../helpers/utils";
 
@@ -324,22 +323,7 @@ router.post("/compile-finish", async (req, res) => {
       }
 
       try {
-        const deleteFile = async function deleteAllFilesInDir(directoryPath: string) {
-          const files = await fs.readdir(directoryPath);
-          await Promise.all(files.map(async (file) => {
-            const filePath = join(directoryPath, file);
-            const stats = await fs.stat(filePath);
-            if (stats.isDirectory()) {
-              await deleteAllFilesInDir(filePath);
-            } else {
-              await fs.unlink(filePath);
-            }
-          }
-          ));
-          await fs.rmdir(directoryPath);
-        }
-        await deleteFile(`${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
-
+        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
       }

@@ -2,6 +2,8 @@ import getSTS from "../helpers/sts";
 import COS from "cos-nodejs-sdk-v5";
 import fStream from 'fs';
 import Docker from "dockerode";
+import { join } from "path";
+import * as fs from "fs/promises";
 
 
 export const get_base_directory = async () => {
@@ -190,4 +192,20 @@ export async function initDocker() {
       })
       : new Docker();
   return docker;
+}
+
+
+export async function deleteAllFilesInDir(directoryPath: string) {
+  const files = await fs.readdir(directoryPath);
+  await Promise.all(files.map(async (file) => {
+    const filePath = join(directoryPath, file);
+    const stats = await fs.stat(filePath);
+    if (stats.isDirectory()) {
+      await deleteAllFilesInDir(filePath);
+    } else {
+      await fs.unlink(filePath);
+    }
+  }
+  ));
+  await fs.rmdir(directoryPath);
 }

@@ -5,7 +5,7 @@ import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
 import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
 import * as hasura from "../helpers/hasura"
-import { join } from "path";
+
 
 const router = express.Router();
 
@@ -657,31 +657,14 @@ router.post("/finish-one", async (req, res) => {
 
       console.log("Files uploaded!")
 
-
       try {
-        const deleteFile = async function deleteAllFilesInDir(directoryPath: string) {
-          const files = await fs.readdir(directoryPath);
-          await Promise.all(files.map(async (file) => {
-            const filePath = join(directoryPath, file);
-            const stats = await fs.stat(filePath);
-            if (stats.isDirectory()) {
-              await deleteAllFilesInDir(filePath);
-            } else {
-              await fs.unlink(filePath);
-            }
-          }
-          ));
-          await fs.rmdir(directoryPath);
-        }
-        await deleteFile(`${base_directory}/${contest_name}/competition/${room_id}`);
-
+        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/competition/${room_id}`);
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
       }
 
       return res.status(200).send("200 OK: Update OK!");
     });
-
   } catch (e) {
     console.error(e);
     return res.status(500).send("500 Internal Server Error: Unknown error" + e);
