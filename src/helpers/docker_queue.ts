@@ -50,101 +50,120 @@ const docker_cron = async () => {
     }
 
     for (let i = 0; i < available_num; ++i) {
-      const queue_front = docker_queue.shift();
-      console.log("queue_front room id: " + queue_front?.room_id);
-      if (!queue_front) {
-        console.log("queue is empty");
-        return;
-      }
-      const contest_name = await hasura.get_contest_name(queue_front.contest_id);
-      const sub_base_dir = queue_front.competition === 1 ? `${base_directory}/${contest_name}/competition` : `${base_directory}/${contest_name}/arena`;
-      const sub_url = queue_front.competition === 1 ? `${url}/competition` : `${url}/arena`;
-
-      let container_running = false;
-      const container_list = await docker.listContainers();
-      container_list.forEach((container_info) => {
-        if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}` || `${contest_name}_Runner_${queue_front.room_id}`)) {
-          container_running = true;
-        }
-      });
-      if (container_running) {
-        console.log("container is already running");
-        continue;
-      }
-
-      let port = 8080;
-      if (queue_front.exposed === 1) {
-        port = await get_port(queue_front.room_id, exposed_ports, sub_base_dir);
-        if (port === -1) {
-          console.log("no port available")
-          docker_queue.push(queue_front);
+      try {
+        const queue_front = docker_queue.shift();
+        console.log("queue_front room id: " + queue_front?.room_id);
+        if (!queue_front) {
+          console.log("queue is empty");
           return;
         }
-      }
+        const contest_name = await hasura.get_contest_name(queue_front.contest_id);
+        const sub_base_dir = queue_front.competition === 1 ? `${base_directory}/${contest_name}/competition` : `${base_directory}/${contest_name}/arena`;
+        const sub_url = queue_front.competition === 1 ? `${url}/competition` : `${url}/arena`;
 
-      const server_token = jwt.sign(
-        {
-          contest_id: queue_front.contest_id,
-          room_id: queue_front.room_id,
-          team_ids: queue_front.team_label_binds.map((team_label_bind) => team_label_bind.team_id),
-        } as JwtServerPayload,
-        process.env.SECRET!,
-        {
-          expiresIn: utils.contest_image_map[contest_name].RUNNER_TIMEOUT,
+        let container_running = false;
+        const container_list = await docker.listContainers();
+        container_list.forEach((container_info) => {
+          if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}` || `${contest_name}_Runner_${queue_front.room_id}`)) {
+            container_running = true;
+          }
+        });
+        if (container_running) {
+          console.log("container is already running");
+          continue;
         }
-      );
 
-      const score_url = `${sub_url}/get-score`;
-      const finish_url = queue_front.competition === 1 ? `${sub_url}/finish-one` : `${sub_url}/finish`;
-
-      console.log("TEAM_LABELS: ", JSON.stringify(queue_front.team_label_binds))
-
-      const new_containers: Docker.Container[] = [];
-      if (contest_name === "THUAI6") {
+        let port = 8080;
         if (queue_front.exposed === 1) {
-          const container_runner = await docker.createContainer({
-            Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
-            HostConfig: {
-              Binds: [
-                `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
-                `${base_directory}/${contest_name}/map:/usr/local/map`,
-                `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
-              ],
-              PortBindings: {
-                '8888/tcp': [{ HostPort: `${port}` }]
+          port = await get_port(queue_front.room_id, exposed_ports, sub_base_dir);
+          if (port === -1) {
+            console.log("no port available")
+            docker_queue.push(queue_front);
+            return;
+          }
+        }
+
+        const server_token = jwt.sign(
+          {
+            contest_id: queue_front.contest_id,
+            room_id: queue_front.room_id,
+            team_ids: queue_front.team_label_binds.map((team_label_bind) => team_label_bind.team_id),
+          } as JwtServerPayload,
+          process.env.SECRET!,
+          {
+            expiresIn: utils.contest_image_map[contest_name].RUNNER_TIMEOUT,
+          }
+        );
+
+        const score_url = `${sub_url}/get-score`;
+        const finish_url = queue_front.competition === 1 ? `${sub_url}/finish-one` : `${sub_url}/finish`;
+
+        console.log("TEAM_LABELS: ", JSON.stringify(queue_front.team_label_binds))
+
+        const new_containers: Docker.Container[] = [];
+        if (contest_name === "THUAI6") {
+          if (queue_front.exposed === 1) {
+            const container_runner = await docker.createContainer({
+              Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
+              HostConfig: {
+                Binds: [
+                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
+                  `${base_directory}/${contest_name}/map:/usr/local/map`,
+                  `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
+                ],
+                PortBindings: {
+                  '8888/tcp': [{ HostPort: `${port}` }]
+                },
+                AutoRemove: true,
+                Memory: 6 * 1024 * 1024 * 1024,
+                MemorySwap: 6 * 1024 * 1024 * 1024
               },
-              AutoRemove: true,
-              Memory: 6 * 1024 * 1024 * 1024,
-              MemorySwap: 6 * 1024 * 1024 * 1024
-            },
-            ExposedPorts: { '8888/tcp': {} },
-            Env: [
-              `SCORE_URL=${score_url}`,
-              `FINISH_URL=${finish_url}`,
-              `TOKEN=${server_token}`,
-              `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
-              `MAP_ID=${queue_front.map_id}`
-            ],
-            AttachStdin: false,
-            AttachStdout: false,
-            AttachStderr: false,
-            name: `${contest_name}_runner_${queue_front.room_id}`,
-          });
-          new_containers.push(container_runner);
+              ExposedPorts: { '8888/tcp': {} },
+              Env: [
+                `SCORE_URL=${score_url}`,
+                `FINISH_URL=${finish_url}`,
+                `TOKEN=${server_token}`,
+                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
+                `MAP_ID=${queue_front.map_id}`
+              ],
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `${contest_name}_runner_${queue_front.room_id}`,
+            });
+            new_containers.push(container_runner);
+
+          } else {
+            const container_runner = await docker.createContainer({
+              Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
+              HostConfig: {
+                Binds: [
+                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
+                  `${base_directory}/${contest_name}/map:/usr/local/map`,
+                  `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
+                ],
+                AutoRemove: true,
+                Memory: 6 * 1024 * 1024 * 1024,
+                MemorySwap: 6 * 1024 * 1024 * 1024
+              },
+              Env: [
+                `SCORE_URL=${score_url}`,
+                `FINISH_URL=${finish_url}`,
+                `TOKEN=${server_token}`,
+                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
+                `MAP_ID=${queue_front.map_id}`
+              ],
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `${contest_name}_runner_${queue_front.room_id}`,
+            });
+            new_containers.push(container_runner);
+          }
 
         } else {
-          const container_runner = await docker.createContainer({
-            Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
-            HostConfig: {
-              Binds: [
-                `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
-                `${base_directory}/${contest_name}/map:/usr/local/map`,
-                `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
-              ],
-              AutoRemove: true,
-              Memory: 6 * 1024 * 1024 * 1024,
-              MemorySwap: 6 * 1024 * 1024 * 1024
-            },
+          const container_server = await docker.createContainer({
+            Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
             Env: [
               `SCORE_URL=${score_url}`,
               `FINISH_URL=${finish_url}`,
@@ -152,119 +171,107 @@ const docker_cron = async () => {
               `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
               `MAP_ID=${queue_front.map_id}`
             ],
-            AttachStdin: false,
-            AttachStdout: false,
-            AttachStderr: false,
-            name: `${contest_name}_runner_${queue_front.room_id}`,
-          });
-          new_containers.push(container_runner);
-        }
-
-      } else {
-        const container_server = await docker.createContainer({
-          Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
-          Env: [
-            `SCORE_URL=${score_url}`,
-            `FINISH_URL=${finish_url}`,
-            `TOKEN=${server_token}`,
-            `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
-            `MAP_ID=${queue_front.map_id}`
-          ],
-          HostConfig: {
-            Binds: [
-              `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
-              `${base_directory}/${contest_name}/map:/usr/local/map`
-            ],
-            AutoRemove: true
-          },
-          AttachStdin: false,
-          AttachStdout: false,
-          AttachStderr: false,
-          name: `${contest_name}_Server_${queue_front.room_id}`,
-        });
-        new_containers.push(container_server);
-
-        const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind) => {
-          const container_client = await docker.createContainer({
-            Image: utils.contest_image_map[contest_name].ClIENT_IMAGE,
-            Env: [
-              `TEAM_LABEL=${team_label_bind.label}`
-            ],
             HostConfig: {
               Binds: [
-                `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
+                `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
+                `${base_directory}/${contest_name}/map:/usr/local/map`
               ],
-              AutoRemove: true,
-              Memory: 6 * 1024 * 1024 * 1024,
-              MemorySwap: 6 * 1024 * 1024 * 1024
-            },
-            AttachStdin: false,
-            AttachStdout: false,
-            AttachStderr: false,
-            name: `${contest_name}_Client_${team_label_bind.team_id}_${queue_front.room_id}`,
-          });
-          return container_client;
-        });
-        const container_clients = await Promise.all(container_client_promises);
-        new_containers.push(...container_clients);
-
-        if (queue_front.exposed === 1) {
-          const container_envoy = await docker.createContainer({
-            Image: utils.contest_image_map[contest_name].ENVOY_IMAGE,
-            HostConfig: {
-              PortBindings: {
-                '8888/tcp': [{ HostPort: `${port}` }]
-              },
               AutoRemove: true
             },
-            ExposedPorts: { '8888/tcp': {} },
             AttachStdin: false,
             AttachStdout: false,
             AttachStderr: false,
-            name: `${contest_name}_Envoy_${queue_front.room_id}`,
+            name: `${contest_name}_Server_${queue_front.room_id}`,
           });
-          new_containers.push(container_envoy);
+          new_containers.push(container_server);
+
+          const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind) => {
+            const container_client = await docker.createContainer({
+              Image: utils.contest_image_map[contest_name].ClIENT_IMAGE,
+              Env: [
+                `TEAM_LABEL=${team_label_bind.label}`
+              ],
+              HostConfig: {
+                Binds: [
+                  `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
+                ],
+                AutoRemove: true,
+                Memory: 6 * 1024 * 1024 * 1024,
+                MemorySwap: 6 * 1024 * 1024 * 1024
+              },
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `${contest_name}_Client_${team_label_bind.team_id}_${queue_front.room_id}`,
+            });
+            return container_client;
+          });
+          const container_clients = await Promise.all(container_client_promises);
+          new_containers.push(...container_clients);
+
+          if (queue_front.exposed === 1) {
+            const container_envoy = await docker.createContainer({
+              Image: utils.contest_image_map[contest_name].ENVOY_IMAGE,
+              HostConfig: {
+                PortBindings: {
+                  '8888/tcp': [{ HostPort: `${port}` }]
+                },
+                AutoRemove: true
+              },
+              ExposedPorts: { '8888/tcp': {} },
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `${contest_name}_Envoy_${queue_front.room_id}`,
+            });
+            new_containers.push(container_envoy);
+          }
+
         }
+        console.log("new containers created");
 
-      }
-      console.log("new containers created");
-
-      new_containers.forEach(async (container) => {
-        await container.start();
-      });
-      console.log("server and clients started");
-
-      if (queue_front.exposed === 1) {
-        await hasura.update_room_status(queue_front.room_id, "Running", port);
-      } else {
-        await hasura.update_room_status(queue_front.room_id, "Running", null);
-      }
-
-      const waitAllContainers = new_containers.map(container =>
-        new Promise((resolve, reject) => {
-          container.wait();
-        })
-      );
-
-      Promise.all(waitAllContainers)
-      .then(async () => {
-        try {
-          await fs.promises.writeFile(`${sub_base_dir}/${queue_front.room_id}/finish.lock`, "");
-          console.log("finish.lock file was written successfully.");
-        } catch (err) {
-          console.error("An error occurred writing finish.lock:", err);
-        }
-      })
-      .catch(err => {
-        console.error("An error occurred waiting for containers to finish:", err);
-      });
-
-      setTimeout(() => {
         new_containers.forEach(async (container) => {
-          await container.stop();
-          await container.remove();
+          await container.start();
         });
-      }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME) : 600 + 5 * 60) * 1000);
+        console.log("server and clients started");
+
+        if (queue_front.exposed === 1) {
+          await hasura.update_room_status(queue_front.room_id, "Running", port);
+        } else {
+          await hasura.update_room_status(queue_front.room_id, "Running", null);
+        }
+        console.log("room status updated");
+
+        const waitAllContainers = new_containers.map(container =>
+          new Promise((resolve, reject) => {
+            container.wait();
+          })
+        );
+
+        Promise.all(waitAllContainers)
+        .then(async () => {
+          try {
+            await fs.promises.writeFile(`${sub_base_dir}/${queue_front.room_id}/finish.lock`, "");
+            console.log("finish.lock file was written successfully.");
+          } catch (err) {
+            console.error("An error occurred writing finish.lock:", err);
+          }
+        })
+        .catch(err => {
+          console.error("An error occurred waiting for containers to finish:", err);
+        });
+
+        setTimeout(() => {
+          new_containers.forEach(async (container) => {
+            await container.stop();
+            await container.remove();
+          });
+        }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME) : 600 + 5 * 60) * 1000);
+
+      } catch (err) {
+        console.error("An error occurred in docker_cron:", err);
+        continue;
+      }
     }
   });
 }
