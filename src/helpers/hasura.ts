@@ -55,7 +55,15 @@ export const get_contest_settings: any = async (contest_id: string) => {
       contest_id: contest_id,
     }
   );
-  return query_contest_settings.contest[0] ?? null;
+
+  return {
+    arena_switch: query_contest_settings.contest[0]?.arena_switch ?? false,
+    code_upload_switch: query_contest_settings.contest[0]?.code_upload_switch ?? false,
+    playback_switch: query_contest_settings.contest[0]?.playback_switch ?? false,
+    playground_switch: query_contest_settings.contest[0]?.playground_switch ?? false,
+    stream_switch: query_contest_settings.contest[0]?.stream_switch ?? false,
+    team_switch: query_contest_settings.contest[0]?.team_switch ?? false,
+  };
 };
 
 // query team_id from user_uuid and contest_id
@@ -130,7 +138,6 @@ export const get_team_score: any = async (team_id: string) => {
       query get_score($team_id: uuid!) {
         contest_team(where: {team_id: {_eq: $team_id}}) {
           score
-          contest_score
         }
       }
     `,
@@ -138,10 +145,7 @@ export const get_team_score: any = async (team_id: string) => {
       team_id: team_id,
     }
   );
-  return {
-    score: query_score.contest_team[0]?.score ?? null,
-    contest_score: query_score.contest_team[0]?.contest_score ?? null
-  }
+  return query_score.contest_team[0]?.score ?? null
 };
 
 
@@ -237,7 +241,7 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
   const count_room_from_team = await client.request(
     gql`
       query count_room($contest_id: uuid!, $team_id: uuid!) {
-        contest_room_team_aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, _or: {status: {_eq: "Waiting"}, status: {_eq: "Running"}}}}}}) {
+        contest_room_team_aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, status: {_in: [ "Waiting", "Running" ]}}}}}) {
           aggregate {
             count
           }
@@ -475,7 +479,7 @@ export const update_room_team_score: any = async (room_id: string, team_id: stri
 export const update_team_score: any = async (team_id: string, score: number) => {
   const update_team_score = await client.request(
     gql`
-      mutation update_team_score($team_id: uuid!, $score: Int!) {
+      mutation update_team_score($team_id: uuid!, $score: String!) {
         update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {score: $score}) {
           affected_rows
         }

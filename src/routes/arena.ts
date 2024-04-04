@@ -7,6 +7,8 @@ import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
 import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
 import * as hasura from "../helpers/hasura"
+import { re } from "mathjs";
+import { token } from "morgan";
 
 
 const router = express.Router();
@@ -50,7 +52,8 @@ router.post("/create", authenticate(), async (req, res) => {
       return res.status(400).send("400 Bad Request: Contest not found");
     }
 
-    const arena_switch = await hasura.get_contest_settings(contest_id)?.arena_switch ?? false;
+    const arena_settings = await hasura.get_contest_settings(contest_id);
+    const arena_switch = arena_settings?.arena_switch;
     console.debug("arena_switch: ", arena_switch);
     if (!arena_switch) {
       return res.status(403).send("403 Forbidden: Arena is not open");
@@ -68,7 +71,7 @@ router.post("/create", authenticate(), async (req, res) => {
       }
     }
 
-    const active_rooms = hasura.count_room_team(contest_id, team_ids[0]);
+    const active_rooms = await hasura.count_room_team(contest_id, team_ids[0]);
     console.debug("active_rooms: ", active_rooms);
     if (active_rooms > 6) {
       return res.status(423).send("423 Locked: Request arena too frequently");
@@ -83,6 +86,8 @@ router.post("/create", authenticate(), async (req, res) => {
 
     const player_labels_flat = players_labels.flat();
     const team_ids_flat = team_ids.flatMap((team_id, index) => Array(players_labels[index].length).fill(team_id));
+    console.debug("player_labels_flat: ", player_labels_flat);
+    console.debug("team_ids_flat: ", team_ids_flat);
 
     const player_roles_flat: string[] = [], player_codes_flat: string[] = [];
     const players_details_promises = player_labels_flat.map((player_label, index) =>
@@ -132,6 +137,22 @@ router.post("/create", authenticate(), async (req, res) => {
 
     const base_directory = await utils.get_base_directory();
 
+    const mkdir_promises = team_ids.map(team_id => {
+      return fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}`, { recursive: true })
+        .then(() => {
+          return Promise.resolve(true);
+        })
+        .catch((err) => {
+          console.log(`Mkdir ${team_id} failed: ${err}`);
+          return Promise.resolve(false);
+        });
+    });
+    const mkdir_result = await Promise.all(mkdir_promises);
+    console.debug("mkdir_result: ", mkdir_result);
+    if (mkdir_result.some(result => !result)) {
+      return res.status(500).send("500 Internal Server Error: Code directory creation failed");
+    }
+
     const files_exist_promises = player_codes_flat.map((player_code, index) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
@@ -146,18 +167,23 @@ router.post("/create", authenticate(), async (req, res) => {
     const files_exist_flat = await Promise.all(files_exist_promises);
     console.debug("files_exist: ", files_exist_flat);
 
+    const player_codes_flat_unique = Array.from(new Set(player_codes_flat));
+    const index_map = player_codes_flat_unique.map(player_code => player_codes_flat.indexOf(player_code));
+    console.debug("player_codes_flat_unique: ", player_codes_flat_unique);
+    console.debug("index_map: ", index_map);
+
     if (files_exist_flat.some(file_exist => !file_exist)) {
-      fs.mkdir(`${base_directory}/${contest_name}/code/${team_ids_flat[0]}`, { recursive: true });
       const cos = await utils.initCOS();
       const config = await utils.getConfig();
-      const download_promises = Array.from(new Set(player_codes_flat)).map((player_code, index) => {
-        if (files_exist_flat[index]) {
+      const download_promises = player_codes_flat_unique.map((player_code, index) => {
+        if (files_exist_flat[index_map[index]]) {
           return Promise.resolve(true);
         }
-        const language = code_languages_flat[index];
+        const language = code_languages_flat[index_map[index]];
         const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
-        return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-          `${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`, cos, config)
+        console.debug("code_file_name: ", code_file_name);
+        return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
+          `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`, cos, config)
           .then(() => {
             return Promise.resolve(true);
           })
@@ -234,7 +260,7 @@ router.post("/create", authenticate(), async (req, res) => {
 
     console.log("Files cleaned!")
 
-    const room_id = hasura.insert_room(contest_id, "Waiting", map_id);
+    const room_id = await hasura.insert_room(contest_id, "Waiting", map_id);
     console.debug("room_id: ", room_id);
     if (!room_id) {
       return res.status(500).send("500 Internal Server Error: Room not created");
@@ -280,6 +306,7 @@ router.post("/create", authenticate(), async (req, res) => {
     });
 
     console.log("Docker pushed!")
+    return res.status(200).send("200 OK: Arena created!");
 
   } catch (e) {
     console.error(e);
@@ -292,7 +319,7 @@ router.post("/create", authenticate(), async (req, res) => {
  * @param {uuid} team_id
  * @returns {string} score
  */
-router.post(("get-score"), async (req, res) => {
+router.post("/get-score", async (req, res) => {
   const authHeader = req.get("Authorization");
   if (!authHeader) {
     return res.status(401).send("401 Unauthorized: Missing token");
@@ -303,10 +330,10 @@ router.post(("get-score"), async (req, res) => {
       return res.status(401).send("401 Unauthorized: Token expired or invalid");
     }
     const team_id = req.body.team_id;
-    const score = await hasura.get_team_score(team_id)?.score;
-    console.log("score: ", score.toString());
+    const score = await hasura.get_team_score(team_id);
+    console.debug("score: ", score);
 
-    return res.status(200).send(score.toString());
+    return res.status(200).send(score);
   });
 });
 
@@ -336,6 +363,11 @@ router.post("/finish", async (req, res) => {
         return result.filter(result => result.team_id === team_id).reduce((acc, val) => acc + val.score, 0);
       });
 
+      console.debug("room_id: ", room_id);
+      console.debug("contest_id: ", contest_id);
+      console.debug("team_ids: ", team_ids);
+      console.debug("update_scores: ", update_scores);
+
       const update_room_team_score_promises = team_ids.map((team_id, index) =>
         hasura.update_room_team_score(room_id, team_id, update_scores[index]));
       await Promise.all(update_room_team_score_promises);
@@ -344,13 +376,15 @@ router.post("/finish", async (req, res) => {
       console.log("Update room team score!")
 
       const origin_result: utils.ContestResult[] = await hasura.get_teams_score(team_ids);
+      console.debug("origin_result: ", origin_result);
       const new_resullt: utils.ContestResult[] = origin_result.map(origin => {
         const update_index = team_ids.indexOf(origin.team_id);
         return {
           team_id: origin.team_id,
-          score: update_scores[update_index]
+          score: update_scores[update_index] + origin.score
         };
       });
+      console.debug("new_result: ", new_resullt);
       const update_team_score_promises = new_resullt.map(result => {
         return hasura.update_team_score(result.team_id, result.score);
       });

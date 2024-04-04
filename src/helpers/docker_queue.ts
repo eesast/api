@@ -38,12 +38,18 @@ const docker_cron = async () => {
   const max_port_num = parseInt(process.env.MAX_PORTS! as string);
   const exposed_ports = new Array(max_port_num).fill("");
   const base_directory = await utils.get_base_directory();
-  const url = process.env.NODE_ENV == "production" ? "https://api.eesast.com" : "http://172.17.0.1:28888";
+  const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : "http://172.17.0.1:28888";
 
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME!} * * * * *`, async () => {
     const docker = await utils.initDocker();
     const existing_containers = await docker.listContainers({ all: true });
-    const available_num = Math.min((max_container_num - existing_containers.length), docker_queue.length);
+    const existing_server_containers = existing_containers.filter((container_info) => container_info.Names.some((name) => name.includes("_Server_")));
+    const existing_runner_containers = existing_containers.filter((container_info) => container_info.Names.some((name) => name.includes("_Runner_")));
+    const running_containers_num = existing_server_containers.length + existing_runner_containers.length;
+
+    console.debug("running_containers_num: " + running_containers_num);
+    const available_num = Math.min((max_container_num - running_containers_num), docker_queue.length);
+    console.debug("available_num: " + available_num);
     if (available_num <= 0) {
       console.log("no available container or queue is empty");
       return;
@@ -94,11 +100,14 @@ const docker_cron = async () => {
             expiresIn: utils.contest_image_map[contest_name].RUNNER_TIMEOUT,
           }
         );
+        console.debug("server_token: ", server_token);
 
         const score_url = `${sub_url}/get-score`;
         const finish_url = queue_front.competition === 1 ? `${sub_url}/finish-one` : `${sub_url}/finish`;
+        console.debug("score_url: ", score_url);
+        console.debug("finish_url: ", finish_url);
 
-        console.log("TEAM_LABELS: ", JSON.stringify(queue_front.team_label_binds))
+        console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
 
         const new_containers: Docker.Container[] = [];
         if (contest_name === "THUAI6") {
@@ -129,7 +138,7 @@ const docker_cron = async () => {
               AttachStdin: false,
               AttachStdout: false,
               AttachStderr: false,
-              name: `${contest_name}_runner_${queue_front.room_id}`,
+              name: `${contest_name}_Runner_${queue_front.room_id}`,
             });
             new_containers.push(container_runner);
 
@@ -156,7 +165,7 @@ const docker_cron = async () => {
               AttachStdin: false,
               AttachStdout: false,
               AttachStderr: false,
-              name: `${contest_name}_runner_${queue_front.room_id}`,
+              name: `${contest_name}_Runner_${queue_front.room_id}`,
             });
             new_containers.push(container_runner);
           }
