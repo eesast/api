@@ -120,7 +120,7 @@ router.post("/create", authenticate(), async (req, res) => {
       hasura.get_compile_status(player_code)
       );
     const code_details = await Promise.all(code_details_promises);
-    const code_status_flat = code_details.map(code => code.status);
+    const code_status_flat = code_details.map(code => code.compile_status);
     const code_languages_flat = code_details.map(code => code.language);
     console.debug("code_status_flat: ", code_status_flat);
     console.debug("code_languages_flat: ", code_languages_flat);

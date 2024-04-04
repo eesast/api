@@ -55,6 +55,7 @@ export async function initCOS() {
     "name/cos:DeleteObject",
     "name/cos:HeadObject",
     "name/cos:PutObject",
+    "name/cos:GetBucket"
   ], "*");
 
   const cos = new COS({
@@ -137,6 +138,47 @@ export async function uploadObject(localFilePath: string, bucketKey: string, cos
     });
   });
 };
+
+
+export async function deleteObject(key: string, cos: COS, config: any): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    cos.deleteObject({
+      Bucket: config.bucket,
+      Region: config.region,
+      Key: key,
+    }, (err, data) => {
+      if (err) {
+        console.log(err);
+        reject('Failed to delete object from COS');
+      } else {
+        // console.log('Delete Success', data);
+        resolve(true);
+      }
+    });
+  });
+}
+
+export async function deleteFolder(folderPrefix: string, cos: COS, config: any): Promise<boolean> {
+  try {
+    const listParams = {
+      Bucket: config.bucket,
+      Region: config.region,
+      Prefix: folderPrefix,
+    };
+    const data = await cos.getBucket(listParams);
+    const objects = data.Contents || [];
+
+    const deletePromises = objects.map(obj =>
+      deleteObject(obj.Key, cos, config)
+    );
+    await Promise.all(deletePromises);
+
+    return true;
+  } catch (err) {
+    console.error("Failed to delete folder from COS:", err);
+    return false;
+  }
+}
 
 
 export async function initDocker() {

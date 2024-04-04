@@ -444,6 +444,34 @@ export const get_all_teams: any = async (contest_id: string) => {
   return query_teams.contest_team.map((team: any) => team.team_id);
 }
 
+
+/**
+ * query room_id from team_id, team_label and round_id
+ * @param {string} team_id
+ * @param {string} team_label
+ * @param {string} round_id
+ * @returns {string[]} room_id
+ */
+export const get_room_id: any = async (team_id: string, team_label: string, round_id: string) => {
+  const query_room_id = await client.request(
+    gql`
+      query get_room_id($team_id: uuid!, $team_label: String!, $round_id: uuid!) {
+        contest_room_team(where: {_and: {team_id: {_eq: $team_id}, team_label: {_eq: $team_label}, contest_room: {round_id: {_eq: $round_id}}}}) {
+          room_id
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+      team_label: team_label,
+      round_id: round_id
+    }
+  );
+
+  return query_room_id.contest_room_team.map((room: any) => room.room_id);
+}
+
+
 /**
  * Insert room_teams
  * @param {string} room_id
@@ -578,3 +606,49 @@ export const update_team_score: any = async (team_id: string, score: number) => 
 
   return update_team_score.update_contest_team.affected_rows;
 }
+
+
+
+/**
+ * delete contest room
+ * @param {string} room_id
+ * @returns {number} affected_rows
+ */
+export const delete_room: any = async (room_id: string) => {
+  const delete_room = await client.request(
+    gql`
+      mutation delete_room($room_id: uuid!) {
+        delete_contest_room(where: {room_id: {_eq: $room_id}}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      room_id: room_id
+    }
+  );
+
+  return delete_room.delete_contest_room.affected_rows;
+}
+
+/**
+ * delete contest room team
+ * @param {string} room_id
+ * @returns {number} affected_rows
+ */
+export const delete_room_team: any = async (room_id: string) => {
+  const delete_room_team = await client.request(
+    gql`
+      mutation delete_room_team($room_id: uuid!) {
+        delete_contest_room_team(where: {room_id: {_eq: $room_id}}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      room_id: room_id
+    }
+  );
+
+  return delete_room_team.delete_contest_room_team.affected_rows;
+  }
