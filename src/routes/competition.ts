@@ -9,7 +9,10 @@ import { det, re } from "mathjs";
 
 const router = express.Router();
 
-
+/**
+ * @param token
+ * @param {string} round_id
+ */
 router.post("/start-all", authenticate(), async (req, res) => {
   try {
     const user_uuid = req.auth.user.uuid;
@@ -30,6 +33,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     }
 
     const { team_labels, players_labels }: { team_labels: string[], players_labels: string[] } = await hasura.get_contest_players(contest_id);
+    const team_labels_unique = Array.from(new Set(team_labels));
     console.debug("team_labels: ", team_labels);
     console.debug("players_labels: ", players_labels);
 
@@ -158,12 +162,12 @@ router.post("/start-all", authenticate(), async (req, res) => {
     console.log("Code downloaded!");
 
     const pairs_unfold: [team_label1: string, team_label2: string, team1: string, team2: string][] = [];
-    for (let i = 0; i < team_labels.length; i++) {
-        for (let j = i + 1; j < team_labels.length; j++) {
+    for (let i = 0; i < team_labels_unique.length; i++) {
+        for (let j = i + 1; j < team_labels_unique.length; j++) {
             for (let k = 0; k < team_list_available.length; k++) {
                 for (let l = k + 1; l < team_list_available.length; l++) {
-                    pairs_unfold.push([team_labels[i], team_labels[j], team_list_available[k], team_list_available[l]]);
-                    pairs_unfold.push([team_labels[j], team_labels[i], team_list_available[k], team_list_available[l]]);
+                    pairs_unfold.push([team_labels_unique[i], team_labels_unique[j], team_list_available[k], team_list_available[l]]);
+                    pairs_unfold.push([team_labels_unique[j], team_labels_unique[i], team_list_available[k], team_list_available[l]]);
                 }
             }
         }
@@ -192,27 +196,28 @@ router.post("/start-all", authenticate(), async (req, res) => {
       let room_id: string;
 
       return hasura.insert_room_competition(contest_id, "Waiting", map_id, round_id)
-      .then((room_id: string | null) => {
-        if (!room_id) {
+      .then((room_id_: string | null) => {
+        if (!room_id_) {
           return Promise.resolve(false);
         } else {
-          room_id = room_id;
+          room_id = room_id_;
         }
+        console.debug("room_id: ", room_id);
         return hasura.insert_room_teams(room_id, [team1_id, team2_id], [team1_label, team2_label], [team1_roles, team2_roles], [team1_codes, team2_codes])
       })
       .then((affected_rows: number) => {
         if (affected_rows !== 2) {
           return Promise.resolve(false);
         }
-        return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}`, { recursive: true })
+        return fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source`, { recursive: true })
       })
       .then(() => {
         const copy_promises = player_codes_flat.map((player_code, index) => {
           const language = code_languages_flat[index];
           const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
-          const arena_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
+          const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
           return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-            `${base_directory}/${contest_name}/arena/${room_id}/source/${arena_file_name}`)
+            `${base_directory}/${contest_name}/competition/${room_id}/source/${competition_file_name}`)
             .then(() => {
               return Promise.resolve(true);
             })
