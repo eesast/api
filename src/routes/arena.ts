@@ -3,10 +3,9 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
-// import { JwtUserPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
-import authenticate, { JwtArenaPayload } from "../middlewares/authenticate";
+import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
 import * as hasura from "../helpers/hasura"
 
 
@@ -19,14 +18,6 @@ const router = express.Router();
  * @param {uuid} map_id
  * @param {TeamLabelBind[]} team_labels
  */
-
-//// 鉴权。检查登录状态
-//// 检查contest表中的arena_switch是否为true
-//// 检查用户是否在队伍中，或者是管理员
-//// 后端也要检查，限制一支队伍的开战频率。
-//// 后端也要检查数据库上的代码编译状态和角色代码分配状态，都正常的情况下再继续下一步。
-
-
 router.post("/create", authenticate(), async (req, res) => {
   const user_uuid = req.auth.user.uuid;
   const contest_name = req.body.contest_name;
@@ -83,7 +74,7 @@ router.post("/create", authenticate(), async (req, res) => {
   }
 
   const players_labels_promises = team_labels.map(team_label => hasura.get_players_label(contest_id, team_label));
-  const players_labels: Array<Array<string>> = await Promise.all(players_labels_promises);
+  const players_labels: string[][] = await Promise.all(players_labels_promises);
   console.log("players_labels: ", players_labels);
   if (players_labels.some(player_labels => !player_labels)) {
     return res.status(400).send("400 Bad Request: Players_label not found");
@@ -92,7 +83,7 @@ router.post("/create", authenticate(), async (req, res) => {
   const player_labels_flat = players_labels.flat();
   const team_ids_flat = team_ids.flatMap((team_id, index) => Array(players_labels[index].length).fill(team_id));
 
-  const player_roles_flat: Array<string> = [], player_codes_flat: Array<string> = [];
+  const player_roles_flat: string[] = [], player_codes_flat: string[] = [];
   const players_details_promises = player_labels_flat.map((player_label, index) =>
     hasura.get_player_code(team_ids_flat[index], player_label));
   const players_details = await Promise.all(players_details_promises);
@@ -120,7 +111,7 @@ router.post("/create", authenticate(), async (req, res) => {
   console.log("players_roles: ", players_roles);
   console.log("players_codes: ", players_codes);
 
-  const code_status_flat: Array<string> = [], code_languages_flat: Array<string> = [];
+  const code_status_flat: string[] = [], code_languages_flat: string[] = [];
   const code_details_promises = player_codes_flat.map(player_code => hasura.get_compile_status(player_code));
   const code_details = await Promise.all(code_details_promises);
   code_details.forEach(code_detail => {
@@ -246,6 +237,92 @@ router.post("/create", authenticate(), async (req, res) => {
 
 });
 
+/**
+ * @param token
+ * @param {uuid} team_id
+ * @returns {string} score
+ */
+router.post(("get-score"), async (req, res) => {
+  const authHeader = req.get("Authorization");
+  if (!authHeader) {
+    return res.status(401).send("401 Unauthorized: Missing token");
+  }
+  const token = authHeader.substring(7);
+  return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+    if (err || !decoded) {
+      return res.status(401).send("401 Unauthorized: Token expired or invalid");
+    }
+    const team_id = req.body.team_id;
+    if (!team_id) {
+      return res.status(422).send("422 Unprocessable Entity: Missing team_id");
+    }
+    const score = await hasura.get_team_score(team_id)?.score;
+    if (!score) {
+      return res.status(400).send("400 Bad Request: Team score not found");
+    }
+    return res.status(200).send(score.toString());
+  });
+});
+
+
+/**
+ * @param token
+ * @param {utils.ContestResult[]} result
+ */
+router.post("/finish", async (req, res) => {
+  const authHeader = req.get("Authorization");
+  if (!authHeader) {
+    return res.status(401).send("401 Unauthorized: Missing token");
+  }
+  const token = authHeader.substring(7);
+  return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+    if (err || !decoded) {
+      return res.status(401).send("401 Unauthorized: Token expired or invalid");
+    }
+    const payload = decoded as JwtServerPayload;
+    const room_id = payload.room_id;
+    const contest_id = payload.contest_id;
+
+    const result: utils.ContestResult[] = req.body.result;
+    const team_ids = Array.from(new Set(result.map(result => result.team_id)));
+    const update_scores = team_ids.map(team_id => {
+      return result.filter(result => result.team_id === team_id).reduce((acc, val) => acc + val.score, 0);
+    });
+
+    const update_room_team_score_promises = team_ids.map((team_id, index) =>
+      hasura.update_room_team_score(room_id, team_id, update_scores[index]));
+    await Promise.all(update_room_team_score_promises);
+
+    await hasura.update_room_status(room_id, "Finished", null);
+
+    const origin_result: utils.ContestResult[] = await hasura.get_teams_score(team_ids);
+    const new_resullt: utils.ContestResult[] = origin_result.map(origin => {
+      const update_index = team_ids.indexOf(origin.team_id);
+      return {
+        team_id: origin.team_id,
+        score: update_scores[update_index]
+      };
+    });
+    const update_team_score_promises = new_resullt.map(result => {
+      return hasura.update_team_score(result.team_id, result.score);
+    });
+    await Promise.all(update_team_score_promises);
+
+    const base_directory = await utils.get_base_directory();
+    const contest_name = await hasura.get_contest_name(contest_id);
+    const cos = await utils.initCOS();
+    const config = await utils.getConfig();
+    const file_name = await fs.readdir(`${base_directory}/${contest_name}/arena/${room_id}/output`);
+    const upload_file_promises = file_name.map(filename => {
+      let key = `${contest_name}/arena/${room_id}/${filename}`;
+      let localFilePath = `${base_directory}/${contest_name}/arena/${room_id}/output/${filename}`;
+      return utils.uploadObject(localFilePath, key, cos, config);
+    });
+    await Promise.all(upload_file_promises);
+
+    return res.status(200).send("200 OK: Update OK!");
+  });
+});
 
 
 export default router;

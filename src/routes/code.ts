@@ -246,21 +246,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       await container.start();
       console.log("container started")
 
-      await client.request(
-        gql`
-          mutation update_compile_status($code_id: uuid!, $status: String!) {
-            update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
-              returning {
-                compile_status
-              }
-            }
-          }
-        `,
-        {
-          code_id: code_id,
-          status: "Compiling",
-        }
-      );
+      await hasura.update_compile_status(code_id, "Compiling");
       console.log("update compile status success")
 
       if (process.env.NODE_ENV !== "production") {

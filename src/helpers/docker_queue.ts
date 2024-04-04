@@ -2,9 +2,7 @@ import cron from "node-cron";
 import { docker_queue } from "..";
 import Docker from "dockerode";
 import jwt from "jsonwebtoken";
-import { JwtServerPayload } from "../routes/contest";
-import { gql } from "graphql-request";
-import { client } from "..";
+import { JwtServerPayload } from "../middlewares/authenticate";
 import fs from "fs";
 import * as hasura from "./hasura";
 import * as utils from "./utils";
@@ -13,12 +11,12 @@ export interface queue_element {
   contest_id: string;
   room_id: string;
   map_id: string;
-  team_label_binds: Array<utils.TeamLabelBind>;
+  team_label_binds: utils.TeamLabelBind[];
   competition: number;
   exposed: number;
 }
 
-const get_port = async (room_id: string, exposed_ports: Array<string>, sub_base_dir: string) => {
+const get_port = async (room_id: string, exposed_ports: string[], sub_base_dir: string) => {
   for (let i = 0; i < exposed_ports.length; ++i) {
     if (fs.existsSync(`${sub_base_dir}/${exposed_ports[i]}/finish.lock`)) {
       exposed_ports[i] = "";
@@ -38,7 +36,7 @@ const get_port = async (room_id: string, exposed_ports: Array<string>, sub_base_
 const docker_cron = async () => {
   const max_container_num = parseInt(process.env.MAX_CONTAINERS! as string);
   const max_port_num = parseInt(process.env.MAX_PORTS! as string);
-  const exposed_ports = new Array(max_container_num).fill("");
+  const exposed_ports = new Array(max_port_num).fill("");
   const base_directory = await utils.get_base_directory();
   const url = process.env.NODE_ENV == "production" ? "https://api.eesast.com" : "http://172.17.0.1:28888";
 

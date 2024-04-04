@@ -10,11 +10,7 @@ import { get_base_directory } from "../helpers/utils"
 
 const router = express.Router();
 
-export interface JwtServerPayload {
-  contest_id: string;
-  room_id: string;
-  team_ids: string[];
-}
+
 
 interface ReqResult {
   team_id: number;

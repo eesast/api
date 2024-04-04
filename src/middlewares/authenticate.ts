@@ -23,8 +23,10 @@ export interface JwtCompilerPayload {
   contest_name: string;
   cos_path: string;
 }
-export interface JwtArenaPayload {
-
+export interface JwtServerPayload {
+  contest_id: string;
+  room_id: string;
+  team_ids: string[];
 }
 export interface UserInfo {
   uuid: string;
