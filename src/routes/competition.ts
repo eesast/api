@@ -5,8 +5,6 @@ import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
 import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
 import * as hasura from "../helpers/hasura"
-import { det, re } from "mathjs";
-import { util } from "cos-nodejs-sdk-v5";
 
 const router = express.Router();
 
