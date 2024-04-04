@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
 import { docker_queue } from "..";
-import { JwtUserPayload } from "../middlewares/authenticate";
+import { JwtUserPayload, JwtServerPayload } from "../middlewares/authenticate";
 import * as fs from 'fs';
 import { get_contest_name } from "../helpers/hasura"
 import { get_base_directory } from "../helpers/utils"

@@ -1,14 +1,10 @@
 import express from "express";
-import { gql } from "graphql-request";
-import { client } from "..";
 import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
 import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
 import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
 import * as hasura from "../helpers/hasura"
-import { re } from "mathjs";
-import { token } from "morgan";
 
 
 const router = express.Router();
@@ -77,7 +73,9 @@ router.post("/create", authenticate(), async (req, res) => {
       return res.status(423).send("423 Locked: Request arena too frequently");
     }
 
-    const players_labels_promises = team_labels.map(team_label => hasura.get_players_label(contest_id, team_label));
+    const players_labels_promises = team_labels.map(team_label =>
+      hasura.get_players_label(contest_id, team_label)
+      );
     const players_labels: string[][] = await Promise.all(players_labels_promises);
     console.debug("players_labels: ", players_labels);
     if (players_labels.some(player_labels => !player_labels)) {
@@ -85,28 +83,29 @@ router.post("/create", authenticate(), async (req, res) => {
     }
 
     const player_labels_flat = players_labels.flat();
-    const team_ids_flat = team_ids.flatMap((team_id, index) => Array(players_labels[index].length).fill(team_id));
+    const team_ids_flat = team_ids.flatMap((team_id, index) =>
+      Array(players_labels[index].length).fill(team_id)
+      );
     console.debug("player_labels_flat: ", player_labels_flat);
     console.debug("team_ids_flat: ", team_ids_flat);
 
-    const player_roles_flat: string[] = [], player_codes_flat: string[] = [];
     const players_details_promises = player_labels_flat.map((player_label, index) =>
-      hasura.get_player_code(team_ids_flat[index], player_label));
+      hasura.get_player_code(team_ids_flat[index], player_label)
+      );
     const players_details = await Promise.all(players_details_promises);
-    players_details.forEach(player_detail => {
-      player_roles_flat.push(player_detail.role);
-      player_codes_flat.push(player_detail.code_id);
-    });
+    const player_roles_flat = players_details.map(player_detail => player_detail.role);
+    const player_codes_flat = players_details.map(player_detail => player_detail.code_id);
     console.debug("players_roles_flat: ", player_roles_flat);
     console.debug("players_codes_flat: ", player_codes_flat);
     if (player_roles_flat.some(player_role => !player_role) || player_codes_flat.some(player_code => !player_code)) {
       return res.status(403).send("403 Forbidden: Team player not assigned");
     }
 
-    const players_labels_cum = players_labels.map(player_labels => player_labels.length).reduce((acc, val) => {
-      acc.push(val + (acc.length > 0 ? acc[acc.length - 1] : 0));
-      return acc;
-    } , [] as number[]);
+    const players_labels_cum = players_labels.map(player_labels =>
+      player_labels.length).reduce((acc, val) => {
+        acc.push(val + (acc.length > 0 ? acc[acc.length - 1] : 0));
+        return acc;
+      } , [] as number[]);
     console.debug("players_labels_sum: ", players_labels_cum);
     const players_roles = players_labels_cum.map((player_labels_sum, index) => {
       return player_roles_flat.slice(index > 0 ? players_labels_cum[index - 1] : 0, player_labels_sum);
@@ -117,13 +116,12 @@ router.post("/create", authenticate(), async (req, res) => {
     console.debug("players_roles: ", players_roles);
     console.debug("players_codes: ", players_codes);
 
-    const code_status_flat: string[] = [], code_languages_flat: string[] = [];
-    const code_details_promises = player_codes_flat.map(player_code => hasura.get_compile_status(player_code));
+    const code_details_promises = player_codes_flat.map(player_code =>
+      hasura.get_compile_status(player_code)
+      );
     const code_details = await Promise.all(code_details_promises);
-    code_details.forEach(code_detail => {
-      code_status_flat.push(code_detail.compile_status);
-      code_languages_flat.push(code_detail.language);
-    });
+    const code_status_flat = code_details.map(code => code.status);
+    const code_languages_flat = code_details.map(code => code.language);
     console.debug("code_status_flat: ", code_status_flat);
     console.debug("code_languages_flat: ", code_languages_flat);
     if (code_status_flat.some(status => status !== "Success" && status !== "No Need")) {
@@ -314,10 +312,11 @@ router.post("/create", authenticate(), async (req, res) => {
   }
 });
 
+
 /**
  * @param token
  * @param {uuid} team_id
- * @returns {string} score
+ * @returns {number} score
  */
 router.post("/get-score", async (req, res) => {
   const authHeader = req.get("Authorization");

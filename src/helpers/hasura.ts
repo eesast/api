@@ -104,7 +104,7 @@ export const get_team_from_code: any = async (code_id: string) => {
 /**
  * query compile_status from code_id
  * @param {string} code_id
- * @returns {string} compile_status
+ * @returns {object} {compile_status, language}
  */
 export const get_compile_status: any = async (code_id: string) => {
   const query_compile_status = await client.request(
@@ -128,9 +128,9 @@ export const get_compile_status: any = async (code_id: string) => {
 
 
 /**
- * query score and contest_score from team_id
+ * query score from team_id
  * @param {string} team_id
- * @returns {object} {score, contest_score}
+ * @returns {number} score
  */
 export const get_team_score: any = async (team_id: string) => {
   const query_score = await client.request(
@@ -145,7 +145,8 @@ export const get_team_score: any = async (team_id: string) => {
       team_id: team_id,
     }
   );
-  return query_score.contest_team[0]?.score ?? null
+
+  return parseInt(query_score.contest_team[0]?.score) ?? 0;
 };
 
 
@@ -311,7 +312,13 @@ export const get_player_code: any = async (team_id: string, player_label: string
 }
 
 
-// insert a new room
+/**
+ * insert a new room
+ * @param {string} contest_id
+ * @param {string} status
+ * @param {string} map_id
+ * @returns {string} room_id
+ */
 export const insert_room: any = async (contest_id: string, status: string, map_id: string) => {
   const insert_room = await client.request(
     gql`
@@ -332,32 +339,110 @@ export const insert_room: any = async (contest_id: string, status: string, map_i
 }
 
 
-// // insert a new room_team
-// export const insert_room_team: any = async (room_id: string, team_id: string, team_label: string, player_roles: Array<string>, player_codes: Array<string>) => {
-//   const player_roles_json = JSON.stringify(player_roles);
-//   const player_codes_json = JSON.stringify(player_codes);
+/**
+ * insert a new competition room
+ * @param {string} contest_id
+ * @param {string} status
+ * @param {string} map_id
+ * @param {string} round_id
+ * @returns {string} room_id
+ */
+export const insert_room_competition: any = async (contest_id: string, status: string, map_id: string, round_id: string) => {
+  const insert_room = await client.request(
+    gql`
+      mutation insert_room($contest_id: uuid!, $status: String!, $map_id: uuid!, $round_id: uuid!) {
+        insert_contest_room_one(object: {contest_id: $contest_id, status: $status, map_id: $map_id, round_id: $round_id}) {
+          room_id
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+      status: status,
+      map_id: map_id,
+      round_id: round_id
+    }
+  );
 
-//   const insert_room_team = await client.request(
-//     gql`
-//       mutation insert_room_team($room_id: uuid!, $team_id: uuid!, $team_label: String!, $player_roles: String!, $player_codes: String!) {
-//         insert_contest_room_team_one(object: {room_id: $room_id, team_id: $team_id, team_label: $team_label, player_roles: $player_roles, player_codes: $player_codes}) {
-//           room_id
-//         }
-//       }
-//     `,
-//     {
-//       room_id,
-//       team_id,
-//       team_label,
-//       player_roles: player_roles_json,
-//       player_codes: player_codes_json
-//     }
-//   );
-
-//   return insert_room_team.insert_contest_room_team_one?.room_id ?? null;
-// }
+  return insert_room.insert_contest_room_one?.room_id ?? null;
+}
 
 
+/**
+ * query roound info from round_id
+ * @param {string} round_id
+ * @returns {object} {contest_id, map_id}
+ */
+export const get_round_info: any = async (round_id: string) => {
+  const query_round_info = await client.request(
+    gql`
+      query get_round_info($round_id: uuid!) {
+        contest_round(where: {round_id: {_eq: $round_id}}) {
+          contest_id
+          map_id
+        }
+      }
+    `,
+    {
+      round_id: round_id,
+    }
+  );
+
+  return {
+    contest_id: query_round_info.contest_round[0]?.contest_id ?? null,
+    map_id: query_round_info.contest_round[0]?.map_id ?? null
+  }
+}
+
+
+/**
+ * query contest player info from contest_id
+ * @param {string} contest_id
+ * @returns {object} {team_labels, players_labels}
+ */
+export const get_contest_players: any = async (contest_id: string) => {
+  const query_players = await client.request(
+    gql`
+      query get_players($contest_id: uuid!) {
+        contest_player(where: {contest_id: {_eq: $contest_id}}, order_by: {team_label: asc}) {
+          team_label
+          player_label
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+
+  return {
+    team_labels: query_players.contest_player.map((player: any) => player.team_label),
+    players_labels: query_players.contest_player.map((player: any) => player.player_label)
+  }
+}
+
+
+/**
+ * query all team_ids from contest_id
+ * @param {string} contest_id
+ * @returns {string[]} team_ids
+ */
+export const get_all_teams: any = async (contest_id: string) => {
+  const query_teams = await client.request(
+    gql`
+      query get_teams($contest_id: uuid!) {
+        contest_team(where: {contest_id: {_eq: $contest_id}}, order_by: {team_id: asc}) {
+          team_id
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+
+  return query_teams.contest_team.map((team: any) => team.team_id);
+}
 
 /**
  * Insert room_teams

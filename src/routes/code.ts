@@ -2,8 +2,6 @@ import express from "express";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
-import { gql } from "graphql-request";
-import { client } from "..";
 import fStream from 'fs';
 import { join } from "path";
 import * as hasura from "../helpers/hasura";
