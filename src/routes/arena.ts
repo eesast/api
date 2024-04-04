@@ -396,8 +396,8 @@ router.post("/finish", async (req, res) => {
       const config = await utils.getConfig();
       const file_name = await fs.readdir(`${base_directory}/${contest_name}/arena/${room_id}/output`);
       const upload_file_promises = file_name.map(filename => {
-        let key = `${contest_name}/arena/${room_id}/${filename}`;
-        let localFilePath = `${base_directory}/${contest_name}/arena/${room_id}/output/${filename}`;
+        const key = `${contest_name}/arena/${room_id}/${filename}`;
+        const localFilePath = `${base_directory}/${contest_name}/arena/${room_id}/output/${filename}`;
         return utils.uploadObject(localFilePath, key, cos, config)
           .then(() => {
             return Promise.resolve(true);

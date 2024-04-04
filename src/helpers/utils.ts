@@ -134,7 +134,7 @@ export async function uploadObject(localFilePath: string, bucketKey: string, cos
         console.log(err);
         reject('Failed to upload object to COS');
       } else {
-        // console.log('Upload Success', data);
+        console.debug('Upload Success', data);
         resolve(true);
       }
     });
@@ -153,7 +153,7 @@ export async function deleteObject(key: string, cos: COS, config: any): Promise<
         console.log(err);
         reject('Failed to delete object from COS');
       } else {
-        // console.log('Delete Success', data);
+        console.debug('Delete Success', data);
         resolve(true);
       }
     });

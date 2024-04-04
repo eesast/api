@@ -464,8 +464,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
       });
     });
     console.debug("room_id_counts: ", room_id_counts);
-    const common_room_ids = Array.from(room_id_counts).filter(([_, count]) =>
-      count === team_ids.length).map(([roomId, _]) => roomId);
+    const common_room_ids = Array.from(room_id_counts).filter(([, count]) =>
+      count === team_ids.length).map(([roomId, ]) => roomId);
     console.debug("common_room_ids: ", common_room_ids);
 
     const cos = await utils.initCOS();
@@ -638,8 +638,8 @@ router.post("/finish-one", async (req, res) => {
       const config = await utils.getConfig();
       const file_name = await fs.readdir(`${base_directory}/${contest_name}/competition/${room_id}/output`);
       const upload_file_promises = file_name.map(filename => {
-        let key = `${contest_name}/competition/${round_id}/${room_id}/${filename}`;
-        let localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${filename}`;
+        const key = `${contest_name}/competition/${round_id}/${room_id}/${filename}`;
+        const localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${filename}`;
         return utils.uploadObject(localFilePath, key, cos, config)
           .then(() => {
             return Promise.resolve(true);

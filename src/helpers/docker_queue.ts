@@ -254,7 +254,7 @@ const docker_cron = async () => {
         console.log("room status updated");
 
         const waitAllContainers = new_containers.map(container =>
-          new Promise((resolve, reject) => {
+          new Promise(() => {
             container.wait();
           })
         );
