@@ -146,16 +146,32 @@ export const get_team_score: any = async (team_id: string) => {
     }
   );
 
-  return parseInt(query_score.contest_team[0]?.score) ?? 0;
+  return parseInt(query_score.contest_team[0]?.score ?? "0");
 };
 
 
+/**
+ * query contest score from team_id
+ * @param {string} team_id
+ * @returns {number} contest_score
+ */
+export const get_team_contest_score: any = async (team_id: string) => {
+  const query_contest_score = await client.request(
+    gql`
+      query get_score($team_id: uuid!) {
+        contest_team(where: {team_id: {_eq: $team_id}}) {
+          contest_score
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+    }
+  );
 
+  return parseInt(query_contest_score.contest_team[0]?.contest_score ?? "0");
+};
 
-  // contest_team(order_by: {team_id: asc}, where: {team_id: {_in: ""}}) {
-  //   score
-  //   contest_score
-  // }
 
 /**
  * query score and contest_score from team_ids, ordered by team_id, ascending
@@ -177,8 +193,33 @@ export const get_teams_score: any = async (team_ids: Array<string>) => {
     }
   );
   return query_score.contest_team?.map((team: any) => ({
+    team_id: team.team_id!,
+    score: parseInt(team.score ?? "0")
+  })) ?? [];
+};
+
+/**
+ * query score and contest_score from team_ids, ordered by team_id, ascending
+ * @param {string[]} team_ids
+ * @returns {utils.ContestResult[]} [{team_id, score}]
+ */
+export const get_teams_contest_score: any = async (team_ids: Array<string>) => {
+  const query_contest_score = await client.request(
+    gql`
+      query get_score($team_ids: [uuid!]!) {
+        contest_team(where: {team_id: {_in: $team_ids}}) {
+          team_id
+          contest_score
+        }
+      }
+    `,
+    {
+      team_ids: team_ids,
+    }
+  );
+  return query_contest_score.contest_team?.map((team: any) => ({
     team_id: team.team_id,
-    score: parseInt(team.score)
+    score: parseInt(team.contest_score ?? "0")
   })) ?? [];
 };
 
@@ -607,7 +648,28 @@ export const update_team_score: any = async (team_id: string, score: number) => 
   return update_team_score.update_contest_team.affected_rows;
 }
 
+/**
+ * update team score
+ * @param {string} team_id
+ * @param {number} score
+ */
+export const update_team_contest_score: any = async (team_id: string, score: number) => {
+  const update_team_score = await client.request(
+    gql`
+      mutation update_team_score($team_id: uuid!, $score: String!) {
+        update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {contest_score: $score}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+      score: score.toString()
+    }
+  );
 
+  return update_team_score.update_contest_team.affected_rows;
+}
 
 /**
  * delete contest room

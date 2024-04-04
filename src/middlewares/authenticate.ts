@@ -25,6 +25,7 @@ export interface JwtCompilerPayload {
 }
 export interface JwtServerPayload {
   contest_id: string;
+  round_id?: string;
   room_id: string;
   team_ids: string[];
 }

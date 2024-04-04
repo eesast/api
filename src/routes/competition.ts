@@ -236,6 +236,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
         }
         docker_queue.push({
           contest_id: contest_id,
+          round_id: round_id,
           room_id: room_id,
           map_id: map_id,
           team_label_binds: [
@@ -535,6 +536,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
 
     docker_queue.push({
       contest_id: contest_id,
+      round_id: round_id,
       room_id: room_id,
       map_id: map_id,
       team_label_binds: team_label_binds,
@@ -550,5 +552,119 @@ router.post("/start-one", authenticate(), async (req, res) => {
     return res.status(500).send("500 Internal Server Error: Unknown error" + e);
   }
 });
+
+
+
+
+/**
+ * @param token
+ * @param {uuid} team_id
+ * @returns {number} score
+ */
+router.post("/get-score", async (req, res) => {
+  const authHeader = req.get("Authorization");
+  if (!authHeader) {
+    return res.status(401).send("401 Unauthorized: Missing token");
+  }
+  const token = authHeader.substring(7);
+  return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+    if (err || !decoded) {
+      return res.status(401).send("401 Unauthorized: Token expired or invalid");
+    }
+    const team_id = req.body.team_id;
+    const score = await hasura.get_team_contest_score(team_id);
+    console.debug("score: ", score);
+
+    return res.status(200).send(score.toString());
+  });
+});
+
+/**
+ * @param token
+ * @param {utils.ContestResult[]} result
+ */
+router.post("/finish-one", async (req, res) => {
+  try {
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      return res.status(401).send("401 Unauthorized: Missing token");
+    }
+    const token = authHeader.substring(7);
+    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+      if (err || !decoded) {
+        return res.status(401).send("401 Unauthorized: Token expired or invalid");
+      }
+      const payload = decoded as JwtServerPayload;
+      const room_id = payload.room_id;
+      const round_id = payload.round_id!;
+      const contest_id = payload.contest_id;
+
+      const result: utils.ContestResult[] = req.body.result;
+      const team_ids = Array.from(new Set(result.map(result => result.team_id)));
+      const update_scores = team_ids.map(team_id => {
+        return result.filter(result => result.team_id === team_id).reduce((acc, val) => acc + val.score, 0);
+      });
+
+      console.debug("room_id: ", room_id);
+      console.debug("contest_id: ", contest_id);
+      console.debug("team_ids: ", team_ids);
+      console.debug("update_scores: ", update_scores);
+
+      const update_room_team_score_promises = team_ids.map((team_id, index) =>
+        hasura.update_room_team_score(room_id, team_id, update_scores[index]));
+      await Promise.all(update_room_team_score_promises);
+
+      await hasura.update_room_status(room_id, "Finished", null);
+      console.log("Update room team score!")
+
+      const origin_result: utils.ContestResult[] = await hasura.get_teams_contest_score(team_ids);
+      console.debug("origin_result: ", origin_result);
+      const new_resullt: utils.ContestResult[] = origin_result.map(origin => {
+        const update_index = team_ids.indexOf(origin.team_id);
+        return {
+          team_id: origin.team_id,
+          score: update_scores[update_index] + origin.score
+        };
+      });
+      console.debug("new_result: ", new_resullt);
+      const update_team_score_promises = new_resullt.map(result => {
+        return hasura.update_team_contest_score(result.team_id, result.score);
+      });
+      await Promise.all(update_team_score_promises);
+      console.log("Update team score!")
+
+      const base_directory = await utils.get_base_directory();
+      const contest_name = await hasura.get_contest_name(contest_id);
+      const cos = await utils.initCOS();
+      const config = await utils.getConfig();
+      const file_name = await fs.readdir(`${base_directory}/${contest_name}/competition/${room_id}/output`);
+      const upload_file_promises = file_name.map(filename => {
+        let key = `${contest_name}/competition/${round_id}/${room_id}/${filename}`;
+        let localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${filename}`;
+        return utils.uploadObject(localFilePath, key, cos, config)
+          .then(() => {
+            return Promise.resolve(true);
+          })
+          .catch((err) => {
+            console.log(`Upload ${filename} failed: ${err}`);
+            return Promise.resolve(false);
+          });
+      });
+      const upload_file = await Promise.all(upload_file_promises);
+      console.debug("upload_file: ", upload_file);
+      if (upload_file.some(result => !result)) {
+        return res.status(500).send("500 Internal Server Error: File upload failed");
+      }
+
+      console.log("Files uploaded!")
+      return res.status(200).send("200 OK: Update OK!");
+    });
+
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("500 Internal Server Error: Unknown error" + e);
+  }
+});
+
 
 export default router;

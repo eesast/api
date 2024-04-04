@@ -9,6 +9,7 @@ import * as utils from "./utils";
 
 export interface queue_element {
   contest_id: string;
+  round_id?: string;
   room_id: string;
   map_id: string;
   team_label_binds: utils.TeamLabelBind[];
@@ -92,6 +93,7 @@ const docker_cron = async () => {
         const server_token = jwt.sign(
           {
             contest_id: queue_front.contest_id,
+            round_id: queue_front.round_id,
             room_id: queue_front.room_id,
             team_ids: queue_front.team_label_binds.map((team_label_bind) => team_label_bind.team_id),
           } as JwtServerPayload,
