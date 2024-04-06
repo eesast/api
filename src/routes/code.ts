@@ -2,7 +2,6 @@ import express from "express";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
-import fStream from 'fs';
 import * as hasura from "../helpers/hasura";
 import * as utils from "../helpers/utils";
 
