@@ -16,7 +16,7 @@ type ContestImages = {
     COMPILER_TIMEOUT: string;
     RUNNER_IMAGE?: string;
     SERVER_IMAGE?: string;
-    ClIENT_IMAGE?: string;
+    CLIENT_IMAGE?: string;
     ENVOY_IMAGE?: string;
     RUNNER_TIMEOUT: string;
   };
@@ -33,8 +33,8 @@ export const contest_image_map: ContestImages = {
     COMPILER_IMAGE: "eesast/thuai7_cpp",
     COMPILER_TIMEOUT: "10m",
     SERVER_IMAGE: "eesast/thuai7_server",
-    ClIENT_IMAGE: "eesast/thuai7_client",
-    ENVOY_IMAGE: "eesast/thuai7_envoy",
+    CLIENT_IMAGE: "eesast/thuai7_client",
+    ENVOY_IMAGE: "envoyproxy/envoy:latest",
     RUNNER_TIMEOUT: "30m"
   }
 }

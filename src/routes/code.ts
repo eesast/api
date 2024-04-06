@@ -32,37 +32,14 @@ router.put("/upload", async (req, res) => {
   const cos = await utils.initCOS();
   const config = await utils.getConfig();
 
-  const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const fileStream = fStream.createReadStream(localFilePath);
-      fileStream.on('error', (err) => {
-        console.log('File Stream Error', err);
-        reject('Failed to read local file');
-      });
-      cos.putObject({
-        Bucket: config.bucket,
-        Region: config.region,
-        Key: bucketKey,
-        Body: fileStream,
-      }, (err, data) => {
-        if (err) {
-          console.log(err);
-          reject('Failed to upload object to COS');
-        } else {
-          console.log('Upload Success', data);
-          resolve(true);
-        }
-      });
-    });
-  };
   if (!suffix) {
     const key = `${contest_name}/code/${team_id}/${code_id}`;
     const localFilePath = `${path}/${code_id}`;
-    await uploadObject(localFilePath, key);
+    await utils.uploadObject(localFilePath, key, cos, config);
   } else {
     const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
     const localFilePath = `${path}/${code_id}.${suffix}`;
-    await uploadObject(localFilePath, key);
+    await utils.uploadObject(localFilePath, key, cos, config);
   }
   return res.status(200).send("200 OK: Upload success");
 })
@@ -89,40 +66,14 @@ router.get("/download", async (req, res) => {
   const cos = await utils.initCOS();
   const config = await utils.getConfig();
 
-  const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      cos.headObject({
-        Bucket: config.bucket,
-        Region: config.region,
-        Key: key,
-      }, (err, data) => {
-        if (data) {
-          cos.getObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: key,
-            Output: fStream.createWriteStream(outputPath),
-          }, (err) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(true);
-            }
-          });
-        } else {
-          reject(`key: ${key} Not found.`);
-        }
-      });
-    });
-  };
   if (!suffix) {
     const key = `${contest_name}/code/${team_id}/${code_id}`;
     const outputPath = `${path}/${code_id}`;
-    await downloadObject(key, outputPath);
+    await utils.downloadObject(key, outputPath, cos, config);
   } else {
     const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
     const outputPath = `${path}/${code_id}.${suffix}`;
-    await downloadObject(key, outputPath);
+    await utils.downloadObject(key, outputPath, cos, config);
   }
   return res.status(200).send("200 OK: Download success");
 })
@@ -334,6 +285,35 @@ router.post("/compile-finish", async (req, res) => {
     return res.status(500).send("500 Internal Server Error: Unknown error. " + err);
   }
 });
+
+
+// router.post("/sync-map", authenticate(), async (req, res) => {
+//   const user_uuid = req.auth.user.uuid;
+//   if (!user_uuid) {
+//     return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+//   }
+//   const { contest_list, map_list }: { contest_list: string[], map_list: string[] } = await hasura.get_all_maps();
+//   const base_dictionary = await utils.get_base_directory();
+
+//   const sync_map_promises = contest_list.map((contest_id, index) => {
+//     await hasura.get_maneger_from_user(user_uuid, contest_id)
+//     .then((is_manager: any) => {
+//       if (is_manager) {
+//         const contest_name = await hasura.get_contest_name(contest_id);
+//         const cos = await utils.initCOS();
+//         const config = await utils.getConfig();
+//         // download all files in ${contest_name}/map/${map_id} folder in COS to ${base_dic}/${contest_name}/map/${map_id} folder
+//         // if there are more than one file in the folder, log the error and return 500
+
+//         const map_id = map_list[index];
+//         const key = `${contest_name}/map/${map_id}`;
+//         const outputPath = `${base_dictionary}/${contest_name}/map/${map_id}`;
+//         await utils.downloadObject(key, outputPath, cos, config);
+
+//       }
+//     })
+// });
+
 
 // /**
 //  * GET compile logs

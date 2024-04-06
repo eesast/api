@@ -513,6 +513,30 @@ export const get_room_id: any = async (team_id: string, team_label: string, roun
 }
 
 
+
+/**
+ * query all maps
+ * @returns {object} {contest_list, map_list}
+ */
+export const get_all_maps: any = async () => {
+  const query_maps = await client.request(
+    gql`
+      query get_maps {
+        contest_map(order_by: {contest_id: asc}) {
+          contest_id
+          map_id
+        }
+      }
+    `
+  );
+
+  return {
+    contest_list: query_maps.contest_map.map((map: any) => map.contest_id),
+    map_list: query_maps.contest_map.map((map: any) => map.map_id)
+  }
+}
+
+
 /**
  * Insert room_teams
  * @param {string} room_id

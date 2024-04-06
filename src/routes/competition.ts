@@ -12,11 +12,15 @@ const router = express.Router();
 /**
  * @param token
  * @param {string} round_id
+ * @param {number} exposed (0 or 1, default 0)
+ * @param {number} envoy (0 or 1, default 0)
  */
 router.post("/start-all", authenticate(), async (req, res) => {
   try {
     const user_uuid = req.auth.user.uuid;
     const round_id = req.body.round_id;
+    const exposed = req.body.exposed || 0;
+    const envoy = req.body.envoy || 0;
     console.debug("user_uuid: ", user_uuid);
     console.debug("round_id: ", round_id);
     if (!user_uuid || !round_id) {
@@ -161,6 +165,31 @@ router.post("/start-all", authenticate(), async (req, res) => {
 
     console.log("Code downloaded!");
 
+    const map_files_count = await fs.readdir(`${base_directory}/${contest_name}/map/${map_id}`)
+      .then(files => {
+        return files.length;
+      })
+      .catch((err) => {
+        console.log(`Read ${map_id} files failed: ${err}`);
+        return -1;
+      });
+    console.debug("map_files_count: ", map_files_count);
+
+    if (map_files_count > 1) {
+      await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
+    }
+    if (map_files_count !== 1) {
+        await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
+        await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
+          `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
+          .catch((err) => {
+            console.log(`Download ${map_id}.txt failed: ${err}`)
+            return res.status(500).send("500 Internal Server Error: Map download failed");
+          });
+    }
+
+    console.log("Map downloaded!");
+
     const pairs_unfold: [team_label1: string, team_label2: string, team1: string, team2: string][] = [];
     for (let i = 0; i < team_labels_unique.length; i++) {
         for (let j = i + 1; j < team_labels_unique.length; j++) {
@@ -243,7 +272,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
             { team_id: team2_id, label: team2_label }
           ],
           competition: 1,
-          exposed: 0
+          exposed: exposed,
+          envoy: envoy
         });
         return Promise.resolve(true);
       })
@@ -277,12 +307,16 @@ router.post("/start-all", authenticate(), async (req, res) => {
  * @param token
  * @param {string} round_id
  * @param {utils.TeamLabelBind[]} team_labels
+ * @param {number} exposed (0 or 1, default 0)
+ * @param {number} envoy (0 or 1, default 0)
  */
 router.post("/start-one", authenticate(), async (req, res) => {
   try {
     const user_uuid = req.auth.user.uuid;
     const team_label_binds: utils.TeamLabelBind[] = req.body.team_labels;
     const round_id = req.body.round_id;
+    const exposed = req.body.exposed || 0;
+    const envoy = req.body.envoy || 0;
     console.debug("user_uuid: ", user_uuid);
     console.debug("round_id: ", round_id);
     console.debug("team_labels: ", team_label_binds);
@@ -443,6 +477,33 @@ router.post("/start-one", authenticate(), async (req, res) => {
 
     console.log("Files downloaded!")
 
+    const map_files_count = await fs.readdir(`${base_directory}/${contest_name}/map/${map_id}`)
+      .then(files => {
+        return files.length;
+      })
+      .catch((err) => {
+        console.log(`Read ${map_id} files failed: ${err}`);
+        return -1;
+      });
+    console.debug("map_files_count: ", map_files_count);
+
+    if (map_files_count > 1) {
+      await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
+    }
+    if (map_files_count !== 1) {
+        await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
+        const cos = await utils.initCOS();
+        const config = await utils.getConfig();
+        await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
+          `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
+          .catch((err) => {
+            console.log(`Download ${map_id}.txt failed: ${err}`)
+            return res.status(500).send("500 Internal Server Error: Map download failed");
+          });
+    }
+
+    console.log("Map downloaded!");
+
     const team_room_id_promises = team_ids.map((team_id, index) => {
       return hasura.get_room_id(team_id, team_labels[index], round_id)
         .then((room_id: string[] | null) => {
@@ -540,7 +601,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
       map_id: map_id,
       team_label_binds: team_label_binds,
       competition: 1,
-      exposed: 0
+      exposed: exposed,
+      envoy: envoy
     });
 
     console.log("Docker pushed!")
@@ -561,21 +623,26 @@ router.post("/start-one", authenticate(), async (req, res) => {
  * @returns {number} score
  */
 router.post("/get-score", async (req, res) => {
-  const authHeader = req.get("Authorization");
-  if (!authHeader) {
-    return res.status(401).send("401 Unauthorized: Missing token");
-  }
-  const token = authHeader.substring(7);
-  return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
-    if (err || !decoded) {
-      return res.status(401).send("401 Unauthorized: Token expired or invalid");
+  try {
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      return res.status(401).send("401 Unauthorized: Missing token");
     }
-    const team_id = req.body.team_id;
-    const score = await hasura.get_team_contest_score(team_id);
-    console.debug("score: ", score);
+    const token = authHeader.substring(7);
+    return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
+      if (err || !decoded) {
+        return res.status(401).send("401 Unauthorized: Token expired or invalid");
+      }
+      const team_id = req.body.team_id;
+      const score = await hasura.get_team_contest_score(team_id);
+      console.debug("score: ", score);
 
-    return res.status(200).send(score.toString());
-  });
+      return res.status(200).send(score.toString());
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("500 Internal Server Error: Unknown error" + e);
+  }
 });
 
 /**
@@ -634,37 +701,46 @@ router.post("/finish-one", async (req, res) => {
 
       const base_directory = await utils.get_base_directory();
       const contest_name = await hasura.get_contest_name(contest_id);
-      const cos = await utils.initCOS();
-      const config = await utils.getConfig();
-      const file_name = await fs.readdir(`${base_directory}/${contest_name}/competition/${room_id}/output`);
-      const upload_file_promises = file_name.map(filename => {
-        const key = `${contest_name}/competition/${round_id}/${room_id}/${filename}`;
-        const localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${filename}`;
-        return utils.uploadObject(localFilePath, key, cos, config)
-          .then(() => {
-            return Promise.resolve(true);
-          })
-          .catch((err) => {
-            console.log(`Upload ${filename} failed: ${err}`);
-            return Promise.resolve(false);
-          });
-      });
-      const upload_file = await Promise.all(upload_file_promises);
-      console.debug("upload_file: ", upload_file);
-      if (upload_file.some(result => !result)) {
-        return res.status(500).send("500 Internal Server Error: File upload failed");
-      }
-
-      console.log("Files uploaded!")
-
       try {
-        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/competition/${room_id}`);
+        await fs.access(`${base_directory}/${contest_name}/competition/${room_id}/output`);
+
+        try {
+          const cos = await utils.initCOS();
+          const config = await utils.getConfig();
+          const file_name = await fs.readdir(`${base_directory}/${contest_name}/competition/${room_id}/output`);
+          const upload_file_promises = file_name.map(filename => {
+            const suffix = filename.split(".")[1];
+            const key = `${contest_name}/competition/${round_id}/${room_id}/${room_id}.${suffix}`;
+            const localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${filename}`;
+            return utils.uploadObject(localFilePath, key, cos, config)
+              .then(() => {
+                return Promise.resolve(true);
+              })
+              .catch((err) => {
+                console.log(`Upload ${filename} failed: ${err}`);
+                return Promise.resolve(false);
+              });
+          });
+          const upload_file = await Promise.all(upload_file_promises);
+          console.debug("upload_file: ", upload_file);
+          if (upload_file.some(result => !result)) {
+            return res.status(500).send("500 Internal Server Error: File upload failed");
+          }
+          console.log("Files uploaded!")
+
+        } catch (err) {
+          return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
+        }
+
       } catch (err) {
-        return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
+        console.log("No output files found!");
+      } finally {
+        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/competition/${room_id}`);
       }
 
       return res.status(200).send("200 OK: Update OK!");
     });
+
   } catch (e) {
     console.error(e);
     return res.status(500).send("500 Internal Server Error: Unknown error" + e);

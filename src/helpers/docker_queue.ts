@@ -6,6 +6,7 @@ import { JwtServerPayload } from "../middlewares/authenticate";
 import fs from "fs";
 import * as hasura from "./hasura";
 import * as utils from "./utils";
+import yaml from "js-yaml";
 
 export interface queue_element {
   contest_id: string;
@@ -15,6 +16,7 @@ export interface queue_element {
   team_label_binds: utils.TeamLabelBind[];
   competition: number;
   exposed: number;
+  envoy: number;
 }
 
 const get_port = async (room_id: string, exposed_ports: string[], sub_base_dir: string) => {
@@ -81,7 +83,7 @@ const docker_cron = async () => {
         }
 
         let port = 8080;
-        if (queue_front.exposed === 1) {
+        if (queue_front.exposed === 1 || queue_front.envoy === 1) {
           port = await get_port(queue_front.room_id, exposed_ports, sub_base_dir);
           if (port === -1) {
             console.log("no port available")
@@ -118,8 +120,8 @@ const docker_cron = async () => {
               Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
               HostConfig: {
                 Binds: [
-                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
-                  `${base_directory}/${contest_name}/map:/usr/local/map`,
+                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
+                  `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`,
                   `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
                 ],
                 PortBindings: {
@@ -149,8 +151,8 @@ const docker_cron = async () => {
               Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
               HostConfig: {
                 Binds: [
-                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
-                  `${base_directory}/${contest_name}/map:/usr/local/map`,
+                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
+                  `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`,
                   `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
                 ],
                 AutoRemove: true,
@@ -173,32 +175,94 @@ const docker_cron = async () => {
           }
 
         } else {
-          const container_server = await docker.createContainer({
-            Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
-            Env: [
-              `SCORE_URL=${score_url}`,
-              `FINISH_URL=${finish_url}`,
-              `TOKEN=${server_token}`,
-              `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
-              `MAP_ID=${queue_front.map_id}`
-            ],
-            HostConfig: {
-              Binds: [
-                `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/playback`,
-                `${base_directory}/${contest_name}/map:/usr/local/map`
+          if (queue_front.envoy === 1) {
+            const tcp_port1 = port - 1000
+            const tcp_port2 = port + 1000
+
+            const yamlPath = `${base_directory}/envoy.yaml`
+            const envoyConfig: any = yaml.load(fs.readFileSync(yamlPath, { encoding: 'utf8' }));
+            envoyConfig.static_resources.listeners[0].address.socket_address.port_value = tcp_port1
+            envoyConfig.admin.address.socket_address.port_value = tcp_port2
+            const newYamlPath = `${sub_base_dir}/${queue_front.room_id}/envoy/envoy.yaml`;
+            fs.writeFileSync(newYamlPath, yaml.dump(envoyConfig));
+
+            const container_envoy = await docker.createContainer({
+              Image: utils.contest_image_map[contest_name].ENVOY_IMAGE,
+              HostConfig: {
+                Binds: [
+                  `${sub_base_dir}/${queue_front.room_id}/envoy:/etc/envoy`
+                ],
+                PortBindings: {
+                  [`${tcp_port1}/tcp`]: [{ HostPort: `${tcp_port1}` }],
+                  [`${tcp_port2}/tcp`]: [{ HostPort: `${tcp_port2}` }]
+                },
+                AutoRemove: true
+              },
+              ExposedPorts: { [`${tcp_port1}/tcp`]: {}, [`${tcp_port2}/tcp`]: {} },
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `${contest_name}_Envoy_${queue_front.room_id}`,
+            });
+            new_containers.push(container_envoy);
+          }
+
+          if (queue_front.exposed === 1) {
+            const container_server = await docker.createContainer({
+              Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
+              Env: [
+                `SCORE_URL=${score_url}`,
+                `FINISH_URL=${finish_url}`,
+                `TOKEN=${server_token}`,
+                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
+                `MAP_ID=${queue_front.map_id}`
               ],
-              AutoRemove: true
-            },
-            AttachStdin: false,
-            AttachStdout: false,
-            AttachStderr: false,
-            name: `${contest_name}_Server_${queue_front.room_id}`,
-          });
-          new_containers.push(container_server);
+              HostConfig: {
+                Binds: [
+                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
+                  `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`
+                ],
+                PortBindings: {
+                  '8888/tcp': [{ HostPort: `${port}` }]
+                },
+                AutoRemove: true
+              },
+              ExposedPorts: { '8888/tcp': {} },
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `${contest_name}_Server_${queue_front.room_id}`,
+            });
+            new_containers.push(container_server);
+
+          } else {
+            const container_server = await docker.createContainer({
+              Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
+              Env: [
+                `SCORE_URL=${score_url}`,
+                `FINISH_URL=${finish_url}`,
+                `TOKEN=${server_token}`,
+                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
+                `MAP_ID=${queue_front.map_id}`
+              ],
+              HostConfig: {
+                Binds: [
+                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
+                  `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`
+                ],
+                AutoRemove: true
+              },
+              AttachStdin: false,
+              AttachStdout: false,
+              AttachStderr: false,
+              name: `${contest_name}_Server_${queue_front.room_id}`,
+            });
+            new_containers.push(container_server);
+          }
 
           const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind) => {
             const container_client = await docker.createContainer({
-              Image: utils.contest_image_map[contest_name].ClIENT_IMAGE,
+              Image: utils.contest_image_map[contest_name].CLIENT_IMAGE,
               Env: [
                 `TEAM_LABEL=${team_label_bind.label}`
               ],
@@ -220,24 +284,6 @@ const docker_cron = async () => {
           const container_clients = await Promise.all(container_client_promises);
           new_containers.push(...container_clients);
 
-          if (queue_front.exposed === 1) {
-            const container_envoy = await docker.createContainer({
-              Image: utils.contest_image_map[contest_name].ENVOY_IMAGE,
-              HostConfig: {
-                PortBindings: {
-                  '8888/tcp': [{ HostPort: `${port}` }]
-                },
-                AutoRemove: true
-              },
-              ExposedPorts: { '8888/tcp': {} },
-              AttachStdin: false,
-              AttachStdout: false,
-              AttachStderr: false,
-              name: `${contest_name}_Envoy_${queue_front.room_id}`,
-            });
-            new_containers.push(container_envoy);
-          }
-
         }
         console.log("new containers created");
 
@@ -246,7 +292,7 @@ const docker_cron = async () => {
         });
         console.log("server and clients started");
 
-        if (queue_front.exposed === 1) {
+        if (queue_front.exposed === 1 || queue_front.envoy === 1) {
           await hasura.update_room_status(queue_front.room_id, "Running", port);
         } else {
           await hasura.update_room_status(queue_front.room_id, "Running", null);
