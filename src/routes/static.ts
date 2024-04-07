@@ -99,7 +99,7 @@ router.get("/:name/code/:team_id/*", async (req, res) => {
       const team_id = req.params.team_id;
       const query_if_manager = await client.request(
         gql`
-          query query_is_manager($name: string, $user_uuid: uuid) {
+          query query_is_manager($name: String, $user_uuid: uuid) {
             contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
               user_uuid
             }
@@ -118,11 +118,11 @@ router.get("/:name/code/:team_id/*", async (req, res) => {
       else {
         const query_in_team = await client.request(
           gql`
-            query query_if_in_team($team_id: uuid, $user_uuid: uuid, $name: string) {
+            query query_if_in_team($team_id: uuid, $user_uuid: uuid, $name: String) {
               contest_team(
                 where: {
                   _and: [
-                    {contest: {name: {_eq: $name}}
+                    { contest: {name: {_eq: $name}} }
                     { team_id: { _eq: $team_id } }
                     {
                       _or: [
@@ -162,7 +162,7 @@ router.get("/:name/notice/*", async (req, res) => {
     const name = req.params.name;
     const query_if_manager = await client.request(
       gql`
-        query query_is_manager($name: string, $user_uuid: uuid) {
+        query query_is_manager($name: String, $user_uuid: uuid) {
           contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
             user_uuid
           }
@@ -193,7 +193,7 @@ router.get("/:name/competition/*", async (req, res) => {
     const name = req.params.name;
     const query_if_manager = await client.request(
       gql`
-        query query_is_manager($name: string, $user_uuid: uuid) {
+        query query_is_manager($name: String, $user_uuid: uuid) {
           contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
             user_uuid
           }
@@ -225,7 +225,7 @@ router.get("/:name/map/*", async (req, res) => {
     const name = req.params.name;
     const query_if_manager = await client.request(
       gql`
-        query query_is_manager($name: string, $user_uuid: uuid) {
+        query query_is_manager($name: String, $user_uuid: uuid) {
           contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
             user_uuid
           }
@@ -257,7 +257,7 @@ router.get("/:name/arena/*", async (req, res) => {
     const name = req.params.name;
     const query_if_manager = await client.request(
       gql`
-        query query_is_manager($name: string, $user_uuid: uuid) {
+        query query_is_manager($name: String, $user_uuid: uuid) {
           contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
             user_uuid
           }
