@@ -282,4 +282,14 @@ router.get("/:name/arena/*", async (req, res) => {
   }
 }
 );
+
+router.get("/public/*", async (req, res) => {
+  try{
+    const sts = await getSTS(viewActions, `public/*`);
+    return res.status(200).send(sts);
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
 export default router;
