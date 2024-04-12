@@ -40,20 +40,21 @@ const spider = async (LATESTTITLE: string) => {
             "ajax": "1"
   };
   let i = 0;
-  while (true) {
+  while (1) {
+    let flag=0;
           begin = (i * 5).toString();
           params["begin"] = begin;
-          setTimeout(() => {}, Math.floor(Math.random() * 10 + 1));
+          setTimeout(() => {1}, Math.floor(Math.random() * 10 + 1));
           const resp = await axios.get(url, { headers: headers, params: params });
 
           if (resp.data['base_resp']['ret'] == 200013) {
             console.log(`frequencey control, stop at ${begin}`);
             URL+="fcontrol";
-            return URL;
+            break;
           }
           if (resp.data['app_msg_list'].length === 0) {
             console.log("all article parsed");
-            return URL;
+            break;
           }
 
           if ("app_msg_list" in resp.data) {
@@ -62,11 +63,14 @@ const spider = async (LATESTTITLE: string) => {
                     URL+=item['link']+'\n';
                   }
                   else if (item['title'] === LATESTTITLE)
-                    return URL;
+                    flag=1;
+                  break;
               }
+              if(flag) break;
           }
           i++;
   }
+  return URL;
 }
 router.get("/renew", async (req, res) => {
   try {
