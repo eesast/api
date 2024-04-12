@@ -2,56 +2,124 @@ import express from "express";
 import fetch from "node-fetch";
 import { gql } from "graphql-request";
 import { client } from "..";
-import { CronJob } from "cron";
-import { exec } from "child_process";
-import {message} from "antd";
 import axios from "axios";
+import cron from "node-cron";
+import yaml from "js-yaml";
+import { exec } from 'child_process';
+import { promisify } from "util";
+
 const router = express.Router();
 
-const job = new CronJob("00 00 00 * * *", async () => {
-  exec("python3 UpdateWeekly.py", async (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      return;
-    }
-    console.log(`stdout: ${stdout}`);
-    const URL = JSON.parse(stdout);
+const spider = async (LATESTTITLE: string) => {
+  let URL=""
+  let config: any;
+  let headers: any
+  try {
+          const { stdout, stderr } = await exec('spider/dist/param.exe');
+          if(stderr) throw Error();
+          const data = await promisify(stdout!.read());
+          const fileData = data.toString();
+          config = yaml.load(fileData);
+          headers = {
+            "Cookie": config['cookie'],
+            "User-Agent": config['user_agent']
+          };
+        }catch (err) {
+          console.log("Web data failed!\n" + err);
+        }
+        const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
+        let begin = "0";
+        const params = {
+            "action": "list_ex",
+            "begin": begin,
+            "count": "5",
+            "fakeid": config['fakeid'],
+            "type": "9",
+            "token": config['token'],
+            "lang": "zh_CN",
+            "f": "json",
+            "ajax": "1"
+  };
+  let i = 0;
+  while (true) {
+          begin = (i * 5).toString();
+          params["begin"] = begin;
+          setTimeout(() => {}, Math.floor(Math.random() * 10 + 1));
+          const resp = await axios.get(url, { headers: headers, params: params });
 
-    let LATESTID = 0;
-    try {
-      const response = await axios.post("/weekly/LatestId");
-      if (response.status === 200){
-        message.success("LatestId获取成功！");
-        LATESTID = response.data;
-      }
-      else throw Error("LatestId failed");
-    } catch (err) {
-      console.log(err);
-      message.error("LatestId获取失败！");
-    }
-    if(URL != "null"){
-      try {
-        const response = await axios.post("/weekly/insert", {
-          id: LATESTID+1,
-          url: URL,
-        });
-        if (response.status === 200)
-          message.success("推送添加成功！");
-        else throw Error("Insert failed");
-      } catch (err) {
-        console.log(err);
-        message.error("推送添加失败！");
-      }
-    }
-  });
-});
+          if (resp.data['base_resp']['ret'] == 200013) {
+            console.log(`frequencey control, stop at ${begin}`);
+            URL+="fcontrol";
+            return URL;
+          }
+          if (resp.data['app_msg_list'].length === 0) {
+            console.log("all article parsed");
+            return URL;
+          }
 
-// Start the Cron job
-job.start();
+          if ("app_msg_list" in resp.data) {
+              for (const item of resp.data["app_msg_list"]) {
+                  if ((item['title'] as string).includes("SAST Weekly") && item['title'] !== LATESTTITLE) {
+                    URL+=item['link']+'\n';
+                  }
+                  else if (item['title'] === LATESTTITLE)
+                    return URL;
+              }
+          }
+          i++;
+  }
+}
+router.get("/renew", async (req, res) => {
+  try {
+        let LATESTID = 0;
+        let LASTESTTITLE="";
+        try {
+          const response = await client.request(
+            gql`
+              query QueryLatestId {
+                weekly(limit: 1, order_by: {id: desc}) {
+                  id
+                  title
+                }
+              }
+            `
+          );
+          if(response.status === 200 && response.weekly.length > 0) 
+          {
+            LATESTID=response.weekly[0].id;
+            LASTESTTITLE=response.weekly[0].title;
+          }
+          else throw Error("fetch failed!");
+        } catch (err) {
+          console.log(err);
+        }
+
+        let Url = await spider(LASTESTTITLE);
+        const lines = Url.split('\
+        ');  // 拆分成行
+        const urll = lines.filter(line => line);  // 过滤掉空行
+        let flag=0;
+        if(urll[urll.length-1]==="fcontrol") {flag=1;}
+        urll.pop();
+        for(let i=0; i<urll.length;i++) {
+            try {
+              const response = await axios.post("/weekly/insert", {
+                id: LATESTID+i+1,
+                url: urll[i],
+              });
+              if (response.status === 200)
+                console.log("推送添加成功！");
+              else throw Error("Insert failed");
+            } catch (err) {
+              res.status(500).send("500 Internal Server Error: fetch failed!");
+            }
+        }
+        if(!flag) res.status(200).send("fetch success!");
+        else res.status(200).send("fetch success! but frequencey control!");
+      }catch (err) {
+        res.status(500).send("500 Internal Server Error: fetch failed!");
+      }
+})
 
 router.get("/cover", async (req, res) => {
     try {
