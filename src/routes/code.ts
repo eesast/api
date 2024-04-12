@@ -1,56 +1,13 @@
 import express from "express";
-import Docker from "dockerode";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
-import { gql } from "graphql-request";
-import { client } from "..";
-import getSTS from "../helpers/sts";
-import fStream from 'fs';
-import COS from "cos-nodejs-sdk-v5";
-import { join } from "path";
+import * as hasura from "../helpers/hasura";
 import * as utils from "../helpers/utils";
 
 
 const router = express.Router();
 
-
-async function initCOS() {
-  const sts = await getSTS([
-    "name/cos:GetObject",
-    "name/cos:DeleteObject",
-    "name/cos:HeadObject",
-    "name/cos:PutObject",
-  ], "*");
-
-  const cos = new COS({
-    getAuthorization: async (options, callback) => {
-      try {
-        if (!sts) throw (Error("Credentials invalid!"));
-        callback({
-          TmpSecretId: sts.credentials.tmpSecretId,
-          TmpSecretKey: sts.credentials.tmpSecretKey,
-          SecurityToken: sts.credentials.sessionToken,
-          StartTime: sts.startTime,
-          ExpiredTime: sts.expiredTime,
-        });
-      } catch (err) {
-        console.log(err);
-      }
-    }
-  });
-
-  return cos;
-}
-
-async function getConfig() {
-  const config = {
-    bucket: process.env.COS_BUCKET!,
-    region: 'ap-beijing',
-  };
-  return config;
-
-}
 
 
 /**
@@ -71,43 +28,21 @@ router.put("/upload", async (req, res) => {
   const suffix = req.body.suffix;
   const path = req.body.path;
 
-  const cos = await initCOS();
-  const config = await getConfig();
+  const cos = await utils.initCOS();
+  const config = await utils.getConfig();
 
-  const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const fileStream = fStream.createReadStream(localFilePath);
-      fileStream.on('error', (err) => {
-        console.log('File Stream Error', err);
-        reject('Failed to read local file');
-      });
-      cos.putObject({
-        Bucket: config.bucket,
-        Region: config.region,
-        Key: bucketKey,
-        Body: fileStream,
-      }, (err, data) => {
-        if (err) {
-          console.log(err);
-          reject('Failed to upload object to COS');
-        } else {
-          console.log('Upload Success', data);
-          resolve(true);
-        }
-      });
-    });
-  };
   if (!suffix) {
     const key = `${contest_name}/code/${team_id}/${code_id}`;
     const localFilePath = `${path}/${code_id}`;
-    await uploadObject(localFilePath, key);
+    await utils.uploadObject(localFilePath, key, cos, config);
   } else {
     const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
     const localFilePath = `${path}/${code_id}.${suffix}`;
-    await uploadObject(localFilePath, key);
+    await utils.uploadObject(localFilePath, key, cos, config);
   }
   return res.status(200).send("200 OK: Upload success");
 })
+
 
 /**
  * GET download code, for test only
@@ -127,43 +62,17 @@ router.get("/download", async (req, res) => {
   const suffix = req.body.suffix;
   const path = req.body.path;
 
-  const cos = await initCOS();
-  const config = await getConfig();
+  const cos = await utils.initCOS();
+  const config = await utils.getConfig();
 
-  const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      cos.headObject({
-        Bucket: config.bucket,
-        Region: config.region,
-        Key: key,
-      }, (err, data) => {
-        if (data) {
-          cos.getObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: key,
-            Output: fStream.createWriteStream(outputPath),
-          }, (err) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(true);
-            }
-          });
-        } else {
-          reject(`key: ${key} Not found.`);
-        }
-      });
-    });
-  };
   if (!suffix) {
     const key = `${contest_name}/code/${team_id}/${code_id}`;
     const outputPath = `${path}/${code_id}`;
-    await downloadObject(key, outputPath);
+    await utils.downloadObject(key, outputPath, cos, config);
   } else {
     const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
     const outputPath = `${path}/${code_id}.${suffix}`;
-    await downloadObject(key, outputPath);
+    await utils.downloadObject(key, outputPath, cos, config);
   }
   return res.status(200).send("200 OK: Download success");
 })
@@ -183,7 +92,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const { contest_id, contest_name, team_id, language, compile_status} = await utils.query_code(code_id);
+    const { contest_id, contest_name, team_id, language, compile_status} = await hasura.query_code(code_id);
     if (!contest_id || !team_id || !language) {
       return res.status(404).send("404 Not Found: Code unavailable");
     }
@@ -191,13 +100,13 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(400).send("400 Bad Request: Code already compiled");
     }
 
-    const is_manager = await utils.get_maneger_from_user(user_uuid, contest_id);
+    const is_manager = await hasura.get_maneger_from_user(user_uuid, contest_id);
     if (!is_manager) {
-      const user_team_id = await utils.get_team_from_user(user_uuid, contest_id);
+      const user_team_id = await hasura.get_team_from_user(user_uuid, contest_id);
       if (!user_team_id) {
-        return res.status(401).send("401 Unauthorized: User not in team");
+        return res.status(403).send("403 Forbidden: User not in team");
       } else if (user_team_id !== team_id) {
-        return res.status(401).send("401 Unauthorized: User and code not in the same team");
+        return res.status(403).send("403 Forbidden: User not in team");
       }
     }
 
@@ -214,36 +123,8 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     const base_directory = await utils.get_base_directory();
 
     try {
-      const cos = await initCOS();
-      const config = await getConfig();
-
-      const downloadObject = async function downloadObject(key: string, outputPath: string): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-          cos.headObject({
-            Bucket: config.bucket,
-            Region: config.region,
-            Key: key,
-          }, (err, data) => {
-              if (data) {
-                cos.getObject({
-                  Bucket: config.bucket,
-                  Region: config.region,
-                  Key: key,
-                  Output: fStream.createWriteStream(outputPath),
-                }, (err) => {
-                  if (err) {
-                    reject(err);
-                  } else {
-                    resolve(true);
-                  }
-                });
-              } else {
-                reject(`key: ${key} Not found.`);
-              }
-            });
-          });
-        };
-
+      const cos = await utils.initCOS();
+      const config = await utils.getConfig();
       console.log("start to download files")
 
       const key = `${cosPath}/${code_id}.${language}`;
@@ -251,27 +132,20 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       const outputPath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source/${code_id}.${language}`;
 
       await fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}/source`, { recursive: true });
-      await downloadObject(key, outputPath);
+      await utils.downloadObject(key, outputPath, cos, config);
 
     } catch (err) {
       return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
     }
 
     try {
-      const docker =
-        process.env.DOCKER === "remote"
-          ? new Docker({
-            host: process.env.DOCKER_URL!,
-            port: process.env.DOCKER_PORT!,
-          })
-          : new Docker();
-
+      const docker = await utils.initDocker();
       let containerRunning = false;
       const containerList = await docker.listContainers();
       containerList.forEach((containerInfo) => {
         if (containerInfo.Names.includes(`${contest_name}_Compiler_${code_id}`)) {
             containerRunning = true;
-          }
+        }
       });
       if (containerRunning) {
         return res.status(409).send("409 Confilct: Code already in compilation");
@@ -320,21 +194,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       await container.start();
       console.log("container started")
 
-      await client.request(
-        gql`
-          mutation update_compile_status($code_id: uuid!, $status: String!) {
-            update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
-              returning {
-                compile_status
-              }
-            }
-          }
-        `,
-        {
-          code_id: code_id,
-          status: "Compiling",
-        }
-      );
+      await hasura.update_compile_status(code_id, "Compiling");
       console.log("update compile status success")
 
       if (process.env.NODE_ENV !== "production") {
@@ -386,84 +246,34 @@ router.post("/compile-finish", async (req, res) => {
 
 
       try {
-        const cos = await initCOS();
-        const config = await getConfig();
+        const cos = await utils.initCOS();
+        const config = await utils.getConfig();
 
-        const uploadObject = async function uploadObject(localFilePath: string, bucketKey: string): Promise<boolean> {
-          return new Promise((resolve, reject) => {
-            const fileStream = fStream.createReadStream(localFilePath);
-            fileStream.on('error', (err) => {
-              console.log('File Stream Error', err);
-              reject('Failed to read local file');
-            });
-            cos.putObject({
-              Bucket: config.bucket,
-              Region: config.region,
-              Key: bucketKey,
-              Body: fileStream,
-            }, (err, data) => {
-              if (err) {
-                console.log(err);
-                reject('Failed to upload object to COS');
-              } else {
-                console.log('Upload Success', data);
-                resolve(true);
-              }
-            });
-          });
-        };
         if (compile_status === "Success") {
           const key = `${cosPath}/${code_id}`;
           const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
-          await uploadObject(localFilePath, key);
+          await utils.uploadObject(localFilePath, key, cos, config);
         }
         let key = `${cosPath}/${code_id}.log`;
         let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
-        await uploadObject(localFilePath, key);
+        await utils.uploadObject(localFilePath, key, cos, config);
+
         key = `${cosPath}/${code_id}.curl.log`;
         localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
-        await uploadObject(localFilePath, key);
+        await utils.uploadObject(localFilePath, key, cos, config);
+
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
       }
 
       try {
-        await client.request(
-          gql`
-            mutation update_compile_status($code_id: uuid!, $status: String!) {
-              update_contest_team_code(where: {code_id: {_eq: $code_id}}, _set: {compile_status: $status}) {
-                returning {
-                  compile_status
-                }
-              }
-            }
-          `,
-          {
-            code_id: code_id,
-            status: compile_status,
-          }
-        );
+        await hasura.update_compile_status(code_id, compile_status);
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Update compile status failed. " + err);
       }
 
       try {
-        const deleteFile = async function deleteAllFilesInDir(directoryPath: string) {
-          const files = await fs.readdir(directoryPath);
-          await Promise.all(files.map(async (file) => {
-            const filePath = join(directoryPath, file);
-            const stats = await fs.stat(filePath);
-            if (stats.isDirectory()) {
-              await deleteAllFilesInDir(filePath);
-            } else {
-              await fs.unlink(filePath);
-            }
-          }
-          ));
-          await fs.rmdir(directoryPath);
-        }
-        await deleteFile(`${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
-
+        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
       }
@@ -474,6 +284,35 @@ router.post("/compile-finish", async (req, res) => {
     return res.status(500).send("500 Internal Server Error: Unknown error. " + err);
   }
 });
+
+
+// router.post("/sync-map", authenticate(), async (req, res) => {
+//   const user_uuid = req.auth.user.uuid;
+//   if (!user_uuid) {
+//     return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+//   }
+//   const { contest_list, map_list }: { contest_list: string[], map_list: string[] } = await hasura.get_all_maps();
+//   const base_dictionary = await utils.get_base_directory();
+
+//   const sync_map_promises = contest_list.map((contest_id, index) => {
+//     await hasura.get_maneger_from_user(user_uuid, contest_id)
+//     .then((is_manager: any) => {
+//       if (is_manager) {
+//         const contest_name = await hasura.get_contest_name(contest_id);
+//         const cos = await utils.initCOS();
+//         const config = await utils.getConfig();
+//         // download all files in ${contest_name}/map/${map_id} folder in COS to ${base_dic}/${contest_name}/map/${map_id} folder
+//         // if there are more than one file in the folder, log the error and return 500
+
+//         const map_id = map_list[index];
+//         const key = `${contest_name}/map/${map_id}`;
+//         const outputPath = `${base_dictionary}/${contest_name}/map/${map_id}`;
+//         await utils.downloadObject(key, outputPath, cos, config);
+
+//       }
+//     })
+// });
+
 
 // /**
 //  * GET compile logs
@@ -498,7 +337,7 @@ router.post("/compile-finish", async (req, res) => {
 //     const contest_id = req.body.contest_id;
 //     const team_id = req.params.team_id;
 //     const usr_seq = req.params.usr_seq;
-//     const contest_name = await utils.get_contest_name(contest_id);
+//     const contest_name = await hasura.get_contest_name(contest_id);
 //     const query_if_manager = await client.request(
 //       gql`
 //         query query_is_manager($contest_id: uuid!, $user_uuid: uuid!) {
@@ -535,7 +374,7 @@ router.post("/compile-finish", async (req, res) => {
 //           res.set("Pragma", "no-cache");
 //           return res
 //             .status(200)
-//             .sendFile(`${utils.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
+//             .sendFile(`${hasura.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
 //               cacheControl: false,
 //             });
 //         } catch (err) {
@@ -578,7 +417,7 @@ router.post("/compile-finish", async (req, res) => {
 //           res.set("Pragma", "no-cache");
 //           return res
 //             .status(200)
-//             .sendFile(`${utils.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
+//             .sendFile(`${hasura.base_directory}/${contest_name}/code/${team_id}/compile_log${usr_seq}.txt`, {
 //               cacheControl: false,
 //             });
 //         } else
