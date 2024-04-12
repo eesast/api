@@ -3,7 +3,6 @@ import fetch from "node-fetch";
 import { gql } from "graphql-request";
 import { client } from "..";
 import axios from "axios";
-import cron from "node-cron";
 import yaml from "js-yaml";
 import { exec } from 'child_process';
 import { promisify } from "util";
@@ -94,7 +93,7 @@ router.get("/renew", async (req, res) => {
           console.log(err);
         }
 
-        let Url = await spider(LASTESTTITLE);
+        const Url = await spider(LASTESTTITLE);
         const lines = Url.split('\
         ');  // 拆分成行
         const urll = lines.filter(line => line);  // 过滤掉空行
