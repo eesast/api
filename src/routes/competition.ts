@@ -208,8 +208,10 @@ router.post("/start-all", authenticate(), async (req, res) => {
       const team1_id = pair[2];
       const team2_id = pair[3];
 
-      const details_list_filtered_1 = details_list_available.filter(player => player.team_id === team1_id && player.team_label === team1_label);
-      const details_list_filtered_2 = details_list_available.filter(player => player.team_id === team2_id && player.team_label === team2_label);
+      const details_list_filtered_1 = details_list_available.filter(player =>
+        player.team_id === team1_id && player.team_label === team1_label);
+      const details_list_filtered_2 = details_list_available.filter(player =>
+        player.team_id === team2_id && player.team_label === team2_label);
       const player_labels_flat = details_list_filtered_1.map(player => player.player_label).concat(
         details_list_filtered_2.map(player => player.player_label));
       const team1_codes = details_list_filtered_1.map(player => player.code_id);
@@ -245,8 +247,11 @@ router.post("/start-all", authenticate(), async (req, res) => {
           const language = code_languages_flat[index];
           const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
           const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-          return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-            `${base_directory}/${contest_name}/competition/${room_id}/source/${competition_file_name}`)
+          return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+            .then(() => {
+              return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+              `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
+            })
             .then(() => {
               return Promise.resolve(true);
             })
@@ -576,8 +581,11 @@ router.post("/start-one", authenticate(), async (req, res) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
       const arena_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-      return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-        `${base_directory}/${contest_name}/competition/${room_id}/source/${arena_file_name}`)
+      return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+        .then(() => {
+          return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+          `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
+        })
         .then(() => {
           return Promise.resolve(true);
         })

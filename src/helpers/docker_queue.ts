@@ -115,64 +115,64 @@ const docker_cron = async () => {
 
         const new_containers: Docker.Container[] = [];
         if (contest_name === "THUAI6") {
-          if (queue_front.exposed === 1) {
-            const container_runner = await docker.createContainer({
-              Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
-              HostConfig: {
-                Binds: [
-                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
-                  `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`,
-                  `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
-                ],
-                PortBindings: {
-                  '8888/tcp': [{ HostPort: `${port}` }]
-                },
-                AutoRemove: true,
-                Memory: 6 * 1024 * 1024 * 1024,
-                MemorySwap: 6 * 1024 * 1024 * 1024
-              },
-              ExposedPorts: { '8888/tcp': {} },
-              Env: [
-                `SCORE_URL=${score_url}`,
-                `FINISH_URL=${finish_url}`,
-                `TOKEN=${server_token}`,
-                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
-                `MAP_ID=${queue_front.map_id}`
-              ],
-              AttachStdin: false,
-              AttachStdout: false,
-              AttachStderr: false,
-              name: `${contest_name}_Runner_${queue_front.room_id}`,
-            });
-            new_containers.push(container_runner);
+          // if (queue_front.exposed === 1) {
+          //   const container_runner = await docker.createContainer({
+          //     Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
+          //     HostConfig: {
+          //       Binds: [
+          //         `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
+          //         `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`,
+          //         `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
+          //       ],
+          //       PortBindings: {
+          //         '8888/tcp': [{ HostPort: `${port}` }]
+          //       },
+          //       AutoRemove: true,
+          //       Memory: 6 * 1024 * 1024 * 1024,
+          //       MemorySwap: 6 * 1024 * 1024 * 1024
+          //     },
+          //     ExposedPorts: { '8888/tcp': {} },
+          //     Env: [
+          //       `SCORE_URL=${score_url}`,
+          //       `FINISH_URL=${finish_url}`,
+          //       `TOKEN=${server_token}`,
+          //       `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
+          //       `MAP_ID=${queue_front.map_id}`
+          //     ],
+          //     AttachStdin: false,
+          //     AttachStdout: false,
+          //     AttachStderr: false,
+          //     name: `${contest_name}_Runner_${queue_front.room_id}`,
+          //   });
+          //   new_containers.push(container_runner);
 
-          } else {
-            const container_runner = await docker.createContainer({
-              Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
-              HostConfig: {
-                Binds: [
-                  `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
-                  `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`,
-                  `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
-                ],
-                AutoRemove: true,
-                Memory: 6 * 1024 * 1024 * 1024,
-                MemorySwap: 6 * 1024 * 1024 * 1024
-              },
-              Env: [
-                `SCORE_URL=${score_url}`,
-                `FINISH_URL=${finish_url}`,
-                `TOKEN=${server_token}`,
-                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
-                `MAP_ID=${queue_front.map_id}`
-              ],
-              AttachStdin: false,
-              AttachStdout: false,
-              AttachStderr: false,
-              name: `${contest_name}_Runner_${queue_front.room_id}`,
-            });
-            new_containers.push(container_runner);
-          }
+          // } else {
+          //   const container_runner = await docker.createContainer({
+          //     Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
+          //     HostConfig: {
+          //       Binds: [
+          //         `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
+          //         `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`,
+          //         `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
+          //       ],
+          //       AutoRemove: true,
+          //       Memory: 6 * 1024 * 1024 * 1024,
+          //       MemorySwap: 6 * 1024 * 1024 * 1024
+          //     },
+          //     Env: [
+          //       `SCORE_URL=${score_url}`,
+          //       `FINISH_URL=${finish_url}`,
+          //       `TOKEN=${server_token}`,
+          //       `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
+          //       `MAP_ID=${queue_front.map_id}`
+          //     ],
+          //     AttachStdin: false,
+          //     AttachStdout: false,
+          //     AttachStderr: false,
+          //     name: `${contest_name}_Runner_${queue_front.room_id}`,
+          //   });
+          //   new_containers.push(container_runner);
+          // }
 
         } else {
           if (queue_front.envoy === 1) {
@@ -268,7 +268,7 @@ const docker_cron = async () => {
               ],
               HostConfig: {
                 Binds: [
-                  `${sub_base_dir}/${queue_front.room_id}/source:/usr/local/code`
+                  `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`
                 ],
                 AutoRemove: true,
                 Memory: 6 * 1024 * 1024 * 1024,
