@@ -4,6 +4,12 @@ import { client } from "..";
 
 
 /**
+  ============================================================================
+  ============================ QUERY FUNCTIONS ===============================
+  ============================================================================
+ */
+
+/**
  * query contest_name from contest_id
  * @param {string} contest_id
  * @returns {string} contest_name
@@ -390,61 +396,6 @@ export const get_player_code: any = async (team_id: string, player_label: string
 }
 
 
-/**
- * insert a new room
- * @param {string} contest_id
- * @param {string} status
- * @param {string} map_id
- * @returns {string} room_id
- */
-export const insert_room: any = async (contest_id: string, status: string, map_id: string) => {
-  const insert_room = await client.request(
-    gql`
-      mutation insert_room($contest_id: uuid!, $status: String!, $map_id: uuid!) {
-        insert_contest_room_one(object: {contest_id: $contest_id, status: $status, map_id: $map_id}) {
-          room_id
-        }
-      }
-    `,
-    {
-      contest_id: contest_id,
-      status: status,
-      map_id: map_id
-    }
-  );
-
-  return insert_room.insert_contest_room_one?.room_id ?? null;
-}
-
-
-/**
- * insert a new competition room
- * @param {string} contest_id
- * @param {string} status
- * @param {string} map_id
- * @param {string} round_id
- * @returns {string} room_id
- */
-export const insert_room_competition: any = async (contest_id: string, status: string, map_id: string, round_id: string) => {
-  const insert_room = await client.request(
-    gql`
-      mutation insert_room($contest_id: uuid!, $status: String!, $map_id: uuid!, $round_id: uuid!) {
-        insert_contest_room_one(object: {contest_id: $contest_id, status: $status, map_id: $map_id, round_id: $round_id}) {
-          room_id
-        }
-      }
-    `,
-    {
-      contest_id: contest_id,
-      status: status,
-      map_id: map_id,
-      round_id: round_id
-    }
-  );
-
-  return insert_room.insert_contest_room_one?.room_id ?? null;
-}
-
 
 /**
  * query roound info from round_id
@@ -574,6 +525,69 @@ export const get_all_maps: any = async () => {
 }
 
 
+
+/**
+  ============================================================================
+  ============================ INSERT FUNCTIONS ==============================
+  ============================================================================
+ */
+
+/**
+ * insert a new room
+ * @param {string} contest_id
+ * @param {string} status
+ * @param {string} map_id
+ * @returns {string} room_id
+ */
+export const insert_room: any = async (contest_id: string, status: string, map_id: string) => {
+  const insert_room = await client.request(
+    gql`
+      mutation insert_room($contest_id: uuid!, $status: String!, $map_id: uuid!) {
+        insert_contest_room_one(object: {contest_id: $contest_id, status: $status, map_id: $map_id}) {
+          room_id
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+      status: status,
+      map_id: map_id
+    }
+  );
+
+  return insert_room.insert_contest_room_one?.room_id ?? null;
+}
+
+
+/**
+ * insert a new competition room
+ * @param {string} contest_id
+ * @param {string} status
+ * @param {string} map_id
+ * @param {string} round_id
+ * @returns {string} room_id
+ */
+export const insert_room_competition: any = async (contest_id: string, status: string, map_id: string, round_id: string) => {
+  const insert_room = await client.request(
+    gql`
+      mutation insert_room($contest_id: uuid!, $status: String!, $map_id: uuid!, $round_id: uuid!) {
+        insert_contest_room_one(object: {contest_id: $contest_id, status: $status, map_id: $map_id, round_id: $round_id}) {
+          room_id
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+      status: status,
+      map_id: map_id,
+      round_id: round_id
+    }
+  );
+
+  return insert_room.insert_contest_room_one?.room_id ?? null;
+}
+
+
 /**
  * Insert room_teams
  * @param {string} room_id
@@ -607,6 +621,12 @@ export const insert_room_teams: any = async (room_id: string, team_ids: Array<st
 }
 
 
+
+/**
+  ============================================================================
+  ============================ UPDATE FUNCTIONS ==============================
+  ============================================================================
+ */
 
 /**
  * update compile_status
@@ -731,6 +751,16 @@ export const update_team_contest_score: any = async (team_id: string, score: num
 
   return update_team_score.update_contest_team.affected_rows;
 }
+
+
+
+
+/**
+  ============================================================================
+  ============================ DELETE FUNCTIONS ==============================
+  ============================================================================
+ */
+
 
 /**
  * delete contest room
