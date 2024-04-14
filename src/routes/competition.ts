@@ -191,15 +191,23 @@ router.post("/start-all", authenticate(), async (req, res) => {
     console.log("Map downloaded!");
 
     const pairs_unfold: [team_label1: string, team_label2: string, team1: string, team2: string][] = [];
-    for (let i = 0; i < team_labels_unique.length; i++) {
-        for (let j = i + 1; j < team_labels_unique.length; j++) {
-            for (let k = 0; k < team_list_available.length; k++) {
-                for (let l = k + 1; l < team_list_available.length; l++) {
-                    pairs_unfold.push([team_labels_unique[i], team_labels_unique[j], team_list_available[k], team_list_available[l]]);
-                    pairs_unfold.push([team_labels_unique[j], team_labels_unique[i], team_list_available[k], team_list_available[l]]);
-                }
-            }
+    if (team_labels_unique.length === 1) {
+      for (let i = 0; i < team_list_available.length; i++) {
+        for (let j = i + 1; j < team_list_available.length; j++) {
+          pairs_unfold.push([team_labels_unique[0], team_labels_unique[0], team_list_available[i], team_list_available[j]]);
         }
+      }
+    } else {
+      for (let i = 0; i < team_labels_unique.length; i++) {
+          for (let j = i + 1; j < team_labels_unique.length; j++) {
+              for (let k = 0; k < team_list_available.length; k++) {
+                  for (let l = k + 1; l < team_list_available.length; l++) {
+                      pairs_unfold.push([team_labels_unique[i], team_labels_unique[j], team_list_available[k], team_list_available[l]]);
+                      pairs_unfold.push([team_labels_unique[j], team_labels_unique[i], team_list_available[k], team_list_available[l]]);
+                  }
+              }
+          }
+      }
     }
 
     const start_competition_promises = pairs_unfold.map(pair => {
@@ -208,8 +216,10 @@ router.post("/start-all", authenticate(), async (req, res) => {
       const team1_id = pair[2];
       const team2_id = pair[3];
 
-      const details_list_filtered_1 = details_list_available.filter(player => player.team_id === team1_id && player.team_label === team1_label);
-      const details_list_filtered_2 = details_list_available.filter(player => player.team_id === team2_id && player.team_label === team2_label);
+      const details_list_filtered_1 = details_list_available.filter(player =>
+        player.team_id === team1_id && player.team_label === team1_label);
+      const details_list_filtered_2 = details_list_available.filter(player =>
+        player.team_id === team2_id && player.team_label === team2_label);
       const player_labels_flat = details_list_filtered_1.map(player => player.player_label).concat(
         details_list_filtered_2.map(player => player.player_label));
       const team1_codes = details_list_filtered_1.map(player => player.code_id);
@@ -245,8 +255,11 @@ router.post("/start-all", authenticate(), async (req, res) => {
           const language = code_languages_flat[index];
           const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
           const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-          return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-            `${base_directory}/${contest_name}/competition/${room_id}/source/${competition_file_name}`)
+          return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+            .then(() => {
+              return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+              `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
+            })
             .then(() => {
               return Promise.resolve(true);
             })
@@ -576,8 +589,11 @@ router.post("/start-one", authenticate(), async (req, res) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
       const arena_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-      return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-        `${base_directory}/${contest_name}/competition/${room_id}/source/${arena_file_name}`)
+      return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+        .then(() => {
+          return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+          `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
+        })
         .then(() => {
           return Promise.resolve(true);
         })

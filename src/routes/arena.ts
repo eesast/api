@@ -307,8 +307,11 @@ router.post("/create", authenticate(), async (req, res) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
       const arena_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-      return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-        `${base_directory}/${contest_name}/arena/${room_id}/source/${arena_file_name}`)
+      return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+        .then(() => {
+          return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+          `${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
+        })
         .then(() => {
           return Promise.resolve(true);
         })
