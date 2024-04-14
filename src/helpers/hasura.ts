@@ -2,7 +2,12 @@ import { gql } from "graphql-request";
 import { client } from "..";
 
 
-// query contest_name from contest_id
+
+/**
+ * query contest_name from contest_id
+ * @param {string} contest_id
+ * @returns {string} contest_name
+ */
 export const get_contest_name: any = async (contest_id: string) => {
   const query_contest_name = await client.request(
     gql`
@@ -19,7 +24,12 @@ export const get_contest_name: any = async (contest_id: string) => {
   return query_contest_name.contest[0]?.name ?? null;
 };
 
-// query contest_id from contest_name
+
+/**
+ * query contest_id from contest_name
+ * @param {string} contest_name
+ * @returns {string} contest_id
+ */
 export const get_contest_id: any = async (contest_name: string) => {
   const query_contest_id = await client.request(
     gql`
@@ -36,7 +46,12 @@ export const get_contest_id: any = async (contest_name: string) => {
  return query_contest_id.contest[0]?.id ?? null;
 };
 
-// query contest settings from contest_id
+
+/**
+ * query contest settings from contest_id
+ * @param {string} contest_id
+ * @returns {object} {arena_switch, code_upload_switch, playback_switch, playground_switch, stream_switch, team_switch}
+ */
 export const get_contest_settings: any = async (contest_id: string) => {
   const query_contest_settings = await client.request(
     gql`
@@ -66,7 +81,13 @@ export const get_contest_settings: any = async (contest_id: string) => {
   };
 };
 
-// query team_id from user_uuid and contest_id
+
+/**
+ * query team_id from user_uuid and contest_id
+ * @param {string} user_uuid
+ * @param {string} contest_id
+ * @returns {string} team_id
+ */
 export const get_team_from_user: any = async (user_uuid: string, contest_id: string) => {
   const query_team_id = await client.request(
     gql`
@@ -84,7 +105,12 @@ export const get_team_from_user: any = async (user_uuid: string, contest_id: str
   return query_team_id.contest_team_member[0]?.team_id ?? null;
 };
 
-// query team_id from code_id
+
+/**
+ * query team_id from code_id
+ * @param {string} code_id
+ * @returns {string} team_id
+ */
 export const get_team_from_code: any = async (code_id: string) => {
   const query_team_id = await client.request(
     gql`
@@ -223,7 +249,13 @@ export const get_teams_contest_score: any = async (team_ids: Array<string>) => {
   })) ?? [];
 };
 
-// query manager_uuid from user_uuid and contest_id
+
+/**
+ * query manager_uuid from user_uuid and contest_id
+ * @param {string} user_uuid
+ * @param {string} contest_id
+ * @returns {string} manager_uuid
+ */
 export const get_maneger_from_user: any = async (user_uuid: string, contest_id: string) => {
   const query_if_manager = await client.request(
     gql`
@@ -241,7 +273,12 @@ export const get_maneger_from_user: any = async (user_uuid: string, contest_id: 
   return query_if_manager.contest_manager[0]?.user_uuid ?? null;
 }
 
-// query language and contest_id from code_id
+
+/**
+ * query language and contest_id from code_id
+ * @param {string} code_id
+ * @returns {object} {contest_id, contest_name, team_id, language, compile_status}
+ */
 export const query_code: any = async (code_id: string) => {
   const query_all_from_code = await client.request(
     gql`
