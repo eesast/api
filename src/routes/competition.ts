@@ -191,15 +191,23 @@ router.post("/start-all", authenticate(), async (req, res) => {
     console.log("Map downloaded!");
 
     const pairs_unfold: [team_label1: string, team_label2: string, team1: string, team2: string][] = [];
-    for (let i = 0; i < team_labels_unique.length; i++) {
-        for (let j = i + 1; j < team_labels_unique.length; j++) {
-            for (let k = 0; k < team_list_available.length; k++) {
-                for (let l = k + 1; l < team_list_available.length; l++) {
-                    pairs_unfold.push([team_labels_unique[i], team_labels_unique[j], team_list_available[k], team_list_available[l]]);
-                    pairs_unfold.push([team_labels_unique[j], team_labels_unique[i], team_list_available[k], team_list_available[l]]);
-                }
-            }
+    if (team_labels_unique.length === 1) {
+      for (let i = 0; i < team_list_available.length; i++) {
+        for (let j = i + 1; j < team_list_available.length; j++) {
+          pairs_unfold.push([team_labels_unique[0], team_labels_unique[0], team_list_available[i], team_list_available[j]]);
         }
+      }
+    } else {
+      for (let i = 0; i < team_labels_unique.length; i++) {
+          for (let j = i + 1; j < team_labels_unique.length; j++) {
+              for (let k = 0; k < team_list_available.length; k++) {
+                  for (let l = k + 1; l < team_list_available.length; l++) {
+                      pairs_unfold.push([team_labels_unique[i], team_labels_unique[j], team_list_available[k], team_list_available[l]]);
+                      pairs_unfold.push([team_labels_unique[j], team_labels_unique[i], team_list_available[k], team_list_available[l]]);
+                  }
+              }
+          }
+      }
     }
 
     const start_competition_promises = pairs_unfold.map(pair => {

@@ -277,7 +277,7 @@ const docker_cron = async () => {
               AttachStdin: false,
               AttachStdout: false,
               AttachStderr: false,
-              name: `${contest_name}_Client_${team_label_bind.team_id}_${queue_front.room_id}`,
+              name: `${contest_name}_Client_${queue_front.room_id}_${team_label_bind.team_id}`,
             });
             return container_client;
           });
