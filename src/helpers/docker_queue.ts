@@ -41,7 +41,7 @@ const docker_cron = async () => {
   const max_port_num = parseInt(process.env.MAX_PORTS! as string);
   const exposed_ports = new Array(max_port_num).fill("");
   const base_directory = await utils.get_base_directory();
-  const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : "http://172.17.0.1:28888";
+  const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : "http://10.242.182.113:28888";
 
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME!} * * * * *`, async () => {
     const docker = await utils.initDocker();
@@ -97,7 +97,7 @@ const docker_cron = async () => {
             contest_id: queue_front.contest_id,
             round_id: queue_front.round_id,
             room_id: queue_front.room_id,
-            team_ids: queue_front.team_label_binds.map((team_label_bind) => team_label_bind.team_id),
+            team_label_binds: queue_front.team_label_binds,
           } as JwtServerPayload,
           process.env.SECRET!,
           {
@@ -114,7 +114,7 @@ const docker_cron = async () => {
         console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
 
         const new_containers: Docker.Container[] = [];
-        if (contest_name === "THUAI6") {
+        if (contest_name === "THUAI6" || false) {
           // if (queue_front.exposed === 1) {
           //   const container_runner = await docker.createContainer({
           //     Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
@@ -211,11 +211,12 @@ const docker_cron = async () => {
             const container_server = await docker.createContainer({
               Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
               Env: [
+                `TERMINAL=SERVER`,
+                `TOKEN=${server_token}`,
+                `TIME=${process.env.GAME_TIME}`,
+                `MAP_ID=${queue_front.map_id}`,
                 `SCORE_URL=${score_url}`,
                 `FINISH_URL=${finish_url}`,
-                `TOKEN=${server_token}`,
-                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
-                `MAP_ID=${queue_front.map_id}`
               ],
               HostConfig: {
                 Binds: [
@@ -239,11 +240,12 @@ const docker_cron = async () => {
             const container_server = await docker.createContainer({
               Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
               Env: [
+                `TERMINAL=SERVER`,
+                `TOKEN=${server_token}`,
+                `TIME=${process.env.GAME_TIME}`,
+                `MAP_ID=${queue_front.map_id}`,
                 `SCORE_URL=${score_url}`,
                 `FINISH_URL=${finish_url}`,
-                `TOKEN=${server_token}`,
-                `TEAM_LABELS=${JSON.stringify(queue_front.team_label_binds)}`,
-                `MAP_ID=${queue_front.map_id}`
               ],
               HostConfig: {
                 Binds: [
@@ -260,10 +262,13 @@ const docker_cron = async () => {
             new_containers.push(container_server);
           }
 
-          const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind) => {
+          console.log("team label: " + JSON.stringify(queue_front.team_label_binds));
+          const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind, team_index) => {
             const container_client = await docker.createContainer({
               Image: utils.contest_image_map[contest_name].CLIENT_IMAGE,
               Env: [
+                `TERMINAL=CLIENT`,
+                `TEAM_SEQ_ID=${team_index}`,
                 `TEAM_LABEL=${team_label_bind.label}`
               ],
               HostConfig: {

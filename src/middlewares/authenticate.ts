@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
+import { TeamLabelBind } from "../helpers/utils";
 
 export interface JwtUserPayload {
   uuid: string;
@@ -27,7 +28,7 @@ export interface JwtServerPayload {
   contest_id: string;
   round_id?: string;
   room_id: string;
-  team_ids: string[];
+  team_label_binds: TeamLabelBind[];
 }
 export interface UserInfo {
   uuid: string;
