@@ -22,25 +22,32 @@ router.put("/upload", async (req, res) => {
   if (process.env.NODE_ENV === "production")
     return res.status(403).send("403 Forbidden: This API is disabled in production environment.");
 
+
   const contest_name = req.body.contest_name;
   const code_id = req.body.code_id;
   const team_id = req.body.team_id;
   const suffix = req.body.suffix;
   const path = req.body.path;
 
-  const cos = await utils.initCOS();
-  const config = await utils.getConfig();
-
-  if (!suffix) {
-    const key = `${contest_name}/code/${team_id}/${code_id}`;
-    const localFilePath = `${path}/${code_id}`;
-    await utils.uploadObject(localFilePath, key, cos, config);
-  } else {
-    const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
-    const localFilePath = `${path}/${code_id}.${suffix}`;
-    await utils.uploadObject(localFilePath, key, cos, config);
+  try {
+    const cos = await utils.initCOS();
+    const config = await utils.getConfig();
+    if (!suffix) {
+      const key = `${contest_name}/code/${team_id}/${code_id}`;
+      const localFilePath = `${path}/${code_id}`;
+      console.log("no suffix")
+      await utils.uploadObject(localFilePath, key, cos, config);
+    } else {
+      const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
+      const localFilePath = `${path}/${code_id}.${suffix}`;
+      console.log(`localFilePath: ${localFilePath}, key: ${key}`);
+      await utils.uploadObject(localFilePath, key, cos, config);
+    }
+    return res.status(200).send("200 OK: Upload success");
+  } catch (err) {
+    console.log("error in upload code: ", err);
+    return res.status(500).send(`500 Internal Server Error: ${err}`);
   }
-  return res.status(200).send("200 OK: Upload success");
 })
 
 
@@ -92,7 +99,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const { contest_id, contest_name, team_id, language, compile_status} = await hasura.query_code(code_id);
+    const { contest_id, contest_name, team_id, language, compile_status } = await hasura.query_code(code_id);
     if (!contest_id || !team_id || !language) {
       return res.status(404).send("404 Not Found: Code unavailable");
     }
@@ -144,7 +151,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       const containerList = await docker.listContainers();
       containerList.forEach((containerInfo) => {
         if (containerInfo.Names.includes(`${contest_name}_Compiler_${code_id}`)) {
-            containerRunning = true;
+          containerRunning = true;
         }
       });
       if (containerRunning) {

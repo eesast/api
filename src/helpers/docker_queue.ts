@@ -217,6 +217,9 @@ const docker_cron = async () => {
                 `MAP_ID=${queue_front.map_id}`,
                 `SCORE_URL=${score_url}`,
                 `FINISH_URL=${finish_url}`,
+                `TEAM_LABELS=${queue_front.team_label_binds.map((item) => {
+                  return `${item.label}`
+                }).join(":")}`
               ],
               HostConfig: {
                 Binds: [
@@ -246,6 +249,9 @@ const docker_cron = async () => {
                 `MAP_ID=${queue_front.map_id}`,
                 `SCORE_URL=${score_url}`,
                 `FINISH_URL=${finish_url}`,
+                `TEAM_LABELS=${queue_front.team_label_binds.map((item) => {
+                  return `${item.label}`
+                }).join(":")}`
               ],
               HostConfig: {
                 Binds: [
@@ -269,7 +275,9 @@ const docker_cron = async () => {
               Env: [
                 `TERMINAL=CLIENT`,
                 `TEAM_SEQ_ID=${team_index}`,
-                `TEAM_LABEL=${team_label_bind.label}`
+                `TEAM_LABELS=${queue_front.team_label_binds.map((item) => {
+                  return `${item.label}`
+                }).join(":")}`
               ],
               HostConfig: {
                 Binds: [
