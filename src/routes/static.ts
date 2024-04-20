@@ -202,7 +202,7 @@ router.get("/:name/arena/*", async (req, res) => {
   }
 });
 
-router.get("/public/WebGL/:name", async (req, res, next) => {
+router.get("/public/WebGL/:name/*", async (req, res, next) => {
   try{
     const name = req.params.name;
     if (await checkContestManager(name)) {
