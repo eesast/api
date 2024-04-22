@@ -114,7 +114,7 @@ const docker_cron = async () => {
         console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
 
         const new_containers: Docker.Container[] = [];
-        if (contest_name === "THUAI6" || false) {
+        if (contest_name === "THUAI6" && false) {
           // if (queue_front.exposed === 1) {
           //   const container_runner = await docker.createContainer({
           //     Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
@@ -196,7 +196,7 @@ const docker_cron = async () => {
                   [`${tcp_port1}/tcp`]: [{ HostPort: `${tcp_port1}` }],
                   [`${tcp_port2}/tcp`]: [{ HostPort: `${tcp_port2}` }]
                 },
-                AutoRemove: true
+                AutoRemove: false
               },
               ExposedPorts: { [`${tcp_port1}/tcp`]: {}, [`${tcp_port2}/tcp`]: {} },
               AttachStdin: false,
@@ -229,7 +229,7 @@ const docker_cron = async () => {
                 PortBindings: {
                   '8888/tcp': [{ HostPort: `${port}` }]
                 },
-                AutoRemove: true
+                AutoRemove: false
               },
               ExposedPorts: { '8888/tcp': {} },
               AttachStdin: false,
@@ -240,6 +240,7 @@ const docker_cron = async () => {
             new_containers.push(container_server);
 
           } else {
+            console.log("No expose");
             const container_server = await docker.createContainer({
               Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
               Env: [
@@ -258,7 +259,7 @@ const docker_cron = async () => {
                   `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
                   `${base_directory}/${contest_name}/${queue_front.map_id}/map:/usr/local/map`
                 ],
-                AutoRemove: true
+                AutoRemove: false
               },
               AttachStdin: false,
               AttachStdout: false,
@@ -267,6 +268,7 @@ const docker_cron = async () => {
             });
             new_containers.push(container_server);
           }
+          console.log("server docker pushd");
 
           console.log("team label: " + JSON.stringify(queue_front.team_label_binds));
           const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind, team_index) => {
@@ -283,7 +285,7 @@ const docker_cron = async () => {
                 Binds: [
                   `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`
                 ],
-                AutoRemove: true,
+                AutoRemove: false,
                 Memory: 6 * 1024 * 1024 * 1024,
                 MemorySwap: 6 * 1024 * 1024 * 1024
               },
@@ -294,6 +296,7 @@ const docker_cron = async () => {
             });
             return container_client;
           });
+          console.log("client docker pushd");
           const container_clients = await Promise.all(container_client_promises);
           new_containers.push(...container_clients);
 
