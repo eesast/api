@@ -309,7 +309,7 @@ export const query_code: any = async (code_id: string) => {
 
   return {
     contest_id: query_all_from_code.contest_team_code[0]?.contest_team?.contest_id ?? null,
-    contest_name: query_all_from_code.contest_team_code[0]?.contest_team?.contest?.contest_name ?? null,
+    contest_name: query_all_from_code.contest_team_code[0]?.contest_team?.contest?.name ?? null,
     team_id: query_all_from_code.contest_team_code[0]?.team_id ?? null,
     language: query_all_from_code.contest_team_code[0]?.language ?? null,
     compile_status: query_all_from_code.contest_team_code[0]?.compile_status ?? null
