@@ -128,7 +128,7 @@ router.post("/create", authenticate(), async (req, res) => {
     const code_languages_flat = code_details.map(code => code.language);
     console.debug("code_status_flat: ", code_status_flat);
     console.debug("code_languages_flat: ", code_languages_flat);
-    if (code_status_flat.some(status => status !== "Success" && status !== "No Need")) {
+    if (code_status_flat.some(status => status !== "Completed" && status !== "No Need")) {
       return res.status(403).send("403 Forbidden: Team code not compiled");
     }
     if (code_languages_flat.some(language => language !== "py" && language !== "cpp")) {
@@ -220,7 +220,7 @@ router.post("/create", authenticate(), async (req, res) => {
         await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
         const cos = await utils.initCOS();
         const config = await utils.getConfig();
-        await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
+        await utils.downloadObject(`${contest_name}/map/${map_id}/${map_id}.txt`,
           `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
           .catch((err) => {
             console.log(`Download ${map_id}.txt failed: ${err}`)
