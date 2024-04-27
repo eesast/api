@@ -395,12 +395,11 @@ router.post("/finish", async (req, res) => {
       const payload = decoded as JwtServerPayload;
       const room_id = payload.room_id;
       const contest_id = payload.contest_id;
+      const team_label_binds = payload.team_label_binds;
 
       const result: utils.ContestResult[] = req.body.result;
-      const team_ids = Array.from(new Set(result.map(result => result.team_id)));
-      const update_scores = team_ids.map(team_id => {
-        return result.filter(result => result.team_id === team_id).reduce((acc, val) => acc + val.score, 0);
-      });
+      const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
+      const update_scores = result.map((result_item) => result_item.score);
 
       console.debug("room_id: ", room_id);
       console.debug("contest_id: ", contest_id);
@@ -434,7 +433,6 @@ router.post("/finish", async (req, res) => {
       const contest_name = await hasura.get_contest_name(contest_id);
       try {
         await fs.access(`${base_directory}/${contest_name}/arena/${room_id}/output`);
-
         try {
           const cos = await utils.initCOS();
           const config = await utils.getConfig();
@@ -466,7 +464,16 @@ router.post("/finish", async (req, res) => {
       } catch (err) {
         console.log("No output files found!");
       } finally {
-        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/arena/${room_id}`);
+        // if dir exists, delete it
+        const dir_to_remove = `${base_directory}/${contest_name}/arena/${room_id}`;
+        console.log("Trying to remove dir: ", dir_to_remove);
+        try {
+          await fs.access(dir_to_remove);
+          await utils.deleteAllFilesInDir(dir_to_remove);
+          console.log(`Directory deleted: ${dir_to_remove}`);
+        } catch (err) {
+          console.log(`Directory not found, skipped deletion: ${dir_to_remove}`);
+        }
       }
 
       return res.status(200).send("200 OK: Update OK!");
