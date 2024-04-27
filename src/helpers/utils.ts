@@ -7,7 +7,7 @@ import * as fs from "fs/promises";
 
 
 export const get_base_directory = async () => {
-    return process.env.NODE_ENV === "production" ? '/data' : process.env.BASE_DIR!;
+    return process.env.NODE_ENV === "production" ? '/data' : process.env.BASE_DIR!; // BASE_DIR is /var/contest, for example
 }
 
 type ContestImages = {
@@ -208,4 +208,13 @@ export async function deleteAllFilesInDir(directoryPath: string) {
   }
   ));
   await fs.rmdir(directoryPath);
+}
+
+export async function checkPathExists(path: string) {
+  try {
+    await fs.access(path);
+    return true;
+  } catch (err) {
+    return false;
+  }
 }

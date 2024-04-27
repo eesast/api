@@ -524,6 +524,28 @@ export const get_all_maps: any = async () => {
   }
 }
 
+/**
+ * get map name
+ * @param {string} map_id
+ * @returns {string} map_name
+ */
+export const get_map_name: any = async (map_id: string) => {
+  const query_map = await client.request(
+    gql`
+      query get_map_name($map_id: uuid!) {
+        contest_map(where: {map_id: {_eq: $map_id}}){
+          filename
+        }
+      }
+    `,
+    {
+      map_id: map_id
+    }
+  );
+  console.log("query_map: ", query_map);
+  return query_map.contest_map[0].filename ?? null;
+}
+
 
 
 /**

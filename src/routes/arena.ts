@@ -26,7 +26,6 @@ router.post("/create", authenticate(), async (req, res) => {
     const team_label_binds: utils.TeamLabelBind[] = req.body.team_labels;
     const exposed = req.body.exposed ?? 1;
     const envoy = req.body.envoy ?? 1;
-
     console.debug("user_uuid: ", user_uuid);
     console.debug("contest_name: ", contest_name);
     console.debug("map_id: ", map_id);
@@ -79,7 +78,7 @@ router.post("/create", authenticate(), async (req, res) => {
 
     const players_labels_promises = team_labels.map(team_label =>
       hasura.get_players_label(contest_id, team_label)
-      );
+    );
     const players_labels: string[][] = await Promise.all(players_labels_promises);
     console.debug("players_labels: ", players_labels);
     if (players_labels.some(player_labels => !player_labels)) {
@@ -89,13 +88,13 @@ router.post("/create", authenticate(), async (req, res) => {
     const player_labels_flat = players_labels.flat();
     const team_ids_flat = team_ids.flatMap((team_id, index) =>
       Array(players_labels[index].length).fill(team_id)
-      );
+    );
     console.debug("player_labels_flat: ", player_labels_flat);
     console.debug("team_ids_flat: ", team_ids_flat);
 
     const players_details_promises = player_labels_flat.map((player_label, index) =>
       hasura.get_player_code(team_ids_flat[index], player_label)
-      );
+    );
     const players_details = await Promise.all(players_details_promises);
     const player_roles_flat = players_details.map(player_detail => player_detail.role);
     const player_codes_flat = players_details.map(player_detail => player_detail.code_id);
@@ -109,7 +108,7 @@ router.post("/create", authenticate(), async (req, res) => {
       player_labels.length).reduce((acc, val) => {
         acc.push(val + (acc.length > 0 ? acc[acc.length - 1] : 0));
         return acc;
-      } , [] as number[]);
+      }, [] as number[]);
     console.debug("players_labels_sum: ", players_labels_cum);
     const players_roles = players_labels_cum.map((player_labels_sum, index) => {
       return player_roles_flat.slice(index > 0 ? players_labels_cum[index - 1] : 0, player_labels_sum);
@@ -122,7 +121,7 @@ router.post("/create", authenticate(), async (req, res) => {
 
     const code_details_promises = player_codes_flat.map(player_code =>
       hasura.get_compile_status(player_code)
-      );
+    );
     const code_details = await Promise.all(code_details_promises);
     const code_status_flat = code_details.map(code => code.compile_status);
     const code_languages_flat = code_details.map(code => code.language);
@@ -213,19 +212,20 @@ router.post("/create", authenticate(), async (req, res) => {
       });
     console.debug("map_files_count: ", map_files_count);
 
+    const map_filename = await hasura.get_map_name(map_id);
     if (map_files_count > 1) {
       await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
     }
     if (map_files_count !== 1) {
-        await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
-        const cos = await utils.initCOS();
-        const config = await utils.getConfig();
-        await utils.downloadObject(`${contest_name}/map/${map_id}/${map_id}.txt`,
-          `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
-          .catch((err) => {
-            console.log(`Download ${map_id}.txt failed: ${err}`)
-            return res.status(500).send("500 Internal Server Error: Map download failed");
-          });
+      await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
+      const cos = await utils.initCOS();
+      const config = await utils.getConfig();
+      await utils.downloadObject(`${contest_name}/map/${map_filename}`,
+        `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
+        .catch((err) => {
+          console.log(`Download ${map_id}.txt failed: ${err}`)
+          return res.status(500).send("500 Internal Server Error: Map download failed");
+        });
     }
 
     console.log("Map downloaded!");
@@ -261,17 +261,17 @@ router.post("/create", authenticate(), async (req, res) => {
           return Promise.all(files_stat_promises);
         })
         .then(files_stat => {
-            const files_stat_sorted = files_stat.sort((a, b) => a.stat.mtime.getTime() - b.stat.mtime.getTime());
-            const files_stat_filtered = files_stat_sorted.filter(file_stat => {
-              return !players_codes[index].includes(file_stat.file.split(".")[0]);
-            });
+          const files_stat_sorted = files_stat.sort((a, b) => a.stat.mtime.getTime() - b.stat.mtime.getTime());
+          const files_stat_filtered = files_stat_sorted.filter(file_stat => {
+            return !players_codes[index].includes(file_stat.file.split(".")[0]);
+          });
 
-            const files_stat_to_delete = files_stat_filtered.slice(0, files_stat_filtered.length - 6);
-            const delete_promises = files_stat_to_delete.map(file_stat => {
-              return fs.unlink(`${base_directory}/${contest_name}/code/${team_id}/${file_stat.file}`);
-            });
-            return Promise.all(delete_promises);
-          }
+          const files_stat_to_delete = files_stat_filtered.slice(0, files_stat_filtered.length - 6);
+          const delete_promises = files_stat_to_delete.map(file_stat => {
+            return fs.unlink(`${base_directory}/${contest_name}/code/${team_id}/${file_stat.file}`);
+          });
+          return Promise.all(delete_promises);
+        }
         )
         .then(() => {
           return Promise.resolve(true);
@@ -310,7 +310,7 @@ router.post("/create", authenticate(), async (req, res) => {
       return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
         .then(() => {
           return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-          `${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
+            `${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
         })
         .then(() => {
           return Promise.resolve(true);
@@ -467,11 +467,10 @@ router.post("/finish", async (req, res) => {
         // if dir exists, delete it
         const dir_to_remove = `${base_directory}/${contest_name}/arena/${room_id}`;
         console.log("Trying to remove dir: ", dir_to_remove);
-        try {
-          await fs.access(dir_to_remove);
+        if (await utils.checkPathExists(dir_to_remove)) {
           await utils.deleteAllFilesInDir(dir_to_remove);
           console.log(`Directory deleted: ${dir_to_remove}`);
-        } catch (err) {
+        } else {
           console.log(`Directory not found, skipped deletion: ${dir_to_remove}`);
         }
       }
