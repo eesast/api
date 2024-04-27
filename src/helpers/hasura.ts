@@ -542,7 +542,6 @@ export const get_map_name: any = async (map_id: string) => {
       map_id: map_id
     }
   );
-  console.log("query_map: ", query_map);
   return query_map.contest_map[0].filename ?? null;
 }
 

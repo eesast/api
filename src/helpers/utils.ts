@@ -24,8 +24,9 @@ type ContestImages = {
 
 export const contest_image_map: ContestImages = {
   "THUAI6": {
-    RUNNER_IMAGE: "eesast/thuai6_run",
+    RUNNER_IMAGE: "eesast/thuai6_run:dev",
     COMPILER_IMAGE: "eesast/thuai6_cpp",
+    ENVOY_IMAGE: "envoyproxy/envoy",
     COMPILER_TIMEOUT: "10m",
     RUNNER_TIMEOUT: "30m",
   },
