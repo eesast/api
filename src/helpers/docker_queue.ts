@@ -45,7 +45,7 @@ const docker_cron = async () => {
   const max_port_num = parseInt(process.env.MAX_PORTS! as string);
   const exposed_ports = new Array(max_port_num).fill("");
   const base_directory = await utils.get_base_directory();
-  const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : "http://10.242.182.113:28888";
+  const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : "http://172.17.0.1:28888";
 
   cron.schedule(`*/${process.env.QUEUE_CHECK_TIME!} * * * * *`, async () => {
     try {
