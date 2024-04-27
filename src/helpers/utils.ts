@@ -7,7 +7,7 @@ import * as fs from "fs/promises";
 
 
 export const get_base_directory = async () => {
-    return process.env.NODE_ENV === "production" ? '/data' : process.env.BASE_DIR!;
+    return process.env.NODE_ENV === "production" ? '/data' : process.env.BASE_DIR!; // BASE_DIR is /var/contest, for example
 }
 
 type ContestImages = {
@@ -24,8 +24,9 @@ type ContestImages = {
 
 export const contest_image_map: ContestImages = {
   "THUAI6": {
-    RUNNER_IMAGE: "eesast/thuai6_run",
+    RUNNER_IMAGE: "eesast/thuai6_run:dev",
     COMPILER_IMAGE: "eesast/thuai6_cpp",
+    ENVOY_IMAGE: "envoyproxy/envoy",
     COMPILER_TIMEOUT: "10m",
     RUNNER_TIMEOUT: "30m",
   },
@@ -208,4 +209,13 @@ export async function deleteAllFilesInDir(directoryPath: string) {
   }
   ));
   await fs.rmdir(directoryPath);
+}
+
+export async function checkPathExists(path: string) {
+  try {
+    await fs.access(path);
+    return true;
+  } catch (err) {
+    return false;
+  }
 }
