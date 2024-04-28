@@ -113,58 +113,60 @@ const docker_cron = async () => {
         return;
       }
 
-      for (let i = 0; i < available_num; ++i) {
+      // try pop the first item from the queue front
+      try {
+        const queue_front = docker_queue.shift();
+        console.log("queue_front room id: " + queue_front?.room_id);
+        if (!queue_front) {
+          console.log("queue is empty");
+          return;
+        }
+        const contest_name = await hasura.get_contest_name(queue_front.contest_id);
+        const sub_base_dir = queue_front.competition === 1 ? `${base_directory}/${contest_name}/competition` : `${base_directory}/${contest_name}/arena`;
+        const sub_url = queue_front.competition === 1 ? `${url}/competition` : `${url}/arena`;
+
+        let container_running = false;
+        const container_list = await docker.listContainers();
+        container_list.forEach((container_info) => {
+          if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}` || `${contest_name}_Runner_${queue_front.room_id}`)) {
+            container_running = true;
+          }
+        });
+        if (container_running) {
+          console.log("container is already running");
+          return;
+        }
+
+        const port = await get_port();
+        if (port === -1) {
+          console.log("no port available")
+          docker_queue.push(queue_front);
+          return;
+        }
+
+        const server_token = jwt.sign(
+          {
+            contest_id: queue_front.contest_id,
+            round_id: queue_front.round_id,
+            room_id: queue_front.room_id,
+            team_label_binds: queue_front.team_label_binds,
+          } as JwtServerPayload,
+          process.env.SECRET!,
+          {
+            expiresIn: utils.contest_image_map[contest_name].RUNNER_TIMEOUT,
+          }
+        );
+
+        const score_url = `${sub_url}/get-score`;
+        const finish_url = queue_front.competition === 1 ? `${sub_url}/finish-one` : `${sub_url}/finish`;
+        console.debug("score_url: ", score_url);
+        console.debug("finish_url: ", finish_url);
+
+        console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
+        console.log(utils.contest_image_map[contest_name])
+
+        // try creating containers, if failed, retry next time.
         try {
-          const queue_front = docker_queue.shift();
-          console.log("queue_front room id: " + queue_front?.room_id);
-          if (!queue_front) {
-            console.log("queue is empty");
-            return;
-          }
-          const contest_name = await hasura.get_contest_name(queue_front.contest_id);
-          const sub_base_dir = queue_front.competition === 1 ? `${base_directory}/${contest_name}/competition` : `${base_directory}/${contest_name}/arena`;
-          const sub_url = queue_front.competition === 1 ? `${url}/competition` : `${url}/arena`;
-
-          let container_running = false;
-          const container_list = await docker.listContainers();
-          container_list.forEach((container_info) => {
-            if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}` || `${contest_name}_Runner_${queue_front.room_id}`)) {
-              container_running = true;
-            }
-          });
-          if (container_running) {
-            console.log("container is already running");
-            continue;
-          }
-
-          const port = await get_port();
-          if (port === -1) {
-            console.log("no port available")
-            docker_queue.push(queue_front);
-            return;
-          }
-
-          const server_token = jwt.sign(
-            {
-              contest_id: queue_front.contest_id,
-              round_id: queue_front.round_id,
-              room_id: queue_front.room_id,
-              team_label_binds: queue_front.team_label_binds,
-            } as JwtServerPayload,
-            process.env.SECRET!,
-            {
-              expiresIn: utils.contest_image_map[contest_name].RUNNER_TIMEOUT,
-            }
-          );
-
-          const score_url = `${sub_url}/get-score`;
-          const finish_url = queue_front.competition === 1 ? `${sub_url}/finish-one` : `${sub_url}/finish`;
-          console.debug("score_url: ", score_url);
-          console.debug("finish_url: ", finish_url);
-
-          console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
-          console.log(utils.contest_image_map[contest_name])
-
           const new_containers: Docker.Container[] = [];
 
           if (queue_front.envoy === 1) {
@@ -212,7 +214,7 @@ const docker_cron = async () => {
             Env: [
               `TERMINAL=SERVER`,
               `TOKEN=${server_token}`,
-              `MAX_GAME_TIME=${process.env.GAME_TIME}`,
+              `MAX_GAME_TIME=${process.env.MAX_GAME_TIME}`,
               `MAP_ID=${queue_front.map_id}`,
               `SCORE_URL=${score_url}`,
               `FINISH_URL=${finish_url}`,
@@ -288,7 +290,7 @@ const docker_cron = async () => {
           }
           console.log("room status updated");
 
-          // force stop after GAME_TIME
+          // force stop after MAX_GAME_TIME
           setTimeout(() => {
             new_containers.forEach(async (container) => {
               try {
@@ -314,15 +316,18 @@ const docker_cron = async () => {
                   }
                 });
               } catch (err) {
-                console.error("An error occurred in docker_cron:", err);
+                console.error("An error occurred in checking force stop:", err);
               }
             });
-          }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME) : 600 + 5 * 60) * 1000);
-
+          }, (process.env.MAX_GAME_TIME ? Number(process.env.MAX_GAME_TIME) : 600 + 5 * 60) * 1000);
         } catch (err) {
-          console.error("An error occurred in docker_cron:", err);
-          continue;
+          console.error("An error occurred in creating containers:", err);
+          await hasura.update_room_status(queue_front.room_id, "Crashed", null);
+          return;
         }
+      } catch (err) {
+        console.error("An error occurred when poping the first item in queue_front:", err);
+        return;
       }
     } catch (err) {
       console.error("An error occurred in docker_cron:", err);
