@@ -4,6 +4,7 @@ import Docker from "dockerode";
 import jwt from "jsonwebtoken";
 import { JwtServerPayload } from "../middlewares/authenticate";
 import fs from "fs";
+import * as fs_promises from "fs/promises"
 import * as hasura from "./hasura";
 import * as utils from "./utils";
 import yaml from "js-yaml";
@@ -23,7 +24,7 @@ const get_port = async () => {
   const max_port_num = parseInt(process.env.MAX_PORTS! as string);
   const start_port = 8888;
   const ports_list = await hasura.get_exposed_ports();
-  for (var i = 0;i < max_port_num;i++) {
+  for (var i = 0; i < max_port_num; i++) {
     const result = start_port + i;
     var flag = false;
     for (const port_info of ports_list) {
@@ -37,6 +38,57 @@ const get_port = async () => {
     }
   }
   return -1;
+}
+
+const upload_contest_files = async (sub_base_dir: string, queue_front: queue_element) => {
+  const contest_name = await hasura.get_contest_name(queue_front.contest_id);
+  try {
+    await fs_promises.access(`${sub_base_dir}/${queue_front.room_id}/output`);
+    try {
+      const cos = await utils.initCOS();
+      const config = await utils.getConfig();
+      const file_name = await fs_promises.readdir(`${sub_base_dir}/${queue_front.room_id}/output`);
+      const upload_file_promises = file_name.map(filename => {
+        const suffix = filename.split(".")[1];
+        const key = `${contest_name}/arena/${queue_front.room_id}/${queue_front.room_id}.${suffix}`;
+        const localFilePath = `${sub_base_dir}/${queue_front.room_id}/output/${filename}`;
+        return utils.uploadObject(localFilePath, key, cos, config)
+          .then(() => {
+            return Promise.resolve(true);
+          })
+          .catch((err) => {
+            console.log(`Upload ${filename} failed: ${err}`);
+            return Promise.resolve(false);
+          });
+      });
+      const upload_file = await Promise.all(upload_file_promises);
+      console.debug("upload_file: ", upload_file);
+      if (upload_file.some(result => !result)) {
+        console.log("File upload failed");
+      }
+      console.log("Files uploaded!")
+
+    } catch (err) {
+      console.log("Upload files failed. " + err);
+    }
+
+  } catch (err) {
+    console.log("No output files found!");
+  } finally {
+    try {
+      // if dir exists, delete it
+      const dir_to_remove = `${sub_base_dir}/${queue_front.room_id}`;
+      console.log("Trying to remove dir: ", dir_to_remove);
+      if (await utils.checkPathExists(dir_to_remove)) {
+        await utils.deleteAllFilesInDir(dir_to_remove);
+        console.log(`Directory deleted: ${dir_to_remove}`);
+      } else {
+        console.log(`Directory not found, skipped deletion: ${dir_to_remove}`);
+      }
+    } catch (err) {
+      console.log("Delete Contest files failed. " + err);
+    }
+  }
 }
 
 const docker_cron = async () => {
@@ -104,7 +156,6 @@ const docker_cron = async () => {
               expiresIn: utils.contest_image_map[contest_name].RUNNER_TIMEOUT,
             }
           );
-          console.debug("server_token: ", server_token);
 
           const score_url = `${sub_url}/get-score`;
           const finish_url = queue_front.competition === 1 ? `${sub_url}/finish-one` : `${sub_url}/finish`;
@@ -242,7 +293,7 @@ const docker_cron = async () => {
             new_containers.forEach(async (container) => {
               try {
                 console.log("Time is Out! inspecting docker container: " + container.id)
-                container.inspect(async (err, data) =>{
+                container.inspect(async (err, data) => {
                   if (err) {
                     console.log("Container is not running. Fine.");
                   } else {
@@ -253,10 +304,10 @@ const docker_cron = async () => {
                         force: true
                       });
                       console.log(`Container removed: ${container.id}}`);
-                      // TODO: Update the room status as `Crashed`
-                      hasura.update_room_status(queue_front.room_id, "Crashed", null);
-                      // TODO: Upload the log to cos and delete the container
-
+                      // Update the room status as `Crashed`
+                      await hasura.update_room_status(queue_front.room_id, "Crashed", null);
+                      // Upload the log to cos and delete the container
+                      await upload_contest_files(sub_base_dir, queue_front);
                     } else {
                       console.log("Container is not running");
                     }
@@ -266,7 +317,7 @@ const docker_cron = async () => {
                 console.error("An error occurred in docker_cron:", err);
               }
             });
-          }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME): 600 + 5 * 60) * 1000);
+          }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME) : 600 + 5 * 60) * 1000);
 
         } catch (err) {
           console.error("An error occurred in docker_cron:", err);

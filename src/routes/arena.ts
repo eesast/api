@@ -458,7 +458,7 @@ router.post("/finish", async (req, res) => {
           console.log("Files uploaded!")
 
         } catch (err) {
-          return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
+          return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
         }
 
       } catch (err) {
