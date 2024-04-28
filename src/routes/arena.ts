@@ -415,7 +415,7 @@ router.post("/finish", async (req, res) => {
           hasura.update_room_team_score(room_id, team_id, update_scores[index]));
         await Promise.all(update_room_team_score_promises);
 
-        await hasura.update_room_status(room_id, "Finished", null);
+        await hasura.update_room_status(room_id, "Finished");
         console.log("Update room team score!")
 
         const origin_result: utils.TeamResult[] = await hasura.get_teams_score(team_ids);
@@ -435,7 +435,7 @@ router.post("/finish", async (req, res) => {
         console.log("Update team score!")
       } else if (game_status === 'Crashed') {
         // no need to update score
-        await hasura.update_room_status(room_id, "Crashed", null);
+        await hasura.update_room_status(room_id, "Crashed");
       }
 
       const base_directory = await utils.get_base_directory();

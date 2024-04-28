@@ -49,7 +49,7 @@ export const get_contest_id: any = async (contest_name: string) => {
       contest_name: contest_name,
     }
   );
- return query_contest_id.contest[0]?.id ?? null;
+  return query_contest_id.contest[0]?.id ?? null;
 };
 
 
@@ -342,21 +342,45 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
   return count_room_from_team.contest_room_team_aggregate.aggregate.count;
 }
 
+/**
+ * Get all the exposed ports
+ * @returns {[{room_id, port}]} [{room_id, port}]
+ */
 export const get_exposed_ports: any = async () => {
   const query_exposed_ports = await client.request(
     gql`
       query get_exposed_ports {
-        contest_room(where: {status: {_eq: "Running"}}) {
+        contest_room{
           port
           room_id
         }
       }
     `
   );
-  console.log("hasura result: " );
+  console.log("hasura result: ");
   console.log(query_exposed_ports)
   const result = query_exposed_ports.contest_room
   return result;
+}
+
+/**
+ * Get the exposed port by room id
+ * @returns {number} port
+ */
+export const get_exposed_port_by_room: any = async (room_id: string) => {
+  const query_exposed_port_by_room = await client.request(
+    gql`
+      query get_exposed_port_by_room($room_id: uuid!) {
+        contest_room(where: {room_id: {_eq: $room_id}}) {
+          port
+        }
+      }
+    `,
+    {
+      room_id: room_id
+    }
+  );
+  return query_exposed_port_by_room.contest_room[0]?.port
 }
 
 /**
@@ -692,13 +716,13 @@ export const update_compile_status: any = async (code_id: string, compile_status
 
 
 /**
- * update room status
+ * update room status and port
  * @param {string} room_id
  * @param {string} status
  * @param {number} port
  * @returns {number} affected_rows
  */
-export const update_room_status: any = async (room_id: string, status: string, port: number | null) => {
+export const update_room_status_and_port: any = async (room_id: string, status: string, port: number | null) => {
   const update_room_status = await client.request(
     gql`
       mutation update_room_status($room_id: uuid!, $status: String!, $port: Int) {
@@ -717,6 +741,53 @@ export const update_room_status: any = async (room_id: string, status: string, p
   return update_room_status.update_contest_room.affected_rows;
 }
 
+/**
+ * update room status
+ * @param {string} room_id
+ * @param {string} status
+ * @returns {number} affected_rows
+ */
+export const update_room_status: any = async (room_id: string, status: string) => {
+  const update_room_status = await client.request(
+    gql`
+      mutation update_room_status($room_id: uuid!, $status: String!, $port: Int) {
+        update_contest_room(where: {room_id: {_eq: $room_id}}, _set: {status: $status}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      room_id: room_id,
+      status: status
+    }
+  );
+
+  return update_room_status.update_contest_room.affected_rows;
+}
+
+/**
+ * update room port
+ * @param {string} room_id
+ * @param {number} port
+ * @returns {number} affected_rows
+ */
+export const update_room_port: any = async (room_id: string, port: number | null) => {
+  const update_room_status = await client.request(
+    gql`
+      mutation update_room_status($room_id: uuid!, $port: Int) {
+        update_contest_room(where: {room_id: {_eq: $room_id}}, _set: {port: $port}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      room_id: room_id,
+      port: port
+    }
+  );
+
+  return update_room_status.update_contest_room.affected_rows;
+}
 
 /**
  * update room_team score
@@ -842,4 +913,4 @@ export const delete_room_team: any = async (room_id: string) => {
   );
 
   return delete_room_team.delete_contest_room_team.affected_rows;
-  }
+}

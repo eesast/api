@@ -137,13 +137,6 @@ const docker_cron = async () => {
           return;
         }
 
-        const port = await get_port();
-        if (port === -1) {
-          console.log("no port available")
-          docker_queue.push(queue_front);
-          return;
-        }
-
         const server_token = jwt.sign(
           {
             contest_id: queue_front.contest_id,
@@ -168,6 +161,21 @@ const docker_cron = async () => {
         // try creating containers, if failed, retry next time.
         try {
           const new_containers: Docker.Container[] = [];
+
+          const port = await get_port();
+          if (port === -1) {
+            console.log("no port available")
+            docker_queue.push(queue_front);
+            return;
+          }
+
+          if (queue_front.exposed === 1 || queue_front.envoy === 1) {
+            await hasura.update_room_port(queue_front.room_id, port);
+          } else {
+            await hasura.update_room_port(queue_front.room_id, null);
+          }
+
+          console.log("room status updated");
 
           if (queue_front.envoy === 1) {
             const tcp_port1 = port - 1000
@@ -229,14 +237,14 @@ const docker_cron = async () => {
                 `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
                 `${base_directory}/${contest_name}/map/${queue_front.map_id}:/usr/local/map`
               ],
-              PortBindings: {
+              PortBindings: queue_front.exposed === 1 ? Object({
                 '8888/tcp': [{ HostPort: `${port}` }]
-              },
+              }) : {},
               AutoRemove: true,
               Memory: 2 * 1024 * 1024 * 1024,
               MemorySwap: 2 * 1024 * 1024 * 1024
             },
-            ExposedPorts: { '8888/tcp': {} },
+            ExposedPorts: queue_front.exposed === 1 ? Object({ '8888/tcp': {} }) : {},
             AttachStdin: false,
             AttachStdout: false,
             AttachStderr: false,
@@ -283,31 +291,35 @@ const docker_cron = async () => {
           });
           console.log("server and clients started");
 
-          if (queue_front.exposed === 1 || queue_front.envoy === 1) {
-            await hasura.update_room_status(queue_front.room_id, "Running", port);
-          } else {
-            await hasura.update_room_status(queue_front.room_id, "Running", null);
-          }
-          console.log("room status updated");
+          // set State as Running
+          await hasura.update_room_status(queue_front.room_id, "Running");
 
           // force stop after MAX_GAME_TIME
           setTimeout(() => {
             new_containers.forEach(async (container) => {
               try {
-                console.log("Time is Out! inspecting docker container: " + container.id)
+                console.log("Time is Out! inspecting docker container: " + container.id);
                 container.inspect(async (err, data) => {
                   if (err) {
                     console.log("Container is not running. Fine.");
                   } else {
+                    console.log("Container name: " + data?.Name);
                     if (data?.State.Running) {
                       console.log("");
-                      console.log(`Container is still running, but time is out! Removing container (forced) ${container.id}`);
+                      console.log(`Container is still running, but time is out! Removing container (forced) ${data?.Name}`);
                       await container.remove({
                         force: true
                       });
                       console.log(`Container removed: ${container.id}}`);
-                      // Update the room status as `Crashed`
-                      await hasura.update_room_status(queue_front.room_id, "Crashed", null);
+                      // Update the room status as `Finished`
+                      // 如果容器名不包含 `Envoy` 字符串，则更新为 `Crashed`
+                      if (!data?.Name.includes("Envoy")) {
+                        await hasura.update_room_status(queue_front.room_id, "Crashed");
+                      } else {
+                        // 终止 Envoy 直播，并释放本端口。（释放端口的唯一途径）
+                        console.log(`Port ${port} Released! room id: ${queue_front.room_id}`);
+                        await hasura.update_room_port(queue_front.room_id, null);
+                      }
                       // Upload the log to cos and delete the container
                       await upload_contest_files(sub_base_dir, queue_front);
                     } else {
@@ -322,7 +334,7 @@ const docker_cron = async () => {
           }, (process.env.MAX_GAME_TIME ? Number(process.env.MAX_GAME_TIME) : 600 + 5 * 60) * 1000);
         } catch (err) {
           console.error("An error occurred in creating containers:", err);
-          await hasura.update_room_status(queue_front.room_id, "Crashed", null);
+          await hasura.update_room_status_and_port(queue_front.room_id, "Crashed", null);
           return;
         }
       } catch (err) {
