@@ -663,7 +663,7 @@ router.post("/get-score", async (req, res) => {
 
 /**
  * @param token
- * @param {utils.ContestScores} result
+ * @param {utils.ContestResult} result
  */
 router.post("/finish-one", async (req, res) => {
   try {

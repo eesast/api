@@ -46,7 +46,7 @@ export interface TeamLabelBind {
   label: string;
 }
 
-export interface ContestScores { // used by server docker.
+export interface ContestResult { // used by server docker.
   status: string; // value: `Finished` or `Crashed`.
   scores: number[]; // order is the same as `team_label_binds`.
 };
