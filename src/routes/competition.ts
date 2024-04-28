@@ -81,7 +81,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const details_list_available: { team_id: string, team_label: string, player_label: string, code_id: string, role: string, compile_status: string, language: string }[] = [];
     for (let i = 0; i < team_player_list_filtered.length; i += players_labels.length) {
       if (code_detail_list.slice(i, i + players_labels.length).every(code => code.compile_status === "Success" || code.compile_status === "No Need")
-          && code_detail_list.slice(i, i + players_labels.length).every(code => code.language === "cpp" || code.language === "py")) {
+        && code_detail_list.slice(i, i + players_labels.length).every(code => code.language === "cpp" || code.language === "py")) {
         team_list_available.push(team_list_filtered[i / players_labels.length]);
         details_list_available.push(...team_player_list_filtered.slice(i, i + players_labels.length).map((player, index) => ({
           team_id: player.team_id,
@@ -179,13 +179,13 @@ router.post("/start-all", authenticate(), async (req, res) => {
       await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
     }
     if (map_files_count !== 1) {
-        await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
-        await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
-          `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
-          .catch((err) => {
-            console.log(`Download ${map_id}.txt failed: ${err}`)
-            return res.status(500).send("500 Internal Server Error: Map download failed");
-          });
+      await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
+      await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
+        `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
+        .catch((err) => {
+          console.log(`Download ${map_id}.txt failed: ${err}`)
+          return res.status(500).send("500 Internal Server Error: Map download failed");
+        });
     }
 
     console.log("Map downloaded!");
@@ -199,14 +199,14 @@ router.post("/start-all", authenticate(), async (req, res) => {
       }
     } else {
       for (let i = 0; i < team_labels_unique.length; i++) {
-          for (let j = i + 1; j < team_labels_unique.length; j++) {
-              for (let k = 0; k < team_list_available.length; k++) {
-                  for (let l = k + 1; l < team_list_available.length; l++) {
-                      pairs_unfold.push([team_labels_unique[i], team_labels_unique[j], team_list_available[k], team_list_available[l]]);
-                      pairs_unfold.push([team_labels_unique[j], team_labels_unique[i], team_list_available[k], team_list_available[l]]);
-                  }
-              }
+        for (let j = i + 1; j < team_labels_unique.length; j++) {
+          for (let k = 0; k < team_list_available.length; k++) {
+            for (let l = k + 1; l < team_list_available.length; l++) {
+              pairs_unfold.push([team_labels_unique[i], team_labels_unique[j], team_list_available[k], team_list_available[l]]);
+              pairs_unfold.push([team_labels_unique[j], team_labels_unique[i], team_list_available[k], team_list_available[l]]);
+            }
           }
+        }
       }
     }
 
@@ -235,65 +235,65 @@ router.post("/start-all", authenticate(), async (req, res) => {
       let room_id: string;
 
       return hasura.insert_room_competition(contest_id, "Waiting", map_id, round_id)
-      .then((room_id_: string | null) => {
-        if (!room_id_) {
+        .then((room_id_: string | null) => {
+          if (!room_id_) {
+            return Promise.resolve(false);
+          } else {
+            room_id = room_id_;
+          }
+          console.debug("room_id: ", room_id);
+          return hasura.insert_room_teams(room_id, [team1_id, team2_id], [team1_label, team2_label], [team1_roles, team2_roles], [team1_codes, team2_codes])
+        })
+        .then((affected_rows: number) => {
+          if (affected_rows !== 2) {
+            return Promise.resolve(false);
+          }
+          return fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source`, { recursive: true })
+        })
+        .then(() => {
+          const copy_promises = player_codes_flat.map((player_code, index) => {
+            const language = code_languages_flat[index];
+            const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
+            const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
+            return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+              .then(() => {
+                return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+                  `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
+              })
+              .then(() => {
+                return Promise.resolve(true);
+              })
+              .catch((err) => {
+                console.log(`Copy ${code_file_name} failed: ${err}`);
+                return Promise.resolve(false);
+              })
+          });
+          return Promise.all(copy_promises)
+        })
+        .then((copy_result: boolean[]) => {
+          console.debug("copy_result: ", copy_result);
+          if (copy_result.some(result => !result)) {
+            return Promise.resolve(false);
+          }
+          docker_queue.push({
+            contest_id: contest_id,
+            round_id: round_id,
+            room_id: room_id,
+            map_id: map_id,
+            team_label_binds: [
+              { team_id: team1_id, label: team1_label },
+              { team_id: team2_id, label: team2_label }
+            ],
+            competition: 1,
+            exposed: exposed,
+            envoy: envoy
+          });
+          return Promise.resolve(true);
+        })
+        .catch((err: any) => {
+          console.log(`Start competition failed: ${err}`);
           return Promise.resolve(false);
-        } else {
-          room_id = room_id_;
-        }
-        console.debug("room_id: ", room_id);
-        return hasura.insert_room_teams(room_id, [team1_id, team2_id], [team1_label, team2_label], [team1_roles, team2_roles], [team1_codes, team2_codes])
-      })
-      .then((affected_rows: number) => {
-        if (affected_rows !== 2) {
-          return Promise.resolve(false);
-        }
-        return fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source`, { recursive: true })
-      })
-      .then(() => {
-        const copy_promises = player_codes_flat.map((player_code, index) => {
-          const language = code_languages_flat[index];
-          const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
-          const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-          return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
-            .then(() => {
-              return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-              `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
-            })
-            .then(() => {
-              return Promise.resolve(true);
-            })
-            .catch((err) => {
-              console.log(`Copy ${code_file_name} failed: ${err}`);
-              return Promise.resolve(false);
-            })
         });
-        return Promise.all(copy_promises)
-      })
-      .then((copy_result: boolean[]) => {
-        console.debug("copy_result: ", copy_result);
-        if (copy_result.some(result => !result)) {
-          return Promise.resolve(false);
-        }
-        docker_queue.push({
-          contest_id: contest_id,
-          round_id: round_id,
-          room_id: room_id,
-          map_id: map_id,
-          team_label_binds: [
-            { team_id: team1_id, label: team1_label },
-            { team_id: team2_id, label: team2_label }
-          ],
-          competition: 1,
-          exposed: exposed,
-          envoy: envoy
-        });
-        return Promise.resolve(true);
-      })
-      .catch((err: any) => {
-        console.log(`Start competition failed: ${err}`);
-        return Promise.resolve(false);
-      });
 
     });
 
@@ -366,7 +366,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
 
     const players_labels_promises = team_labels.map(team_label =>
       hasura.get_players_label(contest_id, team_label)
-      );
+    );
     const players_labels: string[][] = await Promise.all(players_labels_promises);
     console.debug("players_labels: ", players_labels);
     if (players_labels.some(player_labels => !player_labels)) {
@@ -376,13 +376,13 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const player_labels_flat = players_labels.flat();
     const team_ids_flat = team_ids.flatMap((team_id, index) =>
       Array(players_labels[index].length).fill(team_id)
-      );
+    );
     console.debug("player_labels_flat: ", player_labels_flat);
     console.debug("team_ids_flat: ", team_ids_flat);
 
     const players_details_promises = player_labels_flat.map((player_label, index) =>
       hasura.get_player_code(team_ids_flat[index], player_label)
-      );
+    );
     const players_details = await Promise.all(players_details_promises);
     const player_roles_flat = players_details.map(player_detail => player_detail.role);
     const player_codes_flat = players_details.map(player_detail => player_detail.code_id);
@@ -396,7 +396,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
       player_labels.length).reduce((acc, val) => {
         acc.push(val + (acc.length > 0 ? acc[acc.length - 1] : 0));
         return acc;
-      } , [] as number[]);
+      }, [] as number[]);
     console.debug("players_labels_sum: ", players_labels_cum);
     const players_roles = players_labels_cum.map((player_labels_sum, index) => {
       return player_roles_flat.slice(index > 0 ? players_labels_cum[index - 1] : 0, player_labels_sum);
@@ -409,7 +409,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
 
     const code_details_promises = player_codes_flat.map(player_code =>
       hasura.get_compile_status(player_code)
-      );
+    );
     const code_details = await Promise.all(code_details_promises);
     const code_status_flat = code_details.map(code => code.compile_status);
     const code_languages_flat = code_details.map(code => code.language);
@@ -504,15 +504,15 @@ router.post("/start-one", authenticate(), async (req, res) => {
       await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
     }
     if (map_files_count !== 1) {
-        await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
-        const cos = await utils.initCOS();
-        const config = await utils.getConfig();
-        await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
-          `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
-          .catch((err) => {
-            console.log(`Download ${map_id}.txt failed: ${err}`)
-            return res.status(500).send("500 Internal Server Error: Map download failed");
-          });
+      await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
+      const cos = await utils.initCOS();
+      const config = await utils.getConfig();
+      await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
+        `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
+        .catch((err) => {
+          console.log(`Download ${map_id}.txt failed: ${err}`)
+          return res.status(500).send("500 Internal Server Error: Map download failed");
+        });
     }
 
     console.log("Map downloaded!");
@@ -539,7 +539,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
     });
     console.debug("room_id_counts: ", room_id_counts);
     const common_room_ids = Array.from(room_id_counts).filter(([, count]) =>
-      count === team_ids.length).map(([roomId, ]) => roomId);
+      count === team_ids.length).map(([roomId,]) => roomId);
     console.debug("common_room_ids: ", common_room_ids);
 
     const cos = await utils.initCOS();
@@ -592,7 +592,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
       return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
         .then(() => {
           return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-          `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
+            `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
         })
         .then(() => {
           return Promise.resolve(true);
@@ -663,7 +663,7 @@ router.post("/get-score", async (req, res) => {
 
 /**
  * @param token
- * @param {utils.ContestResult[]} result
+ * @param {utils.ContestScores} result
  */
 router.post("/finish-one", async (req, res) => {
   try {
@@ -680,40 +680,48 @@ router.post("/finish-one", async (req, res) => {
       const room_id = payload.room_id;
       const round_id = payload.round_id!;
       const contest_id = payload.contest_id;
+      const team_label_binds = payload.team_label_binds;
 
-      const result: utils.ContestResult[] = req.body.result;
-      const team_ids = Array.from(new Set(result.map(result => result.team_id)));
-      const update_scores = team_ids.map(team_id => {
-        return result.filter(result => result.team_id === team_id).reduce((acc, val) => acc + val.score, 0);
-      });
+      const game_scores: number[] = req.body.result.scores;
+      const game_status: string = req.body.result.status;
 
-      console.debug("room_id: ", room_id);
-      console.debug("contest_id: ", contest_id);
-      console.debug("team_ids: ", team_ids);
-      console.debug("update_scores: ", update_scores);
+      console.log("result: ", game_scores);
+      if (game_status === 'Finished') {
+        const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
+        const update_scores = game_scores.map((result_item) => result_item);
 
-      const update_room_team_score_promises = team_ids.map((team_id, index) =>
-        hasura.update_room_team_score(room_id, team_id, update_scores[index]));
-      await Promise.all(update_room_team_score_promises);
+        console.debug("room_id: ", room_id);
+        console.debug("contest_id: ", contest_id);
+        console.debug("team_ids: ", team_ids);
+        console.debug("update_scores: ", update_scores);
 
-      await hasura.update_room_status(room_id, "Finished", null);
-      console.log("Update room team score!")
+        const update_room_team_score_promises = team_ids.map((team_id, index) =>
+          hasura.update_room_team_score(room_id, team_id, update_scores[index]));
+        await Promise.all(update_room_team_score_promises);
 
-      const origin_result: utils.ContestResult[] = await hasura.get_teams_contest_score(team_ids);
-      console.debug("origin_result: ", origin_result);
-      const new_resullt: utils.ContestResult[] = origin_result.map(origin => {
-        const update_index = team_ids.indexOf(origin.team_id);
-        return {
-          team_id: origin.team_id,
-          score: update_scores[update_index] + origin.score
-        };
-      });
-      console.debug("new_result: ", new_resullt);
-      const update_team_score_promises = new_resullt.map(result => {
-        return hasura.update_team_contest_score(result.team_id, result.score);
-      });
-      await Promise.all(update_team_score_promises);
-      console.log("Update team score!")
+        await hasura.update_room_status(room_id, "Finished", null);
+        console.log("Update room team score!")
+
+        const origin_result: utils.TeamResult[] = await hasura.get_teams_contest_score(team_ids);
+        console.debug("origin_result: ", origin_result);
+        const new_resullt: utils.TeamResult[] = origin_result.map(origin => {
+          const update_index = team_ids.indexOf(origin.team_id);
+          return {
+            team_id: origin.team_id,
+            score: update_scores[update_index] + origin.score
+          };
+        });
+        console.debug("new_result: ", new_resullt);
+        const update_team_score_promises = new_resullt.map(result => {
+          return hasura.update_team_contest_score(result.team_id, result.score);
+        });
+        await Promise.all(update_team_score_promises);
+        console.log("Update team score!")
+      } else if (game_status === 'Crashed') {
+        // no need to update score
+        await hasura.update_room_status(room_id, "Crashed", null);
+      }
+
 
       const base_directory = await utils.get_base_directory();
       const contest_name = await hasura.get_contest_name(contest_id);
