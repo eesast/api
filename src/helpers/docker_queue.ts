@@ -19,31 +19,28 @@ export interface queue_element {
   envoy: number;
 }
 
-const get_port = async (room_id: string, exposed_ports: string[], sub_base_dir: string) => {
-  // console.log(`original exposed ports: ${exposed_ports}`);
-  for (let i = 0; i < exposed_ports.length; ++i) {
-    if ((!fs.existsSync(`${sub_base_dir}/${exposed_ports[i]}/output`)) || fs.existsSync(`${sub_base_dir}/${exposed_ports[i]}/output/finish.lock`)) { // 两种情况：1. room 文件夹不存在，自然可以直播；2. 有 finish.lock，说明 room 比赛已经结束，也可以直播。
-      exposed_ports[i] = "";
+const get_port = async () => {
+  const max_port_num = parseInt(process.env.MAX_PORTS! as string);
+  const start_port = 8888;
+  const ports_list = await hasura.get_exposed_ports();
+  for (var i = 0;i < max_port_num;i++) {
+    const result = start_port + i;
+    var flag = false;
+    for (const port_info of ports_list) {
+      if (port_info.port === result) {
+        flag = true;
+        break;
+      }
+    }
+    if (!flag) {
+      return result;
     }
   }
-  // console.log(`pruned exposed ports: ${exposed_ports}`);
-
-  let result = -1;
-  for (let i = 0; i < exposed_ports.length; ++i) {
-    if (exposed_ports[i] === "") {
-      // console.log(`find port for room id ${room_id}: ${i + 8888}`);
-      exposed_ports[i] = room_id;
-      result = i + 8888;
-      break;
-    }
-  }
-  return result;
+  return -1;
 }
 
 const docker_cron = async () => {
   const max_container_num = parseInt(process.env.MAX_CONTAINERS! as string);
-  const max_port_num = parseInt(process.env.MAX_PORTS! as string);
-  const exposed_ports = new Array(max_port_num).fill("");
   const base_directory = await utils.get_base_directory();
   const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : "http://172.17.0.1:28888";
 
@@ -88,14 +85,11 @@ const docker_cron = async () => {
             continue;
           }
 
-          let port = 8080;
-          if (queue_front.exposed === 1 || queue_front.envoy === 1) {
-            port = await get_port(queue_front.room_id, exposed_ports, sub_base_dir);
-            if (port === -1) {
-              console.log("no port available")
-              docker_queue.push(queue_front);
-              return;
-            }
+          const port = await get_port();
+          if (port === -1) {
+            console.log("no port available")
+            docker_queue.push(queue_front);
+            return;
           }
 
           const server_token = jwt.sign(
@@ -128,9 +122,11 @@ const docker_cron = async () => {
 
             const yamlPath = `${base_directory}/envoy.yaml`;
             const envoyConfig: any = yaml.load(fs.readFileSync(yamlPath, { encoding: 'utf8' }));
+            // assign port
             envoyConfig.static_resources.listeners[0].address.socket_address.port_value = tcp_port1;
             envoyConfig.admin.address.socket_address.port_value = tcp_port2;
             envoyConfig.static_resources.clusters[0].load_assignment.endpoints[0].lb_endpoints[0].endpoint.address.socket_address.port_value = port;
+
             const envoy_dir = `${sub_base_dir}/${queue_front.room_id}/envoy`
             fs.mkdirSync(envoy_dir, { recursive: true });
             const newYamlPath = `${envoy_dir}/envoy.yaml`;
@@ -165,7 +161,7 @@ const docker_cron = async () => {
             Env: [
               `TERMINAL=SERVER`,
               `TOKEN=${server_token}`,
-              `TIME=${process.env.GAME_TIME}`,
+              `MAX_GAME_TIME=${process.env.GAME_TIME}`,
               `MAP_ID=${queue_front.map_id}`,
               `SCORE_URL=${score_url}`,
               `FINISH_URL=${finish_url}`,
@@ -227,7 +223,6 @@ const docker_cron = async () => {
           const container_clients = await Promise.all(container_client_promises);
           new_containers.push(...container_clients);
 
-
           console.log("new containers created");
 
           new_containers.forEach(async (container) => {
@@ -242,61 +237,36 @@ const docker_cron = async () => {
           }
           console.log("room status updated");
 
-          // 超时自动停止（未完成）
-          const waitAllContainers = new_containers.map(container =>
-            new Promise(() => {
-              container.wait();
-            })
-          );
-
-          Promise.all(waitAllContainers)
-            .then(async () => {
+          // force stop after GAME_TIME
+          setTimeout(() => {
+            new_containers.forEach(async (container) => {
               try {
-                // await fs.promises.writeFile(`${sub_base_dir}/${queue_front.room_id}/finish.lock`, "");
-                // console.log("finish.lock file was written successfully.");
-                console.log("task finished!")
+                console.log("Time is Out! inspecting docker container: " + container.id)
+                container.inspect(async (err, data) =>{
+                  if (err) {
+                    console.log("Container is not running. Fine.");
+                  } else {
+                    if (data?.State.Running) {
+                      console.log("");
+                      console.log(`Container is still running, but time is out! Removing container (forced) ${container.id}`);
+                      await container.remove({
+                        force: true
+                      });
+                      console.log(`Container removed: ${container.id}}`);
+                      // TODO: Update the room status as `Crashed`
+                      hasura.update_room_status(queue_front.room_id, "Crashed", null);
+                      // TODO: Upload the log to cos and delete the container
+
+                    } else {
+                      console.log("Container is not running");
+                    }
+                  }
+                });
               } catch (err) {
-                console.error("An error occurred detecting finish:", err);
+                console.error("An error occurred in docker_cron:", err);
               }
-            })
-            .catch(err => {
-              console.error("An error occurred waiting for containers to finish:", err);
             });
-
-          // setTimeout(() => {
-          //   new_containers.forEach(async (container) => {
-          //     try {
-          //       console.log("inspecting docker container: " + container.id)
-          //       container.inspect(async (err, data) =>{
-          //         if (err) {
-          //           console.log("Error while inspecting container", err);
-          //         } else {
-          //           if (data?.State.Running) {
-          //             console.log("Container is still running, but time is out.");
-          //             console.log(`Stopping and removing container`);
-          //             await container.stop();
-          //             await container.remove();
-          //           } else {
-          //             console.log("Container is not running");
-          //           }
-          //         }
-          //       });
-
-          //       // // if dir exists, delete it
-          //       // const dir_to_remove = `${sub_base_dir}/${queue_front.room_id}`;
-          //       // console.log("Trying to remove dir: ", dir_to_remove);
-          //       // if (await utils.checkPathExists(dir_to_remove)) {
-          //       //   await utils.deleteAllFilesInDir(dir_to_remove);
-          //       //   console.log(`Directory deleted: ${dir_to_remove}`);
-          //       // } else {
-          //       //   console.log(`Directory not found, skipped deletion: ${dir_to_remove}`);
-          //       // }
-
-          //     } catch (err) {
-          //       console.error("An error occurred in docker_cron:", err);
-          //     }
-          //   });
-          // }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME) * 2 : 600 + 5 * 60) * 1000);
+          }, (process.env.GAME_TIME ? Number(process.env.GAME_TIME): 600 + 5 * 60) * 1000);
 
         } catch (err) {
           console.error("An error occurred in docker_cron:", err);

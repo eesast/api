@@ -342,6 +342,23 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
   return count_room_from_team.contest_room_team_aggregate.aggregate.count;
 }
 
+export const get_exposed_ports: any = async () => {
+  const query_exposed_ports = await client.request(
+    gql`
+      query get_exposed_ports {
+        contest_room(where: {status: {_eq: "Running"}}) {
+          port
+          room_id
+        }
+      }
+    `
+  );
+  console.log("hasura result: " );
+  console.log(query_exposed_ports)
+  const result = query_exposed_ports.contest_room
+  return result;
+}
+
 /**
  * query player_label from contest_id and team_label
  * @param {string} contest_id
