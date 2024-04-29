@@ -21,7 +21,7 @@ export interface queue_element {
 }
 
 const get_port = async () => {
-  const max_port_num = parseInt(process.env.MAX_PORTS! as string);
+  const max_port_num = process.env.MAX_PORTS ? parseInt(process.env.MAX_PORTS as string) : 6;
   const start_port = 8888;
   const ports_list = await hasura.get_exposed_ports();
   for (let i = 0; i < max_port_num; i++) {
@@ -92,11 +92,16 @@ const upload_contest_files = async (sub_base_dir: string, queue_front: queue_ele
 }
 
 const docker_cron = async () => {
-  const max_container_num = parseInt(process.env.MAX_CONTAINERS! as string);
-  const base_directory = await utils.get_base_directory();
-  const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : "http://172.17.0.1:28888";
+  // env vars
+  const max_container_num = process.env.MAX_CONTAINERS ? parseInt(process.env.MAX_CONTAINERS as string) : 6;
+  const queue_check_time = process.env.QUEUE_CHECK_TIME ?? "30";
+  const docker_bridge_ip = process.env.DOCKER_BRIDGE_IP ?? "172.17.0.1"; // docker0 bridge ip
 
-  cron.schedule(`*/${process.env.QUEUE_CHECK_TIME!} * * * * *`, async () => {
+  // get base directory
+  const base_directory = await utils.get_base_directory();
+  const url = process.env.NODE_ENV === "production" ? "https://api.eesast.com" : `http://${docker_bridge_ip}:28888`;
+
+  cron.schedule(`*/${queue_check_time} * * * * *`, async () => {
     try {
 
       const docker = await utils.initDocker();
@@ -158,9 +163,9 @@ const docker_cron = async () => {
         console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
         console.log(utils.contest_image_map[contest_name])
 
-        const max_game_time = await hasura.get_max_game_time(queue_front.contest_id);
-        const server_memory_limit = await hasura.get_server_memory_limit(queue_front.contest_id);
-        const client_memory_limit = await hasura.get_client_memory_limit(queue_front.contest_id);
+        const max_game_time = await hasura.get_max_game_time(queue_front.contest_id) ?? 100;
+        const server_memory_limit = await hasura.get_server_memory_limit(queue_front.contest_id) ?? 2;
+        const client_memory_limit = await hasura.get_client_memory_limit(queue_front.contest_id) ?? 2;
         console.debug("max_game_time (s): " + max_game_time);
         console.debug("server_memory_limit (GB): " + server_memory_limit);
         console.debug("client_memory_limit (GB): " + client_memory_limit);
@@ -318,17 +323,18 @@ const docker_cron = async () => {
                         force: true
                       });
                       console.log(`Container removed: ${data?.Name}}`);
+
                       // Update the room status as `Finished`
-                      // 如果容器名不包含 `Envoy` 字符串，则更新为 `Crashed`
+                      // 如果容器名不包含 `Envoy` 字符串，则更新为 `Crashed`，否则认为是正常停止
                       if (!data?.Name.includes("Envoy")) {
                         await hasura.update_room_status(queue_front.room_id, "Crashed");
+                        // Upload the log to cos and delete the container
+                        await upload_contest_files(sub_base_dir, queue_front);
                       } else {
-                        // 终止 Envoy 直播，并释放本端口。（释放端口的唯一途径）
+                        // 在释放 envoy 后释放端口
+                        hasura.update_room_port(queue_front.room_id, null);
                         console.log(`Port ${port} Released! room id: ${queue_front.room_id}`);
-                        await hasura.update_room_port(queue_front.room_id, null);
                       }
-                      // Upload the log to cos and delete the container
-                      await upload_contest_files(sub_base_dir, queue_front);
                     } else {
                       console.log(`Container is not running: ${data?.Name}`);
                     }
