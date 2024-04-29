@@ -140,7 +140,7 @@ export async function uploadObject(localFilePath: string, bucketKey: string, cos
         console.log(err);
         reject('Failed to upload object to COS');
       } else {
-        console.debug('Upload Success', data);
+        // console.debug('Upload Success', data);
         resolve(true);
       }
     });

@@ -460,7 +460,6 @@ router.post("/finish", async (req, res) => {
               });
           });
           const upload_file = await Promise.all(upload_file_promises);
-          console.debug("upload_file: ", upload_file);
           if (upload_file.some(result => !result)) {
             return res.status(500).send("500 Internal Server Error: File upload failed");
           }

@@ -62,7 +62,6 @@ const upload_contest_files = async (sub_base_dir: string, queue_front: queue_ele
           });
       });
       const upload_file = await Promise.all(upload_file_promises);
-      console.debug("upload_file: ", upload_file);
       if (upload_file.some(result => !result)) {
         console.log("File upload failed");
       }
@@ -181,11 +180,8 @@ const docker_cron = async () => {
             return;
           }
 
-          if (queue_front.exposed === 1 || queue_front.envoy === 1) {
-            await hasura.update_room_port(queue_front.room_id, port);
-          } else {
-            await hasura.update_room_port(queue_front.room_id, null);
-          }
+          // port 始终需要使用
+          await hasura.update_room_port(queue_front.room_id, port);
 
           console.log("room status updated");
 
@@ -249,14 +245,14 @@ const docker_cron = async () => {
                 `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
                 `${base_directory}/${contest_name}/map/${queue_front.map_id}:/usr/local/map`
               ],
-              PortBindings: queue_front.exposed === 1 ? Object({
+              PortBindings: {
                 '8888/tcp': [{ HostPort: `${port}` }]
-              }) : {},
+              },
               AutoRemove: true,
               Memory: server_memory_limit * 1024 * 1024 * 1024,
               MemorySwap: server_memory_limit * 1024 * 1024 * 1024
             },
-            ExposedPorts: queue_front.exposed === 1 ? Object({ '8888/tcp': {} }) : {},
+            ExposedPorts: { '8888/tcp': {} },
             AttachStdin: false,
             AttachStdout: false,
             AttachStderr: false,
@@ -308,12 +304,12 @@ const docker_cron = async () => {
 
           // force stop after MAX_GAME_TIME
           setTimeout(() => {
-            new_containers.forEach(async (container) => {
+            new_containers.forEach(async (container, index, array) => {
               try {
                 console.log("Time is Out! inspecting docker container: " + container.id);
                 container.inspect(async (err, data) => {
                   if (err) {
-                    console.log("Container is not running. Fine.");
+                    console.log("Container is not running. Fine. " + container.id);
                   } else {
                     console.log("Container name: " + data?.Name);
                     if (data?.State.Running) {
@@ -322,18 +318,15 @@ const docker_cron = async () => {
                       await container.remove({
                         force: true
                       });
-                      console.log(`Container removed: ${data?.Name}}`);
+                      console.log(`Container removed: ${data?.Name}`);
 
                       // Update the room status as `Finished`
                       // 如果容器名不包含 `Envoy` 字符串，则更新为 `Crashed`，否则认为是正常停止
                       if (!data?.Name.includes("Envoy")) {
+                        console.log("Contest Container stopped forcedly, updating room status to `Crashed`");
                         await hasura.update_room_status(queue_front.room_id, "Crashed");
                         // Upload the log to cos and delete the container
                         await upload_contest_files(sub_base_dir, queue_front);
-                      } else {
-                        // 在释放 envoy 后释放端口
-                        hasura.update_room_port(queue_front.room_id, null);
-                        console.log(`Port ${port} Released! room id: ${queue_front.room_id}`);
                       }
                     } else {
                       console.log(`Container is not running: ${data?.Name}`);
@@ -343,11 +336,16 @@ const docker_cron = async () => {
               } catch (err) {
                 console.error("An error occurred in checking force stop:", err);
               }
+              if (index === array.length - 1) {
+                // 在停止所有容器后释放端口
+                hasura.update_room_port(queue_front.room_id, null);
+                console.log(`Port ${port} Released! room id: ${queue_front.room_id}, container name: ${container.id}`);
+              }
             });
           }, (max_game_time ? Number(max_game_time) : 600 + 5 * 60) * 1000);
         } catch (err) {
           console.error("An error occurred in creating containers:", err);
-          await hasura.update_room_status_and_port(queue_front.room_id, "Crashed", null);
+          await hasura.update_room_status_and_port(queue_front.room_id, "Failed", null);
           return;
         }
       } catch (err) {
