@@ -8,7 +8,6 @@ import * as fs_promises from "fs/promises"
 import * as hasura from "./hasura";
 import * as utils from "./utils";
 import yaml from "js-yaml";
-import { typeOf } from "mathjs";
 
 export interface queue_element {
   contest_id: string;
