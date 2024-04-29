@@ -8,6 +8,7 @@ import * as fs_promises from "fs/promises"
 import * as hasura from "./hasura";
 import * as utils from "./utils";
 import yaml from "js-yaml";
+import { typeOf } from "mathjs";
 
 export interface queue_element {
   contest_id: string;
@@ -158,6 +159,13 @@ const docker_cron = async () => {
         console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
         console.log(utils.contest_image_map[contest_name])
 
+        const max_game_time = await hasura.get_max_game_time(queue_front.contest_id);
+        const server_memory_limit = await hasura.get_server_memory_limit(queue_front.contest_id);
+        const client_memory_limit = await hasura.get_client_memory_limit(queue_front.contest_id);
+        console.debug("max_game_time (s): " + max_game_time);
+        console.debug("server_memory_limit (GB): " + server_memory_limit);
+        console.debug("client_memory_limit (GB): " + client_memory_limit);
+
         // try creating containers, if failed, retry next time.
         try {
           const new_containers: Docker.Container[] = [];
@@ -222,7 +230,7 @@ const docker_cron = async () => {
             Env: [
               `TERMINAL=SERVER`,
               `TOKEN=${server_token}`,
-              `MAX_GAME_TIME=${process.env.MAX_GAME_TIME}`,
+              `MAX_GAME_TIME=${max_game_time}`,
               `MAP_ID=${queue_front.map_id}`,
               `SCORE_URL=${score_url}`,
               `FINISH_URL=${finish_url}`,
@@ -241,8 +249,8 @@ const docker_cron = async () => {
                 '8888/tcp': [{ HostPort: `${port}` }]
               }) : {},
               AutoRemove: true,
-              Memory: 2 * 1024 * 1024 * 1024,
-              MemorySwap: 2 * 1024 * 1024 * 1024
+              Memory: server_memory_limit * 1024 * 1024 * 1024,
+              MemorySwap: server_memory_limit * 1024 * 1024 * 1024
             },
             ExposedPorts: queue_front.exposed === 1 ? Object({ '8888/tcp': {} }) : {},
             AttachStdin: false,
@@ -270,8 +278,8 @@ const docker_cron = async () => {
                   `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`
                 ],
                 AutoRemove: true,
-                Memory: 2 * 1024 * 1024 * 1024,
-                MemorySwap: 2 * 1024 * 1024 * 1024
+                Memory: client_memory_limit * 1024 * 1024 * 1024,
+                MemorySwap: client_memory_limit * 1024 * 1024 * 1024
               },
               AttachStdin: false,
               AttachStdout: false,
@@ -310,7 +318,7 @@ const docker_cron = async () => {
                       await container.remove({
                         force: true
                       });
-                      console.log(`Container removed: ${container.id}}`);
+                      console.log(`Container removed: ${data?.Name}}`);
                       // Update the room status as `Finished`
                       // 如果容器名不包含 `Envoy` 字符串，则更新为 `Crashed`
                       if (!data?.Name.includes("Envoy")) {
@@ -323,7 +331,7 @@ const docker_cron = async () => {
                       // Upload the log to cos and delete the container
                       await upload_contest_files(sub_base_dir, queue_front);
                     } else {
-                      console.log("Container is not running");
+                      console.log(`Container is not running: ${data?.Name}`);
                     }
                   }
                 });
@@ -331,7 +339,7 @@ const docker_cron = async () => {
                 console.error("An error occurred in checking force stop:", err);
               }
             });
-          }, (process.env.MAX_GAME_TIME ? Number(process.env.MAX_GAME_TIME) : 600 + 5 * 60) * 1000);
+          }, (max_game_time ? Number(max_game_time) : 600 + 5 * 60) * 1000);
         } catch (err) {
           console.error("An error occurred in creating containers:", err);
           await hasura.update_room_status_and_port(queue_front.room_id, "Crashed", null);

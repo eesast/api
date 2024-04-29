@@ -279,6 +279,70 @@ export const get_maneger_from_user: any = async (user_uuid: string, contest_id: 
   return query_if_manager.contest_manager[0]?.user_uuid ?? null;
 }
 
+/**
+ * get max game time from contest_id in seconds
+ * @param {string} contest_id
+ * @returns {number} game time
+ */
+export const get_max_game_time: any = async (contest_id: string) => {
+  const max_game_time = await client.request(
+    gql`
+      query get_max_game_time($contest_id: uuid!) {
+        contest(where: {id: {_eq: $contest_id}}) {
+          max_game_time
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+  console.log(max_game_time);
+  return max_game_time.contest[0].max_game_time ?? null;
+}
+
+
+/**
+ * get server docker memory limit from contest_id (in GB)
+ * @param {string} contest_id
+ * @returns {number} server memory limit (GB)
+ */
+export const get_server_memory_limit: any = async (contest_id: string) => {
+  const server_memory_limit = await client.request(
+    gql`
+      query get_server_memory_limit($contest_id: uuid!) {
+        contest(where: {id: {_eq: $contest_id}}) {
+          server_memory_limit
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+  return server_memory_limit.contest[0].server_memory_limit ?? null;
+}
+
+/**
+ * get client docker memory limit from contest_id (in GB)
+ * @param {string} contest_id
+ * @returns {number} client memory limit (GB)
+ */
+export const get_client_memory_limit: any = async (contest_id: string) => {
+  const client_memory_limit = await client.request(
+    gql`
+      query get_client_memory_limit($contest_id: uuid!) {
+        contest(where: {id: {_eq: $contest_id}}) {
+          client_memory_limit
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+  return client_memory_limit.contest[0].client_memory_limit ?? null;
+}
 
 /**
  * query language and contest_id from code_id
