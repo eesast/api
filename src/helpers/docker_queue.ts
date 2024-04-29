@@ -24,9 +24,9 @@ const get_port = async () => {
   const max_port_num = parseInt(process.env.MAX_PORTS! as string);
   const start_port = 8888;
   const ports_list = await hasura.get_exposed_ports();
-  for (var i = 0; i < max_port_num; i++) {
+  for (let i = 0; i < max_port_num; i++) {
     const result = start_port + i;
-    var flag = false;
+    let flag = false;
     for (const port_info of ports_list) {
       if (port_info.port === result) {
         flag = true;
