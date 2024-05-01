@@ -266,7 +266,7 @@ router.post("/compile-finish", async (req, res) => {
         return res.status(422).send("422 Unprocessable Entity: Missing credentials");
       }
       console.log(`${team_id}:${code_id}:compile:${compile_status}`);
-      if (compile_status !== "Success" && compile_status !== "Failed")
+      if (compile_status !== "Completed" && compile_status !== "Failed")
         return res.status(400).send("400 Bad Request: Invalid compile status");
 
 
@@ -274,7 +274,7 @@ router.post("/compile-finish", async (req, res) => {
         const cos = await utils.initCOS();
         const config = await utils.getConfig();
 
-        if (compile_status === "Success") {
+        if (compile_status === "Completed") {
           const key = `${cosPath}/${code_id}`;
           const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
           await utils.uploadObject(localFilePath, key, cos, config);
