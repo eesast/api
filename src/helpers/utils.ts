@@ -46,7 +46,12 @@ export interface TeamLabelBind {
   label: string;
 }
 
-export interface ContestResult {
+export interface ContestResult { // used by server docker.
+  status: string; // value: `Finished` or `Crashed`.
+  scores: number[]; // order is the same as `team_label_binds`.
+};
+
+export interface TeamResult { // used by backend.
   team_id: string;
   score: number;
 };
@@ -135,7 +140,10 @@ export async function uploadObject(localFilePath: string, bucketKey: string, cos
         console.log(err);
         reject('Failed to upload object to COS');
       } else {
-        console.debug('Upload Success', data);
+        if (data) {
+          console.debug('Upload Success');
+        }
+        // console.debug('Upload Success', data);
         resolve(true);
       }
     });

@@ -49,7 +49,7 @@ export const get_contest_id: any = async (contest_name: string) => {
       contest_name: contest_name,
     }
   );
- return query_contest_id.contest[0]?.id ?? null;
+  return query_contest_id.contest[0]?.id ?? null;
 };
 
 
@@ -279,6 +279,70 @@ export const get_maneger_from_user: any = async (user_uuid: string, contest_id: 
   return query_if_manager.contest_manager[0]?.user_uuid ?? null;
 }
 
+/**
+ * get max game time from contest_id in seconds
+ * @param {string} contest_id
+ * @returns {number} game time
+ */
+export const get_max_game_time: any = async (contest_id: string) => {
+  const max_game_time = await client.request(
+    gql`
+      query get_max_game_time($contest_id: uuid!) {
+        contest(where: {id: {_eq: $contest_id}}) {
+          max_game_time
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+  console.log(max_game_time);
+  return max_game_time.contest[0].max_game_time ?? null;
+}
+
+
+/**
+ * get server docker memory limit from contest_id (in GB)
+ * @param {string} contest_id
+ * @returns {number} server memory limit (GB)
+ */
+export const get_server_memory_limit: any = async (contest_id: string) => {
+  const server_memory_limit = await client.request(
+    gql`
+      query get_server_memory_limit($contest_id: uuid!) {
+        contest(where: {id: {_eq: $contest_id}}) {
+          server_memory_limit
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+  return server_memory_limit.contest[0].server_memory_limit ?? null;
+}
+
+/**
+ * get client docker memory limit from contest_id (in GB)
+ * @param {string} contest_id
+ * @returns {number} client memory limit (GB)
+ */
+export const get_client_memory_limit: any = async (contest_id: string) => {
+  const client_memory_limit = await client.request(
+    gql`
+      query get_client_memory_limit($contest_id: uuid!) {
+        contest(where: {id: {_eq: $contest_id}}) {
+          client_memory_limit
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    }
+  );
+  return client_memory_limit.contest[0].client_memory_limit ?? null;
+}
 
 /**
  * query language and contest_id from code_id
@@ -340,6 +404,47 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
   );
 
   return count_room_from_team.contest_room_team_aggregate.aggregate.count;
+}
+
+/**
+ * Get all the exposed ports
+ * @returns {[{room_id, port}]} [{room_id, port}]
+ */
+export const get_exposed_ports: any = async () => {
+  const query_exposed_ports = await client.request(
+    gql`
+      query get_exposed_ports {
+        contest_room{
+          port
+          room_id
+        }
+      }
+    `
+  );
+  console.log("hasura result: ");
+  console.log(query_exposed_ports)
+  const result = query_exposed_ports.contest_room
+  return result;
+}
+
+/**
+ * Get the exposed port by room id
+ * @returns {number} port
+ */
+export const get_exposed_port_by_room: any = async (room_id: string) => {
+  const query_exposed_port_by_room = await client.request(
+    gql`
+      query get_exposed_port_by_room($room_id: uuid!) {
+        contest_room(where: {room_id: {_eq: $room_id}}) {
+          port
+        }
+      }
+    `,
+    {
+      room_id: room_id
+    }
+  );
+  return query_exposed_port_by_room.contest_room[0]?.port
 }
 
 /**
@@ -675,13 +780,13 @@ export const update_compile_status: any = async (code_id: string, compile_status
 
 
 /**
- * update room status
+ * update room status and port
  * @param {string} room_id
  * @param {string} status
  * @param {number} port
  * @returns {number} affected_rows
  */
-export const update_room_status: any = async (room_id: string, status: string, port: number | null) => {
+export const update_room_status_and_port: any = async (room_id: string, status: string, port: number | null) => {
   const update_room_status = await client.request(
     gql`
       mutation update_room_status($room_id: uuid!, $status: String!, $port: Int) {
@@ -700,6 +805,53 @@ export const update_room_status: any = async (room_id: string, status: string, p
   return update_room_status.update_contest_room.affected_rows;
 }
 
+/**
+ * update room status
+ * @param {string} room_id
+ * @param {string} status
+ * @returns {number} affected_rows
+ */
+export const update_room_status: any = async (room_id: string, status: string) => {
+  const update_room_status = await client.request(
+    gql`
+      mutation update_room_status($room_id: uuid!, $status: String!, $port: Int) {
+        update_contest_room(where: {room_id: {_eq: $room_id}}, _set: {status: $status}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      room_id: room_id,
+      status: status
+    }
+  );
+
+  return update_room_status.update_contest_room.affected_rows;
+}
+
+/**
+ * update room port
+ * @param {string} room_id
+ * @param {number} port
+ * @returns {number} affected_rows
+ */
+export const update_room_port: any = async (room_id: string, port: number | null) => {
+  const update_room_status = await client.request(
+    gql`
+      mutation update_room_status($room_id: uuid!, $port: Int) {
+        update_contest_room(where: {room_id: {_eq: $room_id}}, _set: {port: $port}) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      room_id: room_id,
+      port: port
+    }
+  );
+
+  return update_room_status.update_contest_room.affected_rows;
+}
 
 /**
  * update room_team score
@@ -825,4 +977,4 @@ export const delete_room_team: any = async (room_id: string) => {
   );
 
   return delete_room_team.delete_contest_room_team.affected_rows;
-  }
+}
