@@ -223,7 +223,7 @@ const docker_cron = async () => {
             });
             new_containers.push(container_envoy);
           }
-          console.log("envoy pushd");
+          console.log("envoy pushed");
 
           const container_server = await docker.createContainer({
             Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
@@ -260,7 +260,7 @@ const docker_cron = async () => {
           });
           new_containers.push(container_server);
 
-          console.log("server docker pushd");
+          console.log("server docker pushed");
 
           console.log("team label: " + JSON.stringify(queue_front.team_label_binds));
           const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind, team_index) => {

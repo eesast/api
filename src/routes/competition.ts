@@ -61,7 +61,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const team_player_list_filtered: { team_id: string, team_label: string, player_label: string }[] = [];
     const code_role_list_filtered: { code_id: string, role: string }[] = [];
     for (let i = 0; i < team_player_list.length; i += players_labels.length) {
-      if (code_role_list.slice(i, i + players_labels.length).every(player => player.code_id && player.role)) {
+      // if (code_role_list.slice(i, i + players_labels.length).every(player => player.code_id && player.role)) {
+      if (code_role_list.slice(i, i + players_labels.length).every(player => player.code_id)) {
         team_list_filtered.push(team_list[i / players_labels.length]);
         team_player_list_filtered.push(...team_player_list.slice(i, i + players_labels.length));
         code_role_list_filtered.push(...code_role_list.slice(i, i + players_labels.length));
@@ -80,7 +81,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const team_list_available: string[] = [];
     const details_list_available: { team_id: string, team_label: string, player_label: string, code_id: string, role: string, compile_status: string, language: string }[] = [];
     for (let i = 0; i < team_player_list_filtered.length; i += players_labels.length) {
-      if (code_detail_list.slice(i, i + players_labels.length).every(code => code.compile_status === "Success" || code.compile_status === "No Need")
+      if (code_detail_list.slice(i, i + players_labels.length).every(code => code.compile_status === "Completed" || code.compile_status === "No Need")
         && code_detail_list.slice(i, i + players_labels.length).every(code => code.language === "cpp" || code.language === "py")) {
         team_list_available.push(team_list_filtered[i / players_labels.length]);
         details_list_available.push(...team_player_list_filtered.slice(i, i + players_labels.length).map((player, index) => ({
@@ -180,7 +181,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
     }
     if (map_files_count !== 1) {
       await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
-      await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
+      const map_filename = await hasura.get_map_name(map_id);
+      await utils.downloadObject(`${contest_name}/map/${map_filename}`,
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
           console.log(`Download ${map_id}.txt failed: ${err}`)
@@ -255,7 +257,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
             const language = code_languages_flat[index];
             const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
             const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-            return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+            return fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
               .then(() => {
                 return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
                   `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
@@ -388,7 +390,10 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const player_codes_flat = players_details.map(player_detail => player_detail.code_id);
     console.debug("players_roles_flat: ", player_roles_flat);
     console.debug("players_codes_flat: ", player_codes_flat);
-    if (player_roles_flat.some(player_role => !player_role) || player_codes_flat.some(player_code => !player_code)) {
+    // if (player_roles_flat.some(player_role => !player_role) || player_codes_flat.some(player_code => !player_code)) {
+    //   return res.status(403).send("403 Forbidden: Team player not assigned");
+    // }
+    if (player_codes_flat.some(player_code => !player_code)) {
       return res.status(403).send("403 Forbidden: Team player not assigned");
     }
 
@@ -504,10 +509,11 @@ router.post("/start-one", authenticate(), async (req, res) => {
       await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
     }
     if (map_files_count !== 1) {
+      const map_filename = await hasura.get_map_name(map_id);
       await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
       const cos = await utils.initCOS();
       const config = await utils.getConfig();
-      await utils.downloadObject(`${contest_name}/map/${map_id}.txt`,
+      await utils.downloadObject(`${contest_name}/map/${map_filename}`,
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
           console.log(`Download ${map_id}.txt failed: ${err}`)
@@ -588,11 +594,11 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const copy_promises = player_codes_flat.map((player_code, index) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
-      const arena_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
-      return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
+      const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
+      return fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
         .then(() => {
           return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
-            `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
+            `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
         })
         .then(() => {
           return Promise.resolve(true);
