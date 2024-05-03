@@ -13,6 +13,26 @@ import { client } from "..";
 import { sendMessageVerifyCode } from "../helpers/short_message";
 const router = express.Router();
 /*
+`/user/anonymous`：匿名用户。返回一个匿名用户的`token`
+- 请求方法：`GET`
+- 响应：`data`中有`{token: string}`，为`JwtUserPayload`形式
+*/
+router.get("/anonymous", (req, res) => {
+  const payload: JwtUserPayload = {
+    uuid: "00000000-0000-0000-0000-000000000000",
+    role: "anonymous",
+    "https://hasura.io/jwt/claims": {
+      "x-hasura-allowed-roles": ["anonymous"],
+      "x-hasura-default-role": "anonymous",
+      "x-hasura-user-id": "00000000-0000-0000-0000-000000000000",
+    },
+  };
+  const token = jwt.sign(payload, process.env.SECRET!, {
+    expiresIn: "24h",
+  });
+  return res.status(200).json({ token });
+});
+/*
 `/user/login`：处理用户登录。根据`username/email/phone/student_no`从`hasura`的`users`表查找用户，并验证密码是否匹配，若验证成功，则返回`token`
 - 请求方法：`POST`
 - 请求：`body`中有`{user: string, password: string}`，其中`user`可以是`username/email/phone/student_no`中任一形式（可以先支持其中一两种），`password`是`bcrypt`加密后的。
