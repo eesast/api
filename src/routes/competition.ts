@@ -263,6 +263,9 @@ router.post("/start-all", authenticate(), async (req, res) => {
                   `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
               })
               .then(() => {
+                return fs.chmod(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`, 0o755);
+              })
+              .then(() => {
                 return Promise.resolve(true);
               })
               .catch((err) => {
@@ -599,6 +602,9 @@ router.post("/start-one", authenticate(), async (req, res) => {
         .then(() => {
           return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
             `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
+        })
+        .then(() => {
+          return fs.chmod(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`, 0o755);
         })
         .then(() => {
           return Promise.resolve(true);

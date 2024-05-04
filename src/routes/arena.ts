@@ -311,6 +311,9 @@ router.post("/create", authenticate(), async (req, res) => {
             `${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
         })
         .then(() => {
+          return fs.chmod(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`, 0o755);
+        })
+        .then(() => {
           return Promise.resolve(true);
         })
         .catch((err) => {
