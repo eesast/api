@@ -41,9 +41,6 @@ router.post("/create", authenticate(), async (req, res) => {
     }, { team_ids: [] as string[], team_labels: [] as string[] });
     console.debug("team_ids: ", team_ids);
     console.debug("team_labels: ", team_labels);
-    if (new Set(team_labels).size !== team_labels.length) {
-      return res.status(422).send("422 Unprocessable Entity: Duplicate team labels");
-    }
 
     const contest_id = await hasura.get_contest_id(contest_name);
     console.debug("contest_id: ", contest_id);
