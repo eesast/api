@@ -189,7 +189,7 @@ const docker_cron = async () => {
             const tcp_port1 = port - 1000
             const tcp_port2 = port + 1000
 
-            const yamlPath = `${base_directory}/envoy.yaml`;
+            const yamlPath = `${base_directory}/${contest_name}/envoy.yaml`;
             const envoyConfig: any = yaml.load(fs.readFileSync(yamlPath, { encoding: 'utf8' }));
             // assign port
             envoyConfig.static_resources.listeners[0].address.socket_address.port_value = tcp_port1;

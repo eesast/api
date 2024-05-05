@@ -814,7 +814,7 @@ export const update_room_status_and_port: any = async (room_id: string, status: 
 export const update_room_status: any = async (room_id: string, status: string) => {
   const update_room_status = await client.request(
     gql`
-      mutation update_room_status($room_id: uuid!, $status: String!, $port: Int) {
+      mutation update_room_status($room_id: uuid!, $status: String!) {
         update_contest_room(where: {room_id: {_eq: $room_id}}, _set: {status: $status}) {
           affected_rows
         }
