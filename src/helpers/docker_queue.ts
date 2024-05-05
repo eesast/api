@@ -132,7 +132,7 @@ const docker_cron = async () => {
         let container_running = false;
         const container_list = await docker.listContainers();
         container_list.forEach((container_info) => {
-          if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}` || `${contest_name}_Runner_${queue_front.room_id}`)) {
+          if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}`)) {
             container_running = true;
           }
         });
