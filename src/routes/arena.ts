@@ -372,7 +372,7 @@ router.post("/get-score", async (req, res) => {
 
       const scores: number[] = [];
       for (const team_id of team_ids) {
-        const score = await hasura.get_team_arena_score(team_id, contest_id);
+        const score = await hasura.get_team_arena_score(team_id);
         scores.push(score);
       }
 

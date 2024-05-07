@@ -196,14 +196,17 @@ export const get_team_contest_score: any = async (team_id: string, contest_id: s
  * @param {string} contest_id
  * @returns {number} score
  */
-export const get_team_arena_score: any = async (team_id: string, contest_id: string) => {
+export const get_team_arena_score: any = async (team_id: string) => {
+  console.log(team_id);
   const query_arena_score = await client.request(
     gql`
-      query get_score($team_id: uuid!, $contest_id: uuid!) {
-        contest_room_team_aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, round_id: {_is_null: true}}}}}) {
-          aggregate {
-            sum {
-              score
+      query getTeamScore($team_id: uuid!) {
+        contest_team_by_pk(team_id: $team_id) {
+          contest_team_rooms_aggregate(where: {contest_room: {round_id: {_is_null: true}}}) {
+            aggregate {
+              sum {
+                score
+              }
             }
           }
         }
@@ -211,11 +214,9 @@ export const get_team_arena_score: any = async (team_id: string, contest_id: str
     `,
     {
       team_id: team_id,
-      contest_id: contest_id,
     }
   );
-
-  return query_arena_score.contest_room_team_aggregate.aggregate.sum.score ?? 0;
+  return query_arena_score?.contest_team_by_pk?.contest_team_rooms_aggregate?.aggregate?.sum?.score ?? 0;
 };
 
 
