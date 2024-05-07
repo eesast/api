@@ -892,51 +892,51 @@ export const update_room_team_score: any = async (room_id: string, team_id: stri
 }
 
 
-/**
- * update team score
- * @param {string} team_id
- * @param {number} score
- */
-export const update_team_score: any = async (team_id: string, score: number) => {
-  const update_team_score = await client.request(
-    gql`
-      mutation update_team_score($team_id: uuid!, $score: Int!) {
-        update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {score: $score}) {
-          affected_rows
-        }
-      }
-    `,
-    {
-      team_id: team_id,
-      score: score
-    }
-  );
+// /**
+//  * update team score
+//  * @param {string} team_id
+//  * @param {number} score
+//  */
+// export const update_team_score: any = async (team_id: string, score: number) => {
+//   const update_team_score = await client.request(
+//     gql`
+//       mutation update_team_score($team_id: uuid!, $score: Int!) {
+//         update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {score: $score}) {
+//           affected_rows
+//         }
+//       }
+//     `,
+//     {
+//       team_id: team_id,
+//       score: score
+//     }
+//   );
 
-  return update_team_score.update_contest_team.affected_rows;
-}
+//   return update_team_score.update_contest_team.affected_rows;
+// }
 
-/**
- * update team score
- * @param {string} team_id
- * @param {number} score
- */
-export const update_team_contest_score: any = async (team_id: string, score: number) => {
-  const update_team_score = await client.request(
-    gql`
-      mutation update_team_score($team_id: uuid!, $score: Int!) {
-        update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {contest_score: $score}) {
-          affected_rows
-        }
-      }
-    `,
-    {
-      team_id: team_id,
-      score: score
-    }
-  );
+// /**
+//  * update team score
+//  * @param {string} team_id
+//  * @param {number} score
+//  */
+// export const update_team_contest_score: any = async (team_id: string, score: number) => {
+//   const update_team_score = await client.request(
+//     gql`
+//       mutation update_team_score($team_id: uuid!, $score: Int!) {
+//         update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {contest_score: $score}) {
+//           affected_rows
+//         }
+//       }
+//     `,
+//     {
+//       team_id: team_id,
+//       score: score
+//     }
+//   );
 
-  return update_team_score.update_contest_team.affected_rows;
-}
+//   return update_team_score.update_contest_team.affected_rows;
+// }
 
 
 
