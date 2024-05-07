@@ -32,9 +32,9 @@ export interface JwtServerPayload {
 }
 export interface UserInfo {
   uuid: string;
+  role: string;
   username: string;
   password: string;
-  role: string;
   realname: string;
   email: string;
   phone: string;
@@ -44,19 +44,19 @@ export interface UserInfo {
   tsinghua_email: string;
   github_id: string;
 }
-const anonymous_user = {
+const anonymous_user: UserInfo = {
   uuid: "00000000-0000-0000-0000-000000000000",
   role: "anonymous",
+  username: "",
+  password: "",
   realname: "Anonymous",
+  email: "",
   phone: "",
   student_no: "",
   department: "",
   class: "",
   tsinghua_email: "",
   github_id: "",
-  username: "",
-  password: "",
-  email: ""
 };
 
 /**
@@ -71,7 +71,7 @@ const authenticate: (
     const authHeader = req.get("Authorization");
     if(!authHeader) {
       if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes("anonymous")) {
-        req.auth = { anonymous_user };
+        req.auth = { user: anonymous_user };
         return next();
       }
       else {
@@ -112,14 +112,7 @@ const authenticate: (
             uuid: payload.uuid
           }
         )).users[0];
-        if (!user) {
-          if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes("anonymous")) {
-            req.auth = { anonymous_user };
-            return next();
-          }
-          return res.status(401).send("401 Unauthorized: Permission denied");
-        }
-        req.auth = { user };
+        req.auth = { user: user ?? anonymous_user };
         if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes(user.role)) {
           return next();
         }
