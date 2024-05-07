@@ -248,7 +248,7 @@ const docker_cron = async () => {
               PortBindings: {
                 '8888/tcp': [{ HostPort: `${port}` }]
               },
-              AutoRemove: true,
+              AutoRemove: false,
               Memory: server_memory_limit * 1024 * 1024 * 1024,
               MemorySwap: server_memory_limit * 1024 * 1024 * 1024
             },
@@ -277,7 +277,7 @@ const docker_cron = async () => {
                   `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
                   `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`
                 ],
-                AutoRemove: true,
+                AutoRemove: false,
                 Memory: client_memory_limit * 1024 * 1024 * 1024,
                 MemorySwap: client_memory_limit * 1024 * 1024 * 1024
               },
