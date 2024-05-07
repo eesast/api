@@ -365,8 +365,10 @@ router.post("/get-score", async (req, res) => {
       if (err || !decoded) {
         return res.status(401).send("401 Unauthorized: Token expired or invalid");
       }
+      const payload = decoded as JwtServerPayload;
+      const contest_id = payload.contest_id;
       const team_id = req.body.team_id;
-      const score = await hasura.get_team_score(team_id);
+      const score = await hasura.get_team_arena_score(team_id, contest_id);
       console.debug("score: ", score);
 
       return res.status(200).send(score.toString());
@@ -405,37 +407,34 @@ router.post("/finish", async (req, res) => {
       if (game_status === 'Finished') {
 
         const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
-        const update_scores = game_scores.map((result_item) => result_item);
 
         console.debug("room_id: ", room_id);
         console.debug("contest_id: ", contest_id);
         console.debug("team_ids: ", team_ids);
-        console.debug("update_scores: ", update_scores);
 
         const update_room_team_score_promises = team_ids.map((team_id, index) =>
-          hasura.update_room_team_score(room_id, team_id, update_scores[index]));
+          hasura.update_room_team_score(room_id, team_id, game_scores[index]));
         await Promise.all(update_room_team_score_promises);
 
         await hasura.update_room_status(room_id, "Finished");
         console.log("Update room team score!")
 
-        const origin_result: utils.TeamResult[] = await hasura.get_teams_score(team_ids);
-        console.debug("origin_result: ", origin_result);
-        const new_resullt: utils.TeamResult[] = origin_result.map(origin => {
-          const update_index = team_ids.indexOf(origin.team_id);
-          return {
-            team_id: origin.team_id,
-            score: update_scores[update_index] + origin.score
-          };
-        });
-        console.debug("new_result: ", new_resullt);
-        const update_team_score_promises = new_resullt.map(result => {
-          return hasura.update_team_score(result.team_id, result.score);
-        });
-        await Promise.all(update_team_score_promises);
-        console.log("Update team score!")
+        // const origin_result: utils.TeamResult[] = await hasura.get_teams_score(team_ids);
+        // console.debug("origin_result: ", origin_result);
+        // const new_resullt: utils.TeamResult[] = origin_result.map(origin => {
+        //   const update_index = team_ids.indexOf(origin.team_id);
+        //   return {
+        //     team_id: origin.team_id,
+        //     score: update_scores[update_index] + origin.score
+        //   };
+        // });
+        // console.debug("new_result: ", new_resullt);
+        // const update_team_score_promises = new_resullt.map(result => {
+        //   return hasura.update_team_score(result.team_id, result.score);
+        // });
+        // await Promise.all(update_team_score_promises);
+        // console.log("Update team score!")
       } else if (game_status === 'Crashed') {
-        // no need to update score
         await hasura.update_room_status(room_id, "Crashed");
       }
 

@@ -16,7 +16,7 @@ type ContestImages = {
     COMPILER_TIMEOUT: string;
     RUNNER_IMAGE: string;
     ENVOY_IMAGE: string;
-    RUNNER_TIMEOUT: string
+    TOEKN_TIMEOUT: string
   };
 };
 
@@ -26,14 +26,14 @@ export const contest_image_map: ContestImages = {
     COMPILER_IMAGE: "eesast/thuai6_cpp",
     ENVOY_IMAGE: "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
     COMPILER_TIMEOUT: "10m",
-    RUNNER_TIMEOUT: "30m",
+    TOEKN_TIMEOUT: "30m",
   },
   "THUAI7": {
     RUNNER_IMAGE: "eesast/thuai7_run",
     COMPILER_IMAGE: "eesast/thuai7_cpp",
     ENVOY_IMAGE: "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
     COMPILER_TIMEOUT: "10m",
-    RUNNER_TIMEOUT: "30m"
+    TOEKN_TIMEOUT: "30m"
   }
 }
 

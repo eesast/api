@@ -133,6 +133,7 @@ export const get_team_from_code: any = async (code_id: string) => {
   return query_team_id.contest_team_code[0]?.team_id ?? null;
 };
 
+
 /**
  * query compile_status from code_id
  * @param {string} code_id
@@ -160,100 +161,113 @@ export const get_compile_status: any = async (code_id: string) => {
 
 
 /**
- * query score from team_id
+ * query contest_score from team_id, contest_id and round_id
  * @param {string} team_id
+ * @param {string} contest_id
+ * @param {string} round_id
  * @returns {number} score
  */
-export const get_team_score: any = async (team_id: string) => {
-  const query_score = await client.request(
+export const get_team_contest_score: any = async (team_id: string, contest_id: string, round_id: string) => {
+  const query_contest_score = await client.request(
     gql`
-      query get_score($team_id: uuid!) {
-        contest_team(where: {team_id: {_eq: $team_id}}) {
-          score
+      query get_score($team_id: uuid!, $contest_id: uuid!, $round_id: uuid!) {
+        contest_room_team_aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, round_id: {_eq: $round_id}}}}}) {
+          aggregate {
+            sum {
+              score
+            }
+          }
         }
       }
     `,
     {
       team_id: team_id,
+      contest_id: contest_id,
+      round_id: round_id
     }
   );
-
-  return parseInt(query_score.contest_team[0]?.score ?? "0");
+  return query_contest_score.contest_room_team_aggregate.aggregate.sum.score ?? 0;
 };
 
 
 /**
- * query contest score from team_id
+ * query arena_score from team_id, contest_id
  * @param {string} team_id
- * @returns {number} contest_score
+ * @param {string} contest_id
+ * @returns {number} score
  */
-export const get_team_contest_score: any = async (team_id: string) => {
-  const query_contest_score = await client.request(
+export const get_team_arena_score: any = async (team_id: string, contest_id: string) => {
+  const query_arena_score = await client.request(
     gql`
-      query get_score($team_id: uuid!) {
-        contest_team(where: {team_id: {_eq: $team_id}}) {
-          contest_score
+      query get_score($team_id: uuid!, $contest_id: uuid!) {
+        contest_room_team_aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, round_id: {_is_null: true}}}}}) {
+          aggregate {
+            sum {
+              score
+            }
+          }
         }
       }
     `,
     {
       team_id: team_id,
+      contest_id: contest_id,
     }
   );
 
-  return parseInt(query_contest_score.contest_team[0]?.contest_score ?? "0");
+  return query_arena_score.contest_room_team_aggregate.aggregate.sum.score ?? 0;
 };
 
 
-/**
- * query score and contest_score from team_ids, ordered by team_id, ascending
- * @param {string[]} team_ids
- * @returns {utils.ContestResult[]} [{team_id, score}]
- */
-export const get_teams_score: any = async (team_ids: Array<string>) => {
-  const query_score = await client.request(
-    gql`
-      query get_score($team_ids: [uuid!]!) {
-        contest_team(where: {team_id: {_in: $team_ids}}) {
-          team_id
-          score
-        }
-      }
-    `,
-    {
-      team_ids: team_ids,
-    }
-  );
-  return query_score.contest_team?.map((team: any) => ({
-    team_id: team.team_id!,
-    score: parseInt(team.score ?? "0")
-  })) ?? [];
-};
+// /**
+//  * query score from team_ids, ordered by team_id, ascending
+//  * @param {string[]} team_ids
+//  * @returns {utils.ContestResult[]} [{team_id, score}]
+//  */
+// export const get_teams_score: any = async (team_ids: Array<string>) => {
+//   const query_score = await client.request(
+//     gql`
+//       query get_score($team_ids: [uuid!]!) {
+//         contest_team(where: {team_id: {_in: $team_ids}}) {
+//           team_id
+//           score
+//         }
+//       }
+//     `,
+//     {
+//       team_ids: team_ids,
+//     }
+//   );
+//   return query_score.contest_team?.map((team: any) => ({
+//     team_id: team.team_id!,
+//     score: parseInt(team.score ?? "0")
+//   })) ?? [];
+// };
 
-/**
- * query score and contest_score from team_ids, ordered by team_id, ascending
- * @param {string[]} team_ids
- * @returns {utils.ContestResult[]} [{team_id, score}]
- */
-export const get_teams_contest_score: any = async (team_ids: Array<string>) => {
-  const query_contest_score = await client.request(
-    gql`
-      query get_score($team_ids: [uuid!]!) {
-        contest_team(where: {team_id: {_in: $team_ids}}) {
-          team_id
-          contest_score
-        }
-      }
-    `,
-    {
-      team_ids: team_ids,
-    }
-  );
-  return query_contest_score.contest_team?.map((team: any) => ({
-    team_id: team.team_id,
-    score: parseInt(team.contest_score ?? "0")
-  })) ?? [];
-};
+// /**
+//  * query contest_score from team_ids, ordered by team_id, ascending
+//  * @param {string[]} team_ids
+//  * @returns {utils.ContestResult[]} [{team_id, score}]
+//  */
+// export const get_teams_contest_score: any = async (team_ids: Array<string>) => {
+//   const query_contest_score = await client.request(
+//     gql`
+//       query get_score($team_ids: [uuid!]!) {
+//         contest_team(where: {team_id: {_in: $team_ids}}) {
+//           team_id
+//           contest_score
+//         }
+//       }
+//     `,
+//     {
+//       team_ids: team_ids,
+//     }
+//   );
+//   return query_contest_score.contest_team?.map((team: any) => ({
+//     team_id: team.team_id,
+//     score: parseInt(team.contest_score ?? "0")
+//   })) ?? [];
+// };
 
 
 /**

@@ -150,7 +150,7 @@ const docker_cron = async () => {
           } as JwtServerPayload,
           process.env.SECRET!,
           {
-            expiresIn: utils.contest_image_map[contest_name].RUNNER_TIMEOUT,
+            expiresIn: utils.contest_image_map[contest_name].TOEKN_TIMEOUT,
           }
         );
 
@@ -201,7 +201,7 @@ const docker_cron = async () => {
             const newYamlPath = `${envoy_dir}/envoy.yaml`;
             console.log("tring to write")
             fs.writeFileSync(newYamlPath, yaml.dump(envoyConfig));
-            console.log('wirte sruceess')
+            console.log('write success')
 
             const container_envoy = await docker.createContainer({
               Image: utils.contest_image_map[contest_name].ENVOY_IMAGE,
@@ -288,7 +288,7 @@ const docker_cron = async () => {
             });
             return container_client;
           });
-          console.log("client docker pushd");
+          console.log("client docker pushed");
           const container_clients = await Promise.all(container_client_promises);
           new_containers.push(...container_clients);
 
