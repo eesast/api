@@ -391,7 +391,7 @@ router.post("/get-score", async (req, res) => {
 
 /**
  * @param token
- * @param {utils.ContestResult} result
+ * @param {utils.ContestResult}
  */
 router.post("/finish", async (req, res) => {
   try {
