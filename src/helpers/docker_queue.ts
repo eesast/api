@@ -213,7 +213,7 @@ const docker_cron = async () => {
                   [`${tcp_port1}/tcp`]: [{ HostPort: `${tcp_port1}` }],
                   [`${tcp_port2}/tcp`]: [{ HostPort: `${tcp_port2}` }]
                 },
-                AutoRemove: true,
+                AutoRemove: false,
               },
               ExposedPorts: { [`${tcp_port1}/tcp`]: {}, [`${tcp_port2}/tcp`]: {} },
               AttachStdin: false,
@@ -314,16 +314,10 @@ const docker_cron = async () => {
                   if (err) {
                     console.log("Container is not running. Fine. " + container.id);
                   } else {
-                    console.log("Container name: " + data?.Name);
-                    if (data?.State.Running) {
-                      console.log(`Container is still running, but time is out! Removing container (forced) ${data?.Name}`);
-                      await container.remove({
-                        force: true
-                      });
-                      console.log(`Container removed: ${data?.Name}`);
-                    } else {
-                      console.log(`Container is not running: ${data?.Name}`);
-                    }
+                    console.log("Removing container: " + data?.Name);
+                    await container.remove({
+                      force: true
+                    });
                   }
                 });
               } catch (err) {
@@ -350,16 +344,10 @@ const docker_cron = async () => {
                   if (err) {
                     console.log("Container is not running. Fine. " + container.id);
                   } else {
-                    console.log("Container name: " + data?.Name);
-                    if (data?.State.Running) {
-                      console.log(`Container is still running, removing container ${data?.Name}`);
-                      await container.remove({
-                        force: true
-                      });
-                      console.log(`Container removed: ${data?.Name}`);
-                    } else {
-                      console.log(`Container is not running: ${data?.Name}`);
-                    }
+                    console.log("Removing container: " + data?.Name);
+                    await container.remove({
+                      force: true
+                    });
                   }
                 });
               } catch (err) {
