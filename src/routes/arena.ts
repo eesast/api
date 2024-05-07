@@ -409,8 +409,8 @@ router.post("/finish", async (req, res) => {
       const contest_id = payload.contest_id;
       const team_label_binds = payload.team_label_binds;
 
-      const game_scores: number[] = req.body.result.scores;
-      const game_status: string = req.body.result.status;
+      const game_scores: number[] = req.body.scores;
+      const game_status: string = req.body.status;
 
       console.log("result: ", game_scores);
       if (game_status === 'Finished') {
