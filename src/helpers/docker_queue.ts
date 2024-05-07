@@ -300,10 +300,12 @@ const docker_cron = async () => {
           });
           console.log("server and clients started");
 
-          // set State as Running
+
           await hasura.update_room_status(queue_front.room_id, "Running");
 
-          // force stop after MAX_GAME_TIME
+
+          let finished = false;
+
           setTimeout(() => {
             new_containers.forEach(async (container, index, array) => {
               try {
@@ -314,21 +316,11 @@ const docker_cron = async () => {
                   } else {
                     console.log("Container name: " + data?.Name);
                     if (data?.State.Running) {
-                      console.log("");
                       console.log(`Container is still running, but time is out! Removing container (forced) ${data?.Name}`);
                       await container.remove({
                         force: true
                       });
                       console.log(`Container removed: ${data?.Name}`);
-
-                      // Update the room status as `Finished`
-                      // 如果容器名不包含 `Envoy` 字符串，则更新为 `Crashed`，否则认为是正常停止
-                      if (!data?.Name.includes("Envoy")) {
-                        console.log("Contest Container stopped forcedly, updating room status to `Crashed`");
-                        await hasura.update_room_status(queue_front.room_id, "Crashed");
-                        // Upload the log to cos and delete the container
-                        await upload_contest_files(sub_base_dir, queue_front);
-                      }
                     } else {
                       console.log(`Container is not running: ${data?.Name}`);
                     }
@@ -337,18 +329,62 @@ const docker_cron = async () => {
               } catch (err) {
                 console.error("An error occurred in checking force stop:", err);
               }
-              if (index === array.length - 1) {
-                // 在停止所有容器后释放端口
-                hasura.update_room_port(queue_front.room_id, null);
+              if (index === array.length - 1 && !finished) {
+                finished = true;
+                console.log("Time is Out! Room id: " + queue_front.room_id);
+                await hasura.update_room_port(queue_front.room_id, null);
+                await hasura.update_room_status(queue_front.room_id, "Crashed");
+                await upload_contest_files(sub_base_dir, queue_front);
                 console.log(`Port ${port} Released! room id: ${queue_front.room_id}, container name: ${container.id}`);
               }
             });
           }, (game_time + 90) * 1000);
+
+
+          container_server.wait(async (error, data) => {
+            console.debug(data);
+            new_containers.forEach(async (container, index, array) => {
+              try {
+                console.log("inspecting docker container: " + container.id);
+                container.inspect(async (err, data) => {
+                  if (err) {
+                    console.log("Container is not running. Fine. " + container.id);
+                  } else {
+                    console.log("Container name: " + data?.Name);
+                    if (data?.State.Running) {
+                      console.log(`Container is still running, removing container ${data?.Name}`);
+                      await container.remove({
+                        force: true
+                      });
+                      console.log(`Container removed: ${data?.Name}`);
+                    } else {
+                      console.log(`Container is not running: ${data?.Name}`);
+                    }
+                  }
+                });
+              } catch (err) {
+                console.error("An error occurred in stopping containers:", err);
+              }
+
+              if (index === array.length - 1 && !finished) {
+                finished = true;
+                await hasura.update_room_port(queue_front.room_id, null);
+                if (error) {
+                  console.error("An error occurred in waiting for server container:", error);
+                  await hasura.update_room_status(queue_front.room_id, "Crashed");
+                  await upload_contest_files(sub_base_dir, queue_front);
+                }
+                console.log(`Port ${port} Released! room id: ${queue_front.room_id}, container name: ${container.id}`);
+              }
+            });
+          });
+
         } catch (err) {
           console.error("An error occurred in creating containers:", err);
           await hasura.update_room_status_and_port(queue_front.room_id, "Failed", null);
           return;
         }
+
       } catch (err) {
         console.error("An error occurred when poping the first item in queue_front:", err);
         return;
