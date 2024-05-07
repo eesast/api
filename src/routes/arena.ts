@@ -366,12 +366,21 @@ router.post("/get-score", async (req, res) => {
         return res.status(401).send("401 Unauthorized: Token expired or invalid");
       }
       const payload = decoded as JwtServerPayload;
-      const contest_id = payload.contest_id;
-      const team_id = req.body.team_id;
-      const score = await hasura.get_team_arena_score(team_id, contest_id);
-      console.log("score: ", score);
+      const team_label_binds = payload.team_label_binds;
+      const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
 
-      return res.status(200).send(score.toString());
+      const scores: number[] = [];
+      for (const team_id of team_ids) {
+        const score = await hasura.get_team_arena_score(team_id);
+        scores.push(score);
+      }
+
+      console.log("score: ", scores);
+
+      return res.status(200).send({
+        status: "Finished",
+        scores: scores
+      });
     });
   } catch (e) {
     console.error(e);
@@ -382,7 +391,7 @@ router.post("/get-score", async (req, res) => {
 
 /**
  * @param token
- * @param {utils.ContestResult} result
+ * @param {utils.ContestResult}
  */
 router.post("/finish", async (req, res) => {
   try {
@@ -400,8 +409,8 @@ router.post("/finish", async (req, res) => {
       const contest_id = payload.contest_id;
       const team_label_binds = payload.team_label_binds;
 
-      const game_scores: number[] = req.body.result.scores;
-      const game_status: string = req.body.result.status;
+      const game_scores: number[] = req.body.scores;
+      const game_status: string = req.body.status;
 
       console.log("result: ", game_scores);
       if (game_status === 'Finished') {
@@ -447,8 +456,8 @@ router.post("/finish", async (req, res) => {
           const config = await utils.getConfig();
           const file_name = await fs.readdir(`${base_directory}/${contest_name}/arena/${room_id}/output`);
           const upload_file_promises = file_name.map(filename => {
-            const suffix = filename.split(".")[1];
-            const key = `${contest_name}/arena/${room_id}/${room_id}.${suffix}`;
+            console.log("filename: " + filename)
+            const key = `${contest_name}/arena/${room_id}/${filename}`;
             const localFilePath = `${base_directory}/${contest_name}/arena/${room_id}/output/${filename}`;
             return utils.uploadObject(localFilePath, key, cos, config)
               .then(() => {

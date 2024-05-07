@@ -49,8 +49,8 @@ const upload_contest_files = async (sub_base_dir: string, queue_front: queue_ele
       const config = await utils.getConfig();
       const file_name = await fs_promises.readdir(`${sub_base_dir}/${queue_front.room_id}/output`);
       const upload_file_promises = file_name.map(filename => {
-        const suffix = filename.split(".")[1];
-        const key = `${contest_name}/arena/${queue_front.room_id}/${queue_front.room_id}.${suffix}`;
+        console.log("filename: " + filename);
+        const key = `${contest_name}/arena/${queue_front.room_id}/${queue_front.room_id}.${filename}`;
         const localFilePath = `${sub_base_dir}/${queue_front.room_id}/output/${filename}`;
         return utils.uploadObject(localFilePath, key, cos, config)
           .then(() => {
@@ -226,7 +226,7 @@ const docker_cron = async () => {
           console.log("envoy pushed");
 
           const container_server = await docker.createContainer({
-            Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
+            Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
             Env: [
               `TERMINAL=SERVER`,
               `TOKEN=${server_token}`,
@@ -265,7 +265,7 @@ const docker_cron = async () => {
           console.log("team label: " + JSON.stringify(queue_front.team_label_binds));
           const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind, team_index) => {
             const container_client = await docker.createContainer({
-              Image: utils.contest_image_map[contest_name].RUNNER_IMAGE,
+              Image: utils.contest_image_map[contest_name].CLIENT_IMAGE,
               Env: [
                 `TERMINAL=CLIENT`,
                 `TEAM_SEQ_ID=${team_index}`,
