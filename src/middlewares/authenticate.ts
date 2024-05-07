@@ -44,6 +44,20 @@ export interface UserInfo {
   tsinghua_email: string;
   github_id: string;
 }
+const anonymous_user = {
+  uuid: "00000000-0000-0000-0000-000000000000",
+  role: "anonymous",
+  realname: "Anonymous",
+  phone: "",
+  student_no: "",
+  department: "",
+  class: "",
+  tsinghua_email: "",
+  github_id: "",
+  username: "",
+  password: "",
+  email: ""
+};
 
 /**
  * Middleware: validate user authorizations; reject if necessary
@@ -57,21 +71,7 @@ const authenticate: (
     const authHeader = req.get("Authorization");
     if(!authHeader) {
       if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes("anonymous")) {
-        const user = {
-          uuid: "00000000-0000-0000-0000-000000000000",
-          role: "anonymous",
-          realname: "Anonymous",
-          phone: "",
-          student_no: "",
-          department: "",
-          class: "",
-          tsinghua_email: "",
-          github_id: "",
-          username: "",
-          password: "",
-          email: ""
-        }
-        req.auth = { user };
+        req.auth = { anonymous_user };
         return next();
       }
       else {
@@ -113,6 +113,10 @@ const authenticate: (
           }
         )).users[0];
         if (!user) {
+          if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes("anonymous")) {
+            req.auth = { anonymous_user };
+            return next();
+          }
           return res.status(401).send("401 Unauthorized: Permission denied");
         }
         req.auth = { user };
