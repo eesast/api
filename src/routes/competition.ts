@@ -662,12 +662,21 @@ router.post("/get-score", async (req, res) => {
       }
       const payload = decoded as JwtServerPayload;
       const round_id = payload.round_id!;
-      const contest_id = payload.contest_id;
-      const team_id = req.body.team_id;
-      const score = await hasura.get_team_contest_score(team_id, contest_id, round_id);
-      console.log("score: ", score);
+      const team_label_binds = payload.team_label_binds;
+      const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
 
-      return res.status(200).send(score.toString());
+      const scores: number[] = [];
+      for (const team_id of team_ids) {
+        const score = await hasura.get_team_contest_score(team_id, round_id);
+        scores.push(score);
+      }
+
+      console.log("score: ", scores);
+
+      return res.status(200).send({
+        status: "Finished",
+        scores: scores
+      });
     });
   } catch (e) {
     console.error(e);
