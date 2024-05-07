@@ -369,7 +369,7 @@ router.post("/get-score", async (req, res) => {
       const contest_id = payload.contest_id;
       const team_id = req.body.team_id;
       const score = await hasura.get_team_arena_score(team_id, contest_id);
-      console.debug("score: ", score);
+      console.log("score: ", score);
 
       return res.status(200).send(score.toString());
     });
