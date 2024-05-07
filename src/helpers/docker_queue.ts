@@ -150,7 +150,7 @@ const docker_cron = async () => {
           } as JwtServerPayload,
           process.env.SECRET!,
           {
-            expiresIn: utils.contest_image_map[contest_name].TOEKN_TIMEOUT,
+            expiresIn: utils.contest_image_map[contest_name].TOKEN_TIMEOUT,
           }
         );
 
