@@ -342,6 +342,7 @@ const docker_cron = async () => {
 
 
           container_server.wait(async (error, data) => {
+            console.debug(data);
             new_containers.forEach(async (container, index, array) => {
               try {
                 console.log("inspecting docker container: " + container.id);
