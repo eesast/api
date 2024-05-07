@@ -271,6 +271,7 @@ const docker_cron = async () => {
                 `TEAM_SEQ_ID=${team_index}`,
                 `TEAM_LABEL=${team_label_bind.label}`,
                 `PORT=${port}`,
+                `GAME_TIME=${game_time}`,
               ],
               HostConfig: {
                 Binds: [
