@@ -284,12 +284,12 @@ export const get_maneger_from_user: any = async (user_uuid: string, contest_id: 
  * @param {string} contest_id
  * @returns {number} game time
  */
-export const get_max_game_time: any = async (contest_id: string) => {
-  const max_game_time = await client.request(
+export const get_game_time: any = async (contest_id: string) => {
+  const game_time = await client.request(
     gql`
-      query get_max_game_time($contest_id: uuid!) {
+      query get_game_time($contest_id: uuid!) {
         contest(where: {id: {_eq: $contest_id}}) {
-          max_game_time
+          game_time
         }
       }
     `,
@@ -297,8 +297,7 @@ export const get_max_game_time: any = async (contest_id: string) => {
       contest_id: contest_id,
     }
   );
-  console.log(max_game_time);
-  return max_game_time.contest[0].max_game_time ?? null;
+  return game_time.contest[0].game_time ?? null;
 }
 
 
@@ -871,7 +870,7 @@ export const update_room_team_score: any = async (room_id: string, team_id: stri
     {
       room_id: room_id,
       team_id: team_id,
-      score: score.toString()
+      score: score
     }
   );
 
@@ -887,7 +886,7 @@ export const update_room_team_score: any = async (room_id: string, team_id: stri
 export const update_team_score: any = async (team_id: string, score: number) => {
   const update_team_score = await client.request(
     gql`
-      mutation update_team_score($team_id: uuid!, $score: String!) {
+      mutation update_team_score($team_id: uuid!, $score: Int!) {
         update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {score: $score}) {
           affected_rows
         }
@@ -895,7 +894,7 @@ export const update_team_score: any = async (team_id: string, score: number) => 
     `,
     {
       team_id: team_id,
-      score: score.toString()
+      score: score
     }
   );
 
@@ -910,7 +909,7 @@ export const update_team_score: any = async (team_id: string, score: number) => 
 export const update_team_contest_score: any = async (team_id: string, score: number) => {
   const update_team_score = await client.request(
     gql`
-      mutation update_team_score($team_id: uuid!, $score: String!) {
+      mutation update_team_score($team_id: uuid!, $score: Int!) {
         update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {contest_score: $score}) {
           affected_rows
         }
@@ -918,7 +917,7 @@ export const update_team_contest_score: any = async (team_id: string, score: num
     `,
     {
       team_id: team_id,
-      score: score.toString()
+      score: score
     }
   );
 

@@ -132,7 +132,7 @@ const docker_cron = async () => {
         let container_running = false;
         const container_list = await docker.listContainers();
         container_list.forEach((container_info) => {
-          if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}` || `${contest_name}_Runner_${queue_front.room_id}`)) {
+          if (container_info.Names.includes(`${contest_name}_Server_${queue_front.room_id}`)) {
             container_running = true;
           }
         });
@@ -162,10 +162,10 @@ const docker_cron = async () => {
         console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
         console.log(utils.contest_image_map[contest_name])
 
-        const max_game_time = await hasura.get_max_game_time(queue_front.contest_id) ?? 100;
+        const game_time = await hasura.get_game_time(queue_front.contest_id) ?? 10;
         const server_memory_limit = await hasura.get_server_memory_limit(queue_front.contest_id) ?? 2;
         const client_memory_limit = await hasura.get_client_memory_limit(queue_front.contest_id) ?? 2;
-        console.debug("max_game_time (s): " + max_game_time);
+        console.debug("game_time (s): " + game_time);
         console.debug("server_memory_limit (GB): " + server_memory_limit);
         console.debug("client_memory_limit (GB): " + client_memory_limit);
 
@@ -230,7 +230,7 @@ const docker_cron = async () => {
             Env: [
               `TERMINAL=SERVER`,
               `TOKEN=${server_token}`,
-              `MAX_GAME_TIME=${max_game_time}`,
+              `GAME_TIME=${game_time}`,
               `MAP_ID=${queue_front.map_id}`,
               `SCORE_URL=${score_url}`,
               `FINISH_URL=${finish_url}`,
@@ -342,7 +342,7 @@ const docker_cron = async () => {
                 console.log(`Port ${port} Released! room id: ${queue_front.room_id}, container name: ${container.id}`);
               }
             });
-          }, (max_game_time ? Number(max_game_time) : 600 + 5 * 60) * 1000);
+          }, (game_time + 90) * 1000);
         } catch (err) {
           console.error("An error occurred in creating containers:", err);
           await hasura.update_room_status_and_port(queue_front.room_id, "Failed", null);
