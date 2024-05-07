@@ -14,7 +14,8 @@ type ContestImages = {
   [key: string]: {
     COMPILER_IMAGE: string;
     COMPILER_TIMEOUT: string;
-    RUNNER_IMAGE: string;
+    SERVER_IMAGE: string;
+    CLIENT_IMAGE: string;
     ENVOY_IMAGE: string;
     RUNNER_TOKEN_TIMEOUT: string
   };
@@ -22,14 +23,16 @@ type ContestImages = {
 
 export const contest_image_map: ContestImages = {
   "THUAI6": {
-    RUNNER_IMAGE: "eesast/thuai6_run",
+    SERVER_IMAGE: "eesast/thuai6_run",
+    CLIENT_IMAGE: "eesast/thuai6_run",
     COMPILER_IMAGE: "eesast/thuai6_cpp",
     ENVOY_IMAGE: "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
     COMPILER_TIMEOUT: "10m",
     RUNNER_TOKEN_TIMEOUT: "30m",
   },
   "THUAI7": {
-    RUNNER_IMAGE: "eesast/thuai7_run",
+    SERVER_IMAGE: "eesast/thuai7_run_server",
+    CLIENT_IMAGE: "eesast/thuai7_run_client",
     COMPILER_IMAGE: "eesast/thuai7_cpp",
     ENVOY_IMAGE: "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
     COMPILER_TIMEOUT: "10m",
