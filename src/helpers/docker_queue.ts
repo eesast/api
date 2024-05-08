@@ -331,6 +331,7 @@ const docker_cron = async () => {
 
           container_server.wait(async (error, data) => {
             try {
+              console.log(data);
               console.log("Server "+ container_server.id + " exited");
               await hasura.update_room_port(queue_front.room_id, null);
               console.log(`Port ${port} Released! room id: ${queue_front.room_id}`);
