@@ -436,8 +436,8 @@ export const get_exposed_ports: any = async () => {
       }
     `
   );
-  console.log("hasura result: ");
-  console.log(query_exposed_ports)
+  // console.log("hasura result: ");
+  // console.log(query_exposed_ports)
   const result = query_exposed_ports.contest_room
   return result;
 }
