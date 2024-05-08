@@ -755,8 +755,8 @@ router.post("/finish-one", async (req, res) => {
           const config = await utils.getConfig();
           const file_name = await fs.readdir(`${base_directory}/${contest_name}/competition/${room_id}/output`);
           const upload_file_promises = file_name.map(filename => {
-            const suffix = filename.split(".")[1];
-            const key = `${contest_name}/competition/${round_id}/${room_id}/${room_id}.${suffix}`;
+            console.log("filename: " + filename)
+            const key = `${contest_name}/competition/${round_id}/${room_id}/${filename}`;
             const localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${filename}`;
             return utils.uploadObject(localFilePath, key, cos, config)
               .then(() => {
@@ -768,7 +768,6 @@ router.post("/finish-one", async (req, res) => {
               });
           });
           const upload_file = await Promise.all(upload_file_promises);
-          console.debug("upload_file: ", upload_file);
           if (upload_file.some(result => !result)) {
             return res.status(500).send("500 Internal Server Error: File upload failed");
           }
@@ -781,7 +780,14 @@ router.post("/finish-one", async (req, res) => {
       } catch (err) {
         console.log("No output files found!");
       } finally {
-        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/competition/${room_id}`);
+        const dir_to_remove = `${base_directory}/${contest_name}/competition/${room_id}`;
+        console.log("dir_to_remove: ", dir_to_remove);
+        if (await utils.checkPathExists(dir_to_remove)) {
+          await utils.deleteAllFilesInDir(dir_to_remove);
+          console.log(`Directory deleted: ${dir_to_remove}`);
+        } else {
+          console.log(`Directory not found, skipped deletion: ${dir_to_remove}`);
+        }
       }
 
       return res.status(200).send("200 OK: Update OK!");

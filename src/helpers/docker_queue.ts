@@ -222,8 +222,13 @@ const docker_cron = async () => {
               name: `${contest_name}_Envoy_${queue_front.room_id}`,
             });
             new_containers.push(container_envoy);
+
+            await container_envoy.start();
+            console.log("envoy started");
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
-          console.log("envoy pushed");
+
 
           const container_server = await docker.createContainer({
             Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
@@ -260,7 +265,11 @@ const docker_cron = async () => {
           });
           new_containers.push(container_server);
 
+          await container_server.start();
           console.log("server docker pushed");
+
+          await new Promise(resolve => setTimeout(resolve, 5000));
+
 
           console.log("team label: " + JSON.stringify(queue_front.team_label_binds));
           const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind, team_index) => {
@@ -293,12 +302,10 @@ const docker_cron = async () => {
           const container_clients = await Promise.all(container_client_promises);
           new_containers.push(...container_clients);
 
-          console.log("new containers created");
-
-          new_containers.forEach(async (container) => {
+          container_clients.forEach(async (container) => {
             await container.start();
           });
-          console.log("server and clients started");
+          console.log("client docker started");
 
 
           await hasura.update_room_status(queue_front.room_id, "Running");
