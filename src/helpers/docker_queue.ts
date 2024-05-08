@@ -186,8 +186,8 @@ const docker_cron = async () => {
           console.log("room status updated");
 
           if (queue_front.envoy === 1) {
-            const tcp_port1 = port - 102
-            const tcp_port2 = port + 102
+            const tcp_port1 = port - 1000
+            const tcp_port2 = port + 1000
 
             const yamlPath = `${base_directory}/${contest_name}/envoy.yaml`;
             const envoyConfig: any = yaml.load(fs.readFileSync(yamlPath, { encoding: 'utf8' }));
@@ -213,7 +213,7 @@ const docker_cron = async () => {
                   [`${tcp_port1}/tcp`]: [{ HostPort: `${tcp_port1}` }],
                   [`${tcp_port2}/tcp`]: [{ HostPort: `${tcp_port2}` }]
                 },
-                AutoRemove: false,
+                AutoRemove: true,
               },
               ExposedPorts: { [`${tcp_port1}/tcp`]: {}, [`${tcp_port2}/tcp`]: {} },
               AttachStdin: false,
@@ -253,7 +253,7 @@ const docker_cron = async () => {
               PortBindings: {
                 '8888/tcp': [{ HostPort: `${port}` }]
               },
-              AutoRemove: false,
+              AutoRemove: true,
               Memory: server_memory_limit * 1024 * 1024 * 1024,
               MemorySwap: server_memory_limit * 1024 * 1024 * 1024
             },
@@ -287,7 +287,7 @@ const docker_cron = async () => {
                   `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
                   `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`
                 ],
-                AutoRemove: false,
+                AutoRemove: true,
                 Memory: client_memory_limit * 1024 * 1024 * 1024,
                 MemorySwap: client_memory_limit * 1024 * 1024 * 1024
               },
