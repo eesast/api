@@ -665,7 +665,28 @@ export const get_map_name: any = async (map_id: string) => {
   return query_map.contest_map[0].filename ?? null;
 }
 
-
+/**
+ * get contest_name by room_id
+ * @param {uuid} room_id
+ * @returns {string} contest_name
+ */
+export const get_contest_name_by_room: any = async (room_id: string) => {
+  const query_contest_name = await client.request(
+    gql`
+      query get_contest_name($room_id: uuid!) {
+        contest_room(where: {room_id: {_eq: $room_id}}) {
+          contest {
+            name
+          }
+        }
+      }
+    `,
+    {
+      room_id: room_id
+    }
+  );
+  return query_contest_name.contest_room[0]?.contest?.name ?? null;
+}
 
 /**
   ============================================================================
