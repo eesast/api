@@ -186,8 +186,8 @@ const docker_cron = async () => {
           console.log("room status updated");
 
           if (queue_front.envoy === 1) {
-            const tcp_port1 = port - 1000
-            const tcp_port2 = port + 1000
+            const tcp_port1 = port - 102
+            const tcp_port2 = port + 102
 
             const yamlPath = `${base_directory}/${contest_name}/envoy.yaml`;
             const envoyConfig: any = yaml.load(fs.readFileSync(yamlPath, { encoding: 'utf8' }));
