@@ -213,7 +213,7 @@ const docker_cron = async () => {
                   [`${tcp_port1}/tcp`]: [{ HostPort: `${tcp_port1}` }],
                   [`${tcp_port2}/tcp`]: [{ HostPort: `${tcp_port2}` }]
                 },
-                AutoRemove: true,
+                AutoRemove: false,
               },
               ExposedPorts: { [`${tcp_port1}/tcp`]: {}, [`${tcp_port2}/tcp`]: {} },
               AttachStdin: false,
@@ -253,7 +253,7 @@ const docker_cron = async () => {
               PortBindings: {
                 '8888/tcp': [{ HostPort: `${port}` }]
               },
-              AutoRemove: true,
+              AutoRemove: false,
               Memory: server_memory_limit * 1024 * 1024 * 1024,
               MemorySwap: server_memory_limit * 1024 * 1024 * 1024
             },
@@ -267,6 +267,7 @@ const docker_cron = async () => {
 
           await container_server.start();
           console.log("server docker pushed");
+          console.log("server: ", container_server.id, "room_id: ", queue_front.room_id, "port: ", port);
 
           await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -287,7 +288,7 @@ const docker_cron = async () => {
                   `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
                   `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`
                 ],
-                AutoRemove: true,
+                AutoRemove: false,
                 Memory: client_memory_limit * 1024 * 1024 * 1024,
                 MemorySwap: client_memory_limit * 1024 * 1024 * 1024
               },
@@ -311,70 +312,43 @@ const docker_cron = async () => {
           await hasura.update_room_status(queue_front.room_id, "Running");
 
 
-          let finished = false;
+          let time_out = false;
 
-          setTimeout(() => {
+          setTimeout(async () => {
             try {
-              new_containers.forEach(async (container, index, array) => {
-                try {
-                  console.log("Time is Out! inspecting docker container: " + container.id);
-                  container.inspect(async (err, data) => {
-                    if (err) {
-                      console.log("Container is not running. Fine. " + container.id);
-                    } else {
-                      console.log("Removing container: " + data?.Name);
-                      await container.remove({
-                        force: true
-                      });
-                    }
-                  });
-                } catch (err) {
-                  console.error("An error occurred in checking force stop:", err);
-                }
-                if (index === array.length - 1 && !finished) {
-                  finished = true;
-                  console.log("Time is Out! Room id: " + queue_front.room_id);
-                  await hasura.update_room_port(queue_front.room_id, null);
-                  await hasura.update_room_status(queue_front.room_id, "Crashed");
-                  await upload_contest_files(sub_base_dir, queue_front);
-                  console.log(`Port ${port} Released! room id: ${queue_front.room_id}, container name: ${container.id}`);
-                }
-              });
+              const data = await container_server.inspect();
+              if (data.State.Status === "running") {
+                console.log("Time is Out! room id: " + queue_front.room_id);
+                time_out = true;
+                console.log("Stopping server container: " + container_server.id);
+                container_server.stop();
+              }
             } catch (err) {
               console.error("An error occurred in Docker Time Out Checking:", err);
             }
-          }, (game_time + 90) * 1000);
+          }, (game_time + 180) * 1000);
 
 
           container_server.wait(async (error, data) => {
             try {
-              console.debug(data);
-              new_containers.forEach(async (container, index, array) => {
+              console.log(data);
+              console.log("Server "+ container_server.id + " exited");
+              await hasura.update_room_port(queue_front.room_id, null);
+              console.log(`Port ${port} Released! room id: ${queue_front.room_id}`);
+              if (error || time_out) {
+                if (error)
+                  console.error("An error occurred in waiting for server container:", error);
+                hasura.update_room_status(queue_front.room_id, time_out ? "Timeout" : "Crashed");
+                upload_contest_files(sub_base_dir, queue_front);
+              }
+              new_containers.forEach(async (container) => {
                 try {
-                  console.log("inspecting docker container: " + container.id);
-                  container.inspect(async (err, data) => {
-                    if (err) {
-                      console.log("Container is not running. Fine. " + container.id);
-                    } else {
-                      console.log("Removing container: " + data?.Name);
-                      await container.remove({
-                        force: true
-                      });
-                    }
+                  console.log("Removing container: " + container.id);
+                  container.remove({
+                    force: true
                   });
                 } catch (err) {
-                  console.error("An error occurred in stopping containers:", err);
-                }
-
-                if (index === array.length - 1 && !finished) {
-                  finished = true;
-                  await hasura.update_room_port(queue_front.room_id, null);
-                  if (error) {
-                    console.error("An error occurred in waiting for server container:", error);
-                    await hasura.update_room_status(queue_front.room_id, "Crashed");
-                    await upload_contest_files(sub_base_dir, queue_front);
-                  }
-                  console.log(`Port ${port} Released! room id: ${queue_front.room_id}, container name: ${container.id}`);
+                  console.error("An error occurred in removing containers:", err);
                 }
               });
             } catch (err) {
