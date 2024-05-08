@@ -509,7 +509,7 @@ router.get("/playback", async (req, res) => {
   try {
     const room_id = req.body.room_id;
 
-    const contest_name = await hasura.get_contest_name_by_room(room_id);
+    const { contest_name } = await hasura.get_room_info(room_id);
     const base_directory = await utils.get_base_directory();
     const playbackLocalPath = `${base_directory}/temp/${room_id}/playback.thuaipb`;
     const playbackCOSPath = `${contest_name}/arena/${room_id}/playback.thuaipb`;
