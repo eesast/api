@@ -501,5 +501,35 @@ router.post("/finish", async (req, res) => {
   }
 });
 
+/**
+ * @param {uuid} room_id
+ * 用于获取回放的路由，直接返回文件。
+ */
+router.get("/playback", async (req, res) => {
+  try {
+    const room_id = req.body.room_id;
+
+    const contest_name = await hasura.get_contest_name_by_room(room_id);
+    const base_directory = await utils.get_base_directory();
+    const playbackLocalPath = `${base_directory}/temp/${room_id}/playback.thuaipb`;
+    const playbackCOSPath = `${contest_name}/arena/${room_id}/playback.thuaipb`;
+
+    const cos = await utils.initCOS();
+    const config = await utils.getConfig();
+    await fs.mkdir(`${base_directory}/temp/${room_id}`, { recursive: true });
+    await utils.downloadObject(playbackCOSPath, playbackLocalPath, cos, config);
+
+    res.setHeader(
+      "Content-Disposition",
+      "attachment;filename=playback.thuaipb"
+    );
+    res.status(200).sendFile(playbackLocalPath, () => {
+      utils.deleteAllFilesInDir(`${base_directory}/temp/${room_id}`);
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(404).send("404 Not Found: Playback not found");
+  }
+});
 
 export default router;
