@@ -518,7 +518,7 @@ export const get_player_code: any = async (team_id: string, player_label: string
 
 
 /**
- * query roound info from round_id
+ * query round info from round_id
  * @param {string} round_id
  * @returns {object} {contest_id, map_id}
  */
@@ -666,18 +666,19 @@ export const get_map_name: any = async (map_id: string) => {
 }
 
 /**
- * get contest_name by room_id
+ * get room_info by room_id
  * @param {uuid} room_id
- * @returns {string} contest_name
+ * @returns {object} {contest_name, round_id}
  */
-export const get_contest_name_by_room: any = async (room_id: string) => {
-  const query_contest_name = await client.request(
+export const get_room_info: any = async (room_id: string) => {
+  const query_room_info = await client.request(
     gql`
-      query get_contest_name($room_id: uuid!) {
+      query get_room_info($room_id: uuid!) {
         contest_room(where: {room_id: {_eq: $room_id}}) {
           contest {
             name
           }
+          round_id
         }
       }
     `,
@@ -685,8 +686,15 @@ export const get_contest_name_by_room: any = async (room_id: string) => {
       room_id: room_id
     }
   );
-  return query_contest_name.contest_room[0]?.contest?.name ?? null;
+  return {
+    contest_name: query_room_info.contest_room[0]?.contest?.name ?? null,
+    round_id: query_room_info.contest_room[0]?.round_id ?? null
+  }
 }
+
+/**
+ * get round_id by room_id
+ */
 
 /**
   ============================================================================
