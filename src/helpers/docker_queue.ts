@@ -324,7 +324,8 @@ const docker_cron = async () => {
                 container_server.stop();
               }
             } catch (err) {
-              console.error("An error occurred in Docker Time Out Checking:", err);
+              if (err.statusCode !== 404)
+                console.error("An error occurred in Docker Time Out Checking:", err);
             }
           }, (game_time + 180) * 1000);
 
