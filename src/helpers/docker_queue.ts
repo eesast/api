@@ -50,7 +50,7 @@ const upload_contest_files = async (sub_base_dir: string, queue_front: queue_ele
       const file_name = await fs_promises.readdir(`${sub_base_dir}/${queue_front.room_id}/output`);
       const upload_file_promises = file_name.map(filename => {
         console.log("filename: " + filename);
-        const key = `${contest_name}/arena/${queue_front.room_id}/${filename}`;
+        const key = `${contest_name}/${queue_front.competition?"competition":"arena"}/${queue_front.room_id}/${filename}`;
         const localFilePath = `${sub_base_dir}/${queue_front.room_id}/output/${filename}`;
         return utils.uploadObject(localFilePath, key, cos, config)
           .then(() => {
@@ -356,7 +356,7 @@ const docker_cron = async () => {
             }
           });
 
-        } catch (err) {
+        } catch (err: any) {
           console.error("An error occurred in creating containers:", err);
           new_containers.forEach(async (container) => {
             try {
@@ -364,11 +364,15 @@ const docker_cron = async () => {
               container.remove({
                 force: true
               });
-            } catch (err) {
-              console.error("An error occurred in removing containers:", err);
+            } catch (err: any) {
+              if (err.statusCode !== 404)
+                console.error("An error occurred in removing containers:", err);
             }
           });
-          await hasura.update_room_status_and_port(queue_front.room_id, "Crashed", null);
+          fs.mkdirSync(`${sub_base_dir}/${queue_front.room_id}/output`, { recursive: true });
+          fs.writeFileSync(`${sub_base_dir}/${queue_front.room_id}/output/error.log`, err.message);
+          upload_contest_files(sub_base_dir, queue_front);
+          hasura.update_room_status_and_port(queue_front.room_id, "Failed", null);
           return;
         }
 
