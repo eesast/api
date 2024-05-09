@@ -100,6 +100,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
 
     console.log("Dependencies checked!");
 
+    res.status(200).send("200 OK: Dependencies checked!");
+
     const base_directory = await utils.get_base_directory();
 
     const mkdir_promises = team_list_available.map(team_id => {
@@ -115,7 +117,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const mkdir_result = await Promise.all(mkdir_promises);
     console.debug("mkdir_result: ", mkdir_result);
     if (mkdir_result.some(result => !result)) {
-      return res.status(500).send("500 Internal Server Error: Code directory creation failed");
+      // return res.status(500).send("500 Internal Server Error: Code directory creation failed");
+      return;
     }
 
     console.log("Directories created!");
@@ -161,7 +164,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const download_results = await Promise.all(download_promises);
     console.debug("download_results: ", download_results);
     if (download_results.some(result => !result)) {
-      return res.status(500).send("500 Internal Server Error: Code download failed");
+      // return res.status(500).send("500 Internal Server Error: Code download failed");
+      return;
     }
 
     console.log("Code downloaded!");
@@ -186,7 +190,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
           console.log(`Download ${map_id}.txt failed: ${err}`)
-          return res.status(500).send("500 Internal Server Error: Map download failed");
+          // return res.status(500).send("500 Internal Server Error: Map download failed");
+          return;
         });
     }
 
@@ -305,16 +310,19 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const start_results = await Promise.all(start_competition_promises);
     console.debug("start_results: ", start_results);
     if (start_results.some(result => !result)) {
-      return res.status(500).send("500 Internal Server Error: Competition start failed");
+      // return res.status(500).send("500 Internal Server Error: Competition start failed");
+      return;
     }
 
     console.log("Competitions started!");
 
-    return res.status(200).send("200 OK: Competition Created!");
+    // return res.status(200).send("200 OK: Competition Created!");
+    return;
 
   } catch (err) {
     console.error(err);
-    return res.status(500).send("500 Internal Server Error: " + err);
+    // return res.status(500).send("500 Internal Server Error: " + err);
+    return;
   }
 
 });
@@ -432,6 +440,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
 
     console.log("Dependencies checked!")
 
+    res.status(200).send("200 OK: Dependencies checked!");
+
     const base_directory = await utils.get_base_directory();
 
     const mkdir_promises = team_ids.map(team_id => {
@@ -447,7 +457,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const mkdir_result = await Promise.all(mkdir_promises);
     console.debug("mkdir_result: ", mkdir_result);
     if (mkdir_result.some(result => !result)) {
-      return res.status(500).send("500 Internal Server Error: Code directory creation failed");
+      // return res.status(500).send("500 Internal Server Error: Code directory creation failed");
+      return;
     }
 
     const files_exist_promises = player_codes_flat.map((player_code, index) => {
@@ -492,7 +503,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
       const download_results_flat = await Promise.all(download_promises);
       console.debug("download_results: ", download_results_flat);
       if (download_results_flat.some(result => !result)) {
-        return res.status(500).send("500 Internal Server Error: Code download failed");
+        // return res.status(500).send("500 Internal Server Error: Code download failed");
+        return;
       }
     }
 
@@ -520,7 +532,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
           console.log(`Download ${map_id}.txt failed: ${err}`)
-          return res.status(500).send("500 Internal Server Error: Map download failed");
+          // return res.status(500).send("500 Internal Server Error: Map download failed");
+          return;
         });
     }
 
@@ -577,18 +590,21 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const delete_results = await Promise.all(delete_room_promises);
     console.debug("delete_results: ", delete_results);
     if (delete_results.some(result => !result)) {
-      return res.status(500).send("500 Internal Server Error: Room delete failed");
+      // return res.status(500).send("500 Internal Server Error: Room delete failed");
+      return;
     }
 
     const room_id = await hasura.insert_room_competition(contest_id, "Waiting", map_id, round_id);
     console.debug("room_id: ", room_id);
     if (!room_id) {
-      return res.status(500).send("500 Internal Server Error: Room not created");
+      // return res.status(500).send("500 Internal Server Error: Room not created");
+      return;
     }
 
     const insert_room_teams_affected_rows = await hasura.insert_room_teams(room_id, team_ids, team_labels, players_roles, players_codes);
     if (insert_room_teams_affected_rows !== team_ids.length) {
-      return res.status(500).send("500 Internal Server Error: Room teams not created");
+      // return res.status(500).send("500 Internal Server Error: Room teams not created");
+      return;
     }
 
     console.log("Room created!")
@@ -617,7 +633,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const copy_result = await Promise.all(copy_promises);
     console.debug("copy_result: ", copy_result);
     if (copy_result.some(result => !result)) {
-      return res.status(500).send("500 Internal Server Error: Code copy failed");
+      // return res.status(500).send("500 Internal Server Error: Code copy failed");
+      return;
     }
 
     console.log("Files copied!")
@@ -634,11 +651,13 @@ router.post("/start-one", authenticate(), async (req, res) => {
     });
 
     console.log("Docker pushed!")
-    return res.status(200).send("200 OK: Competition created!");
+    // return res.status(200).send("200 OK: Competition created!");
+    return;
 
   } catch (e) {
     console.error(e);
-    return res.status(500).send("500 Internal Server Error: Unknown error" + e);
+    // return res.status(500).send("500 Internal Server Error: Unknown error" + e);
+    return;
   }
 });
 
