@@ -170,9 +170,8 @@ const docker_cron = async () => {
         console.debug("client_memory_limit (GB): " + client_memory_limit);
 
         // try creating containers, if failed, retry next time.
+        const new_containers: Docker.Container[] = [];
         try {
-          const new_containers: Docker.Container[] = [];
-
           const port = await get_port();
           if (port === -1) {
             console.log("no port available")
@@ -359,7 +358,17 @@ const docker_cron = async () => {
 
         } catch (err) {
           console.error("An error occurred in creating containers:", err);
-          await hasura.update_room_status_and_port(queue_front.room_id, "Failed", null);
+          new_containers.forEach(async (container) => {
+            try {
+              console.log("Removing container: " + container.id);
+              container.remove({
+                force: true
+              });
+            } catch (err) {
+              console.error("An error occurred in removing containers:", err);
+            }
+          });
+          await hasura.update_room_status_and_port(queue_front.room_id, "Crashed", null);
           return;
         }
 
