@@ -517,9 +517,9 @@ router.post("/finish", async (req, res) => {
  * @param {uuid} room_id
  * 用于获取回放的路由，直接返回文件。
  */
-router.get("/playback", async (req, res) => {
+router.get("/playback/:room_id", async (req, res) => {
   try {
-    const room_id = req.body.room_id;
+    const room_id = req.params.room_id;
 
     const { contest_name } = await hasura.get_room_info(room_id);
     const base_directory = await utils.get_base_directory();
