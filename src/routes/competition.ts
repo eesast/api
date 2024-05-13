@@ -19,8 +19,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
   try {
     const user_uuid = req.auth.user.uuid;
     const round_id = req.body.round_id;
-    const exposed = req.body.exposed || 0;
-    const envoy = req.body.envoy || 0;
+    const exposed = req.body.exposed ?? 0;
+    const envoy = req.body.envoy ?? 0;
     console.debug("user_uuid: ", user_uuid);
     console.debug("round_id: ", round_id);
     if (!user_uuid || !round_id) {
