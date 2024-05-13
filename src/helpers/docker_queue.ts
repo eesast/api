@@ -40,8 +40,8 @@ const get_and_update_port = async (room_id: string) => {
     }
   } finally {
     release();
-    return port;
   }
+  return port;
 }
 
 const upload_contest_files = async (sub_base_dir: string, queue_front: queue_element) => {
