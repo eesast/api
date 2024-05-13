@@ -274,11 +274,6 @@ router.post("/compile-finish", async (req, res) => {
         const cos = await utils.initCOS();
         const config = await utils.getConfig();
 
-        if (compile_status === "Completed") {
-          const key = `${cosPath}/${code_id}`;
-          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
-          await utils.uploadObject(localFilePath, key, cos, config);
-        }
         let key = `${cosPath}/${code_id}.log`;
         let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
         await utils.uploadObject(localFilePath, key, cos, config);
@@ -286,6 +281,17 @@ router.post("/compile-finish", async (req, res) => {
         key = `${cosPath}/${code_id}.curl.log`;
         localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
         await utils.uploadObject(localFilePath, key, cos, config);
+
+        if (compile_status === "Completed") {
+          key = `${cosPath}/${code_id}`;
+          localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
+          await utils.uploadObject(localFilePath, key, cos, config);
+          try {
+            await fs.copyFile(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
+          } catch (err) {
+            console.log("copy file failed: ", err);
+          }
+        }
 
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
