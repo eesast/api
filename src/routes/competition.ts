@@ -367,9 +367,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
     }, { team_ids: [] as string[], team_labels: [] as string[] });
     console.debug("team_ids: ", team_ids);
     console.debug("team_labels: ", team_labels);
-    if (new Set(team_labels).size !== team_labels.length) {
-      return res.status(422).send("422 Unprocessable Entity: Duplicate team labels");
-    }
+
 
     const is_manager = await hasura.get_maneger_from_user(user_uuid, contest_id);
     console.debug("is_manager: ", is_manager);
@@ -401,9 +399,6 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const player_codes_flat = players_details.map(player_detail => player_detail.code_id);
     console.debug("players_roles_flat: ", player_roles_flat);
     console.debug("players_codes_flat: ", player_codes_flat);
-    // if (player_roles_flat.some(player_role => !player_role) || player_codes_flat.some(player_code => !player_code)) {
-    //   return res.status(403).send("403 Forbidden: Team player not assigned");
-    // }
     if (player_codes_flat.some(player_code => !player_code)) {
       return res.status(403).send("403 Forbidden: Team player not assigned");
     }

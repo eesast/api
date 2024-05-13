@@ -242,7 +242,7 @@ const docker_cron = async () => {
                 return `${item.label}`
               }).join(":")}`,
               `EXPOSED=${queue_front.exposed}`,
-              `MODE=${queue_front.competition === 1 ? "COMPETITON" : "ARENA"}`,
+              `MODE=${queue_front.competition === 1 ? "COMPETITION" : "ARENA"}`,
             ],
             HostConfig: {
               Binds: [
