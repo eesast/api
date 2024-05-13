@@ -181,6 +181,7 @@ const docker_cron = async () => {
 
           // port 始终需要使用
           await hasura.update_room_port(queue_front.room_id, port);
+          await hasura.update_room_created_at(queue_front.room_id, new Date().toISOString());
 
           console.log("room status updated");
 
@@ -242,7 +243,7 @@ const docker_cron = async () => {
                 return `${item.label}`
               }).join(":")}`,
               `EXPOSED=${queue_front.exposed}`,
-              `MODE=${queue_front.competition === 1 ? "COMPETITON" : "ARENA"}`,
+              `MODE=${queue_front.competition === 1 ? "COMPETITION" : "ARENA"}`,
             ],
             HostConfig: {
               Binds: [

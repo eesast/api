@@ -923,6 +923,31 @@ export const update_room_team_score: any = async (room_id: string, team_id: stri
 }
 
 
+/**
+ * update room created_at time
+ * @param {string} room_id
+ * @param {string} created_at
+ * @returns {string} created_at
+ */
+export const update_room_created_at: any = async (room_id: string, created_at: string) => {
+  const update_room_created_at = await client.request(
+    gql`
+      mutation update_room_created_at($room_id: uuid!, $created_at: timestamptz = "") {
+        update_contest_room_by_pk(pk_columns: {room_id: $room_id}, _set: {created_at: $created_at}) {
+          created_at
+        }
+      }
+    `,
+    {
+      room_id: room_id,
+      created_at: created_at
+    }
+  );
+
+  return update_room_created_at.update_contest_room_by_pk.created_at;
+}
+
+
 // /**
 //  * update team score
 //  * @param {string} team_id
