@@ -151,8 +151,11 @@ router.post("/start-all", authenticate(), async (req, res) => {
       const language = details_list_available[index_map[index]].language;
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
       console.debug("code_file_name: ", code_file_name);
-      return utils.downloadObject(`${contest_name}/code/${details_list_available[index_map[index]].team_id}/${code_file_name}`,
-        `${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source/${code_file_name}`, cos, config)
+      return fs.mkdir(`${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source`, { recursive: true })
+        .then(() => {
+          return utils.downloadObject(`${contest_name}/code/${details_list_available[index_map[index]].team_id}/${code_file_name}`,
+            `${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source/${code_file_name}`, cos, config)
+        })
         .then(() => {
           return fs.chmod(`${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source/${code_file_name}`, 0o755);
         })
@@ -487,8 +490,11 @@ router.post("/start-one", authenticate(), async (req, res) => {
         const language = code_languages_flat[index_map[index]];
         const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
         console.debug("code_file_name: ", code_file_name);
-        return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
-          `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, cos, config)
+        return fs.mkdir(`${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source`, { recursive: true })
+          .then(() => {
+            return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
+            `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, cos, config);
+          })
           .then(() => {
             return fs.chmod(`${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, 0o755);
           })
