@@ -105,7 +105,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const base_directory = await utils.get_base_directory();
 
     const mkdir_promises = team_list_available.map(team_id => {
-      return fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}`, { recursive: true })
+      return fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/source`, { recursive: true })
         .then(() => {
           return Promise.resolve(true);
         })
@@ -126,7 +126,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     const files_exist_promises = details_list_available.map(detail => {
       const language = detail.language;
       const code_file_name = language === "cpp" ? `${detail.code_id}` : `${detail.code_id}.py`;
-      return fs.access(`${base_directory}/${contest_name}/code/${detail.team_id}/${code_file_name}`)
+      return fs.access(`${base_directory}/${contest_name}/code/${detail.team_id}/source/${code_file_name}`)
         .then(() => {
           return true;
         })
@@ -152,7 +152,10 @@ router.post("/start-all", authenticate(), async (req, res) => {
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
       console.debug("code_file_name: ", code_file_name);
       return utils.downloadObject(`${contest_name}/code/${details_list_available[index_map[index]].team_id}/${code_file_name}`,
-        `${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/${code_file_name}`, cos, config)
+        `${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source/${code_file_name}`, cos, config)
+        .then(() => {
+          return fs.chmod(`${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source/${code_file_name}`, 0o755);
+        })
         .then(() => {
           return Promise.resolve(true);
         })
@@ -264,11 +267,10 @@ router.post("/start-all", authenticate(), async (req, res) => {
             const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
             return fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
               .then(() => {
-                return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+                // return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+                //   `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
+                return fs.symlink(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/source/${code_file_name}`,
                   `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
-              })
-              .then(() => {
-                return fs.chmod(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`, 0o755);
               })
               .then(() => {
                 return Promise.resolve(true);
@@ -440,7 +442,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const base_directory = await utils.get_base_directory();
 
     const mkdir_promises = team_ids.map(team_id => {
-      return fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}`, { recursive: true })
+      return fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/source`, { recursive: true })
         .then(() => {
           return Promise.resolve(true);
         })
@@ -459,7 +461,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const files_exist_promises = player_codes_flat.map((player_code, index) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
-      return fs.access(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`)
+      return fs.access(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/source/${code_file_name}`)
         .then(() => {
           return true;
         })
@@ -486,7 +488,10 @@ router.post("/start-one", authenticate(), async (req, res) => {
         const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
         console.debug("code_file_name: ", code_file_name);
         return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
-          `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`, cos, config)
+          `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, cos, config)
+          .then(() => {
+            return fs.chmod(`${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, 0o755);
+          })
           .then(() => {
             return Promise.resolve(true);
           })
@@ -604,18 +609,16 @@ router.post("/start-one", authenticate(), async (req, res) => {
 
     console.log("Room created!")
 
-    await fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source`, { recursive: true });
     const copy_promises = player_codes_flat.map((player_code, index) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
       const competition_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
       return fs.mkdir(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
         .then(() => {
-          return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+          // return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+            // `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
+          return fs.symlink(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/source/${code_file_name}`,
             `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`)
-        })
-        .then(() => {
-          return fs.chmod(`${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}/${competition_file_name}`, 0o755);
         })
         .then(() => {
           return Promise.resolve(true);

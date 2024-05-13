@@ -288,7 +288,8 @@ const docker_cron = async () => {
               HostConfig: {
                 Binds: [
                   `${sub_base_dir}/${queue_front.room_id}/output:/usr/local/output`,
-                  `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`
+                  `${sub_base_dir}/${queue_front.room_id}/source/${team_label_bind.team_id}:/usr/local/code`,
+                  `${base_directory}/${contest_name}/code/${team_label_bind.team_id}/source:${base_directory}/${contest_name}/code/${team_label_bind.team_id}/source`
                 ],
                 AutoRemove: false,
                 Memory: client_memory_limit * 1024 * 1024 * 1024,

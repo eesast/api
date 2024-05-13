@@ -287,7 +287,8 @@ router.post("/compile-finish", async (req, res) => {
           localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
           await utils.uploadObject(localFilePath, key, cos, config);
           try {
-            await fs.copyFile(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
+            await fs.copyFile(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`);
+            await fs.chmod(`${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`, 0o755);
           } catch (err) {
             console.log("copy file failed: ", err);
           }
