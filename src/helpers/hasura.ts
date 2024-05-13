@@ -423,21 +423,18 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
 
 /**
  * Get all the exposed ports
- * @returns {[{room_id, port}]} [{room_id, port}]
+ * @returns {[{port}]} [{port}]
  */
 export const get_exposed_ports: any = async () => {
   const query_exposed_ports = await client.request(
     gql`
       query get_exposed_ports {
-        contest_room{
+        contest_room(where: {port: {_is_null: false}}) {
           port
-          room_id
         }
       }
     `
   );
-  // console.log("hasura result: ");
-  // console.log(query_exposed_ports)
   const result = query_exposed_ports.contest_room
   return result;
 }

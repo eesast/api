@@ -8,6 +8,7 @@ import * as fs_promises from "fs/promises"
 import * as hasura from "./hasura";
 import * as utils from "./utils";
 import yaml from "js-yaml";
+import { Mutex } from "async-mutex"
 
 export interface queue_element {
   contest_id: string;
@@ -20,24 +21,27 @@ export interface queue_element {
   envoy: number;
 }
 
-const get_port = async () => {
-  const max_port_num = process.env.MAX_PORTS ? parseInt(process.env.MAX_PORTS as string) : 6;
+const port_mutex = new Mutex();
+const get_and_update_port = async (room_id: string) => {
+  const max_port_num = process.env.MAX_PORTS ? parseInt(process.env.MAX_PORTS as string) : 10;
   const start_port = 8888;
-  const ports_list = await hasura.get_exposed_ports();
-  for (let i = 0; i < max_port_num; i++) {
-    const result = start_port + i;
-    let flag = false;
-    for (const port_info of ports_list) {
-      if (port_info.port === result) {
-        flag = true;
+  const release = await port_mutex.acquire();
+  let port = -1;
+  try {
+    const ports_list = await hasura.get_exposed_ports();
+    const porst_set = new Set(ports_list.map((item: any) => item.port));
+    for (let i = start_port; i < start_port + max_port_num; i++) {
+      if (!porst_set.has(i)) {
+        port = i;
+        await hasura.update_room_port(room_id, port);
+        hasura.update_room_created_at(room_id, new Date().toISOString());
         break;
       }
     }
-    if (!flag) {
-      return result;
-    }
+  } finally {
+    release();
   }
-  return -1;
+  return port;
 }
 
 const upload_contest_files = async (sub_base_dir: string, queue_front: queue_element) => {
@@ -159,16 +163,12 @@ const docker_cron = async () => {
         // try creating containers, if failed, retry next time.
         const new_containers: Docker.Container[] = [];
         try {
-          const port = await get_port();
+          const port = await get_and_update_port(queue_front.room_id);
           if (port === -1) {
             console.log("no port available")
             docker_queue.push(queue_front);
             return;
           }
-
-          // port 始终需要使用
-          await hasura.update_room_port(queue_front.room_id, port);
-          await hasura.update_room_created_at(queue_front.room_id, new Date().toISOString());
 
           console.log("room status updated");
 
