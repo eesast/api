@@ -36,7 +36,7 @@
     "multer": "^1.4.5-lts.1",
     "node-cron": "3.0.2",
     "node-fetch": "2.6.9",
-    "nodemailer": "6.9.1",
+    "nodemailer": "6.9.9",
     "qcloud-cos-sts": "^3.1.0",
     "unisms": "^0.0.6",
     "uuid": "^9.0.1",
