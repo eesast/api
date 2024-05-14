@@ -138,7 +138,7 @@ router.post("/create", authenticate(), async (req, res) => {
     const base_directory = await utils.get_base_directory();
 
     const mkdir_promises = team_ids.map(team_id => {
-      return fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}`, { recursive: true })
+      return fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/source`, { recursive: true })
         .then(() => {
           return Promise.resolve(true);
         })
@@ -157,7 +157,7 @@ router.post("/create", authenticate(), async (req, res) => {
     const files_exist_promises = player_codes_flat.map((player_code, index) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
-      return fs.access(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`)
+      return fs.access(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/source/${code_file_name}`)
         .then(() => {
           return true;
         })
@@ -183,8 +183,14 @@ router.post("/create", authenticate(), async (req, res) => {
         const language = code_languages_flat[index_map[index]];
         const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
         console.debug("code_file_name: ", code_file_name);
-        return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
-          `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`, cos, config)
+        return fs.mkdir(`${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source`, { recursive: true })
+          .then(() => {
+            return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
+            `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, cos, config)
+          })
+          .then(() => {
+            return fs.chmod(`${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, 0o755);
+          })
           .then(() => {
             return Promise.resolve(true);
           })
@@ -201,7 +207,7 @@ router.post("/create", authenticate(), async (req, res) => {
       }
     }
 
-    console.log("Files downloaded!")
+    console.log("Files downloaded!");
 
     const map_files_count = await fs.readdir(`${base_directory}/${contest_name}/map/${map_id}`)
       .then(files => {
@@ -233,7 +239,7 @@ router.post("/create", authenticate(), async (req, res) => {
     console.log("Map downloaded!");
 
     const files_count_promises = team_ids.map(team_id => {
-      return fs.readdir(`${base_directory}/${contest_name}/code/${team_id}`)
+      return fs.readdir(`${base_directory}/${contest_name}/code/${team_id}/source`)
         .then(files => {
           return files.length;
         })
@@ -250,13 +256,13 @@ router.post("/create", authenticate(), async (req, res) => {
     }
 
     const files_clean_promises = team_ids.map((team_id, index) => {
-      if (files_count[index] < 18) {
+      if (files_count[index] < 10) {
         return Promise.resolve(true);
       }
-      return fs.readdir(`${base_directory}/${contest_name}/code/${team_id}`)
+      return fs.readdir(`${base_directory}/${contest_name}/code/${team_id}/source`)
         .then(files => {
           const files_stat_promises = files.map(file => {
-            return fs.stat(`${base_directory}/${contest_name}/code/${team_id}/${file}`)
+            return fs.stat(`${base_directory}/${contest_name}/code/${team_id}/source/${file}`)
               .then(stat => {
                 return { file, stat };
               });
@@ -269,9 +275,9 @@ router.post("/create", authenticate(), async (req, res) => {
             return !players_codes[index].includes(file_stat.file.split(".")[0]);
           });
 
-          const files_stat_to_delete = files_stat_filtered.slice(0, files_stat_filtered.length - 6);
+          const files_stat_to_delete = files_stat_filtered.slice(0, files_stat_filtered.length - 3);
           const delete_promises = files_stat_to_delete.map(file_stat => {
-            return fs.unlink(`${base_directory}/${contest_name}/code/${team_id}/${file_stat.file}`);
+            return fs.unlink(`${base_directory}/${contest_name}/code/${team_id}/source/${file_stat.file}`);
           });
           return Promise.all(delete_promises);
         }
@@ -308,18 +314,16 @@ router.post("/create", authenticate(), async (req, res) => {
 
     console.log("Room created!")
 
-    await fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source`, { recursive: true });
     const copy_promises = player_codes_flat.map((player_code, index) => {
       const language = code_languages_flat[index];
       const code_file_name = language === "cpp" ? `${player_code}` : `${player_code}.py`;
       const arena_file_name = language === "cpp" ? `${player_labels_flat[index]}` : `${player_labels_flat[index]}.py`;
       return fs.mkdir(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}`, { recursive: true })
         .then(() => {
-          return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+          // return fs.copyFile(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/${code_file_name}`,
+          //   `${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
+          return fs.symlink(`${base_directory}/${contest_name}/code/${team_ids_flat[index]}/source/${code_file_name}`,
             `${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`)
-        })
-        .then(() => {
-          return fs.chmod(`${base_directory}/${contest_name}/arena/${room_id}/source/${team_ids_flat[index]}/${arena_file_name}`, 0o755);
         })
         .then(() => {
           return Promise.resolve(true);
