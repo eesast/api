@@ -1,11 +1,12 @@
 import express from "express";
-import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
+import { docker_queue } from "..";
+import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
 import * as COS from "../helpers/cos";
-import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
-import * as hasura from "../hasura/contest"
+import * as ContConf from "../configs/contest";
+import * as ContHasFunc from "../hasura/contest"
 
 
 const router = express.Router();
@@ -28,21 +29,21 @@ router.post("/start-all", authenticate(), async (req, res) => {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const { contest_id, map_id } = await hasura.get_round_info(round_id);
-    const contest_name = await hasura.get_contest_name(contest_id);
+    const { contest_id, map_id } = await ContHasFunc.get_round_info(round_id);
+    const contest_name = await ContHasFunc.get_contest_name(contest_id);
 
-    const is_manager = await hasura.get_maneger_from_user(user_uuid, contest_id);
+    const is_manager = await ContHasFunc.get_maneger_from_user(user_uuid, contest_id);
     console.debug("is_manager: ", is_manager);
     if (!is_manager) {
       return res.status(403).send("403 Forbidden: Not a manager");
     }
 
-    const { team_labels, players_labels }: { team_labels: string[], players_labels: string[] } = await hasura.get_contest_players(contest_id);
+    const { team_labels, players_labels }: { team_labels: string[], players_labels: string[] } = await ContHasFunc.get_contest_players(contest_id);
     const team_labels_unique = Array.from(new Set(team_labels));
     console.debug("team_labels: ", team_labels);
     console.debug("players_labels: ", players_labels);
 
-    const team_list: string[] = await hasura.get_all_teams(contest_id);
+    const team_list: string[] = await ContHasFunc.get_all_teams(contest_id);
     const team_player_list: { team_id: string, team_label: string, player_label: string }[] = [];
     team_list.forEach((team_id) => {
       players_labels.forEach((player_label, index) => {
@@ -53,7 +54,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     console.debug("team_players_list: ", team_player_list);
 
     const code_role_promises = team_player_list.map(team_player =>
-      hasura.get_player_code(team_player.team_id, team_player.player_label)
+      ContHasFunc.get_player_code(team_player.team_id, team_player.player_label)
     );
     const code_role_list: { code_id: string, role: string }[] = await Promise.all(code_role_promises);
     console.debug("code_role_list: ", code_role_list);
@@ -75,7 +76,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
 
 
     const code_detail_promises = code_role_list_filtered.map(player_detail =>
-      hasura.get_compile_status(player_detail.code_id)
+      ContHasFunc.get_compile_status(player_detail.code_id)
     );
     const code_detail_list = await Promise.all(code_detail_promises);
 
@@ -192,7 +193,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     }
     if (map_files_count !== 1) {
       await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
-      const map_filename = await hasura.get_map_name(map_id);
+      const map_filename = await ContHasFunc.get_map_name(map_id);
       await COS.downloadObject(`${contest_name}/map/${map_filename}`,
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
@@ -248,7 +249,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
 
       let room_id: string;
 
-      return hasura.insert_room_competition(contest_id, "Waiting", map_id, round_id)
+      return ContHasFunc.insert_room_competition(contest_id, "Waiting", map_id, round_id)
         .then((room_id_: string | null) => {
           if (!room_id_) {
             return Promise.resolve(false);
@@ -256,7 +257,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
             room_id = room_id_;
           }
           console.debug("room_id: ", room_id);
-          return hasura.insert_room_teams(room_id, [team1_id, team2_id], [team1_label, team2_label], [team1_roles, team2_roles], [team1_codes, team2_codes])
+          return ContHasFunc.insert_room_teams(room_id, [team1_id, team2_id], [team1_label, team2_label], [team1_roles, team2_roles], [team1_codes, team2_codes])
         })
         .then((affected_rows: number) => {
           if (affected_rows !== 2) {
@@ -345,7 +346,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
 router.post("/start-one", authenticate(), async (req, res) => {
   try {
     const user_uuid = req.auth.user.uuid;
-    const team_label_binds: utils.TeamLabelBind[] = req.body.team_labels;
+    const team_label_binds: ContConf.TeamLabelBind[] = req.body.team_labels;
     const round_id = req.body.round_id;
     const exposed = req.body.exposed || 0;
     const envoy = req.body.envoy || 0;
@@ -357,8 +358,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const { contest_id, map_id } = await hasura.get_round_info(round_id);
-    const contest_name = await hasura.get_contest_name(contest_id);
+    const { contest_id, map_id } = await ContHasFunc.get_round_info(round_id);
+    const contest_name = await ContHasFunc.get_contest_name(contest_id);
     console.debug("contest_id: ", contest_id);
     console.debug("map_id: ", map_id);
     console.debug("contest_name: ", contest_name);
@@ -375,14 +376,14 @@ router.post("/start-one", authenticate(), async (req, res) => {
     console.debug("team_labels: ", team_labels);
 
 
-    const is_manager = await hasura.get_maneger_from_user(user_uuid, contest_id);
+    const is_manager = await ContHasFunc.get_maneger_from_user(user_uuid, contest_id);
     console.debug("is_manager: ", is_manager);
     if (!is_manager) {
       return res.status(403).send("403 Forbidden: Not a manager");
     }
 
     const players_labels_promises = team_labels.map(team_label =>
-      hasura.get_players_label(contest_id, team_label)
+      ContHasFunc.get_players_label(contest_id, team_label)
     );
     const players_labels: string[][] = await Promise.all(players_labels_promises);
     console.debug("players_labels: ", players_labels);
@@ -398,7 +399,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
     console.debug("team_ids_flat: ", team_ids_flat);
 
     const players_details_promises = player_labels_flat.map((player_label, index) =>
-      hasura.get_player_code(team_ids_flat[index], player_label)
+      ContHasFunc.get_player_code(team_ids_flat[index], player_label)
     );
     const players_details = await Promise.all(players_details_promises);
     const player_roles_flat = players_details.map(player_detail => player_detail.role);
@@ -425,7 +426,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
     console.debug("players_codes: ", players_codes);
 
     const code_details_promises = player_codes_flat.map(player_code =>
-      hasura.get_compile_status(player_code)
+      ContHasFunc.get_compile_status(player_code)
     );
     const code_details = await Promise.all(code_details_promises);
     const code_status_flat = code_details.map(code => code.compile_status);
@@ -531,7 +532,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
       await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
     }
     if (map_files_count !== 1) {
-      const map_filename = await hasura.get_map_name(map_id);
+      const map_filename = await ContHasFunc.get_map_name(map_id);
       await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
       const cos = await COS.initCOS();
       const config = await COS.getConfig();
@@ -547,7 +548,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
     console.log("Map downloaded!");
 
     const team_room_id_promises = team_ids.map((team_id, index) => {
-      return hasura.get_room_id(team_id, team_labels[index], round_id)
+      return ContHasFunc.get_room_id(team_id, team_labels[index], round_id)
         .then((room_id: string[] | null) => {
           return room_id ? Array.from(new Set(room_id)) : [];
         })
@@ -574,12 +575,12 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const cos = await COS.initCOS();
     const config = await COS.getConfig();
     const delete_room_promises = common_room_ids.map(room_id => {
-      return hasura.delete_room(room_id)
+      return ContHasFunc.delete_room(room_id)
         .then((affected_rows: number) => {
           if (affected_rows !== 1) {
             return Promise.resolve(false);
           }
-          return hasura.delete_room_team(room_id);
+          return ContHasFunc.delete_room_team(room_id);
         })
         .then((affected_rows: number) => {
           if (affected_rows !== team_ids.length) {
@@ -601,14 +602,14 @@ router.post("/start-one", authenticate(), async (req, res) => {
       return;
     }
 
-    const room_id = await hasura.insert_room_competition(contest_id, "Waiting", map_id, round_id);
+    const room_id = await ContHasFunc.insert_room_competition(contest_id, "Waiting", map_id, round_id);
     console.debug("room_id: ", room_id);
     if (!room_id) {
       // return res.status(500).send("500 Internal Server Error: Room not created");
       return;
     }
 
-    const insert_room_teams_affected_rows = await hasura.insert_room_teams(room_id, team_ids, team_labels, players_roles, players_codes);
+    const insert_room_teams_affected_rows = await ContHasFunc.insert_room_teams(room_id, team_ids, team_labels, players_roles, players_codes);
     if (insert_room_teams_affected_rows !== team_ids.length) {
       // return res.status(500).send("500 Internal Server Error: Room teams not created");
       return;
@@ -691,7 +692,7 @@ router.post("/get-score", async (req, res) => {
 
       const scores: number[] = [];
       for (const team_id of team_ids) {
-        const score = await hasura.get_team_contest_score(team_id, round_id);
+        const score = await ContHasFunc.get_team_contest_score(team_id, round_id);
         scores.push(score);
       }
 
@@ -743,13 +744,13 @@ router.post("/finish-one", async (req, res) => {
         console.debug("team_ids: ", team_ids);
 
         const update_room_team_score_promises = team_ids.map((team_id, index) =>
-          hasura.update_room_team_score(room_id, team_id, game_scores[index]));
+          ContHasFunc.update_room_team_score(room_id, team_id, game_scores[index]));
         await Promise.all(update_room_team_score_promises);
 
-        await hasura.update_room_status(room_id, "Finished");
+        await ContHasFunc.update_room_status(room_id, "Finished");
         console.log("Update room team score!")
 
-        // const origin_result: utils.TeamResult[] = await hasura.get_teams_contest_score(team_ids);
+        // const origin_result: utils.TeamResult[] = await ContHasFunc.get_teams_contest_score(team_ids);
         // console.debug("origin_result: ", origin_result);
         // const new_resullt: utils.TeamResult[] = origin_result.map(origin => {
         //   const update_index = team_ids.indexOf(origin.team_id);
@@ -760,17 +761,17 @@ router.post("/finish-one", async (req, res) => {
         // });
         // console.debug("new_result: ", new_resullt);
         // const update_team_score_promises = new_resullt.map(result => {
-        //   return hasura.update_team_contest_score(result.team_id, result.score);
+        //   return ContHasFunc.update_team_contest_score(result.team_id, result.score);
         // });
         // await Promise.all(update_team_score_promises);
         // console.log("Update team score!")
       } else if (game_status === 'Crashed') {
-        await hasura.update_room_status(room_id, "Crashed");
+        await ContHasFunc.update_room_status(room_id, "Crashed");
       }
 
 
       const base_directory = await utils.get_base_directory();
-      const contest_name = await hasura.get_contest_name(contest_id);
+      const contest_name = await ContHasFunc.get_contest_name(contest_id);
       try {
         await fs.access(`${base_directory}/${contest_name}/competition/${room_id}/output`);
 
@@ -831,7 +832,7 @@ router.get("/playback/:room_id", async (req, res) => {
   try {
     const room_id = req.params.room_id;
 
-    const { contest_name, round_id } = await hasura.get_room_info(room_id);
+    const { contest_name, round_id } = await ContHasFunc.get_room_info(room_id);
     const base_directory = await utils.get_base_directory();
     const playbackLocalPath = `${base_directory}/temp/${room_id}/playback.thuaipb`;
     const playbackCOSPath = `${contest_name}/competition/${round_id}/${room_id}/playback.thuaipb`;

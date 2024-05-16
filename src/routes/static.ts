@@ -1,8 +1,8 @@
 import express from "express";
+import { gql } from "graphql-request";
 import authenticate from "../middlewares/authenticate";
 import { getSTS } from "../helpers/cos";
 import { client } from "..";
-import { gql } from "graphql-request";
 
 const router = express.Router();
 const generalActions = [

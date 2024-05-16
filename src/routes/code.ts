@@ -2,9 +2,10 @@ import express from "express";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
-import * as hasura from "../hasura/contest";
 import * as utils from "../helpers/utils";
 import * as COS from "../helpers/cos";
+import * as ContConf from "../configs/contest";
+import * as ContHasFunc from "../hasura/contest";
 
 
 const router = express.Router();
@@ -118,7 +119,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const { contest_id, contest_name, team_id, language, compile_status } = await hasura.query_code(code_id);
+    const { contest_id, contest_name, team_id, language, compile_status } = await ContHasFunc.query_code(code_id);
     if (!contest_id || !team_id || !language) {
       return res.status(404).send("404 Not Found: Code unavailable");
     }
@@ -126,9 +127,9 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(400).send("400 Bad Request: Code already compiled");
     }
 
-    const is_manager = await hasura.get_maneger_from_user(user_uuid, contest_id);
+    const is_manager = await ContHasFunc.get_maneger_from_user(user_uuid, contest_id);
     if (!is_manager) {
-      const user_team_id = await hasura.get_team_from_user(user_uuid, contest_id);
+      const user_team_id = await ContHasFunc.get_team_from_user(user_uuid, contest_id);
       if (!user_team_id) {
         return res.status(403).send("403 Forbidden: User not in team");
       } else if (user_team_id !== team_id) {
@@ -191,12 +192,12 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         } as JwtCompilerPayload,
         process.env.SECRET!,
         {
-          expiresIn: utils.contest_image_map[contest_name].COMPILER_TIMEOUT,
+          expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT,
         }
       );
 
       const container = await docker.createContainer({
-        Image: utils.contest_image_map[contest_name].COMPILER_IMAGE,
+        Image: ContConf.contest_image_map[contest_name].COMPILER_IMAGE,
         Env: [
           `URL=${url}`,
           `TOKEN=${compiler_token}`,
@@ -220,7 +221,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       await container.start();
       console.log("container started")
 
-      await hasura.update_compile_status(code_id, "Compiling");
+      await ContHasFunc.update_compile_status(code_id, "Compiling");
       console.log("update compile status success")
 
       if (process.env.NODE_ENV !== "production") {
@@ -300,7 +301,7 @@ router.post("/compile-finish", async (req, res) => {
       }
 
       try {
-        await hasura.update_compile_status(code_id, compile_status);
+        await ContHasFunc.update_compile_status(code_id, compile_status);
       } catch (err) {
         return res.status(500).send("500 Internal Server Error: Update compile status failed. " + err);
       }

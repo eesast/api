@@ -1,22 +1,25 @@
 import cron from "node-cron";
-import { docker_queue } from "..";
 import Docker from "dockerode";
 import jwt from "jsonwebtoken";
-import { JwtServerPayload } from "../middlewares/authenticate";
-import fs from "fs";
-import * as fs_promises from "fs/promises"
-import * as hasura from "../hasura/contest";
-import * as utils from "./utils";
-import * as COS from "./cos";
 import yaml from "js-yaml";
 import { Mutex } from "async-mutex"
+import fs from "fs";
+import * as fs_promises from "fs/promises"
+import { docker_queue } from "..";
+import { JwtServerPayload } from "../middlewares/authenticate";
+import * as utils from "./utils";
+import * as COS from "./cos";
+import * as ContConf from "../configs/contest";
+import * as ContHasFunc from "../hasura/contest";
+
+
 
 export interface queue_element {
   contest_id: string;
   round_id?: string;
   room_id: string;
   map_id: string;
-  team_label_binds: utils.TeamLabelBind[];
+  team_label_binds: ContConf.TeamLabelBind[];
   competition: number;
   exposed: number;
   envoy: number;
@@ -29,13 +32,13 @@ const get_and_update_port = async (room_id: string) => {
   const release = await port_mutex.acquire();
   let port = -1;
   try {
-    const ports_list = await hasura.get_exposed_ports();
+    const ports_list = await ContHasFunc.get_exposed_ports();
     const porst_set = new Set(ports_list.map((item: any) => item.port));
     for (let i = start_port; i < start_port + max_port_num; i++) {
       if (!porst_set.has(i)) {
         port = i;
-        await hasura.update_room_port(room_id, port);
-        hasura.update_room_created_at(room_id, new Date().toISOString());
+        await ContHasFunc.update_room_port(room_id, port);
+        ContHasFunc.update_room_created_at(room_id, new Date().toISOString());
         break;
       }
     }
@@ -46,7 +49,7 @@ const get_and_update_port = async (room_id: string) => {
 }
 
 const upload_contest_files = async (sub_base_dir: string, queue_front: queue_element) => {
-  const contest_name = await hasura.get_contest_name(queue_front.contest_id);
+  const contest_name = await ContHasFunc.get_contest_name(queue_front.contest_id);
   try {
     await fs_promises.access(`${sub_base_dir}/${queue_front.room_id}/output`);
     try {
@@ -130,7 +133,7 @@ const docker_cron = async () => {
           console.log("queue is empty");
           return;
         }
-        const contest_name = await hasura.get_contest_name(queue_front.contest_id);
+        const contest_name = await ContHasFunc.get_contest_name(queue_front.contest_id);
         const sub_base_dir = queue_front.competition === 1 ? `${base_directory}/${contest_name}/competition` : `${base_directory}/${contest_name}/arena`;
         const sub_url = queue_front.competition === 1 ? `${url}/competition` : `${url}/arena`;
 
@@ -152,11 +155,11 @@ const docker_cron = async () => {
         console.debug("finish_url: ", finish_url);
 
         console.debug("team_labels: ", JSON.stringify(queue_front.team_label_binds))
-        console.log(utils.contest_image_map[contest_name])
+        console.log(ContConf.contest_image_map[contest_name])
 
-        const game_time = await hasura.get_game_time(queue_front.contest_id) ?? 10;
-        const server_memory_limit = await hasura.get_server_memory_limit(queue_front.contest_id) ?? 2;
-        const client_memory_limit = await hasura.get_client_memory_limit(queue_front.contest_id) ?? 2;
+        const game_time = await ContHasFunc.get_game_time(queue_front.contest_id) ?? 10;
+        const server_memory_limit = await ContHasFunc.get_server_memory_limit(queue_front.contest_id) ?? 2;
+        const client_memory_limit = await ContHasFunc.get_client_memory_limit(queue_front.contest_id) ?? 2;
         console.debug("game_time (s): " + game_time);
         console.debug("server_memory_limit (GB): " + server_memory_limit);
         console.debug("client_memory_limit (GB): " + client_memory_limit);
@@ -192,7 +195,7 @@ const docker_cron = async () => {
             console.log('write success')
 
             const container_envoy = await docker.createContainer({
-              Image: utils.contest_image_map[contest_name].ENVOY_IMAGE,
+              Image: ContConf.contest_image_map[contest_name].ENVOY_IMAGE,
               HostConfig: {
                 Binds: [
                   `${sub_base_dir}/${queue_front.room_id}/envoy:/etc/envoy`
@@ -226,11 +229,11 @@ const docker_cron = async () => {
             } as JwtServerPayload,
             process.env.SECRET!,
             {
-              expiresIn: utils.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT,
+              expiresIn: ContConf.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT,
             }
           );
           const container_server = await docker.createContainer({
-            Image: utils.contest_image_map[contest_name].SERVER_IMAGE,
+            Image: ContConf.contest_image_map[contest_name].SERVER_IMAGE,
             Env: [
               `TERMINAL=SERVER`,
               `TOKEN=${server_token}`,
@@ -274,7 +277,7 @@ const docker_cron = async () => {
           console.log("team label: " + JSON.stringify(queue_front.team_label_binds));
           const container_client_promises = queue_front.team_label_binds.map(async (team_label_bind, team_index) => {
             const container_client = await docker.createContainer({
-              Image: utils.contest_image_map[contest_name].CLIENT_IMAGE,
+              Image: ContConf.contest_image_map[contest_name].CLIENT_IMAGE,
               Env: [
                 `TERMINAL=CLIENT`,
                 `TEAM_SEQ_ID=${team_index}`,
@@ -309,7 +312,7 @@ const docker_cron = async () => {
           console.log("client docker started");
 
 
-          await hasura.update_room_status(queue_front.room_id, "Running");
+          await ContHasFunc.update_room_status(queue_front.room_id, "Running");
 
 
           let time_out = false;
@@ -345,13 +348,13 @@ const docker_cron = async () => {
                 }
               }));
 
-              await hasura.update_room_port(queue_front.room_id, null);
+              await ContHasFunc.update_room_port(queue_front.room_id, null);
               console.log(`Port ${port} Released! room id: ${queue_front.room_id}`);
 
               if (error || time_out) {
                 if (error)
                   console.error("An error occurred in waiting for server container:", error);
-                hasura.update_room_status(queue_front.room_id, time_out ? "Timeout" : "Crashed");
+                ContHasFunc.update_room_status(queue_front.room_id, time_out ? "Timeout" : "Crashed");
                 upload_contest_files(sub_base_dir, queue_front);
               }
             } catch (err) {
@@ -372,7 +375,7 @@ const docker_cron = async () => {
                 console.error("An error occurred in removing containers:", err);
             }
           }));
-          hasura.update_room_status_and_port(queue_front.room_id, "Failed", null);
+          ContHasFunc.update_room_status_and_port(queue_front.room_id, "Failed", null);
           fs.mkdirSync(`${sub_base_dir}/${queue_front.room_id}/output`, { recursive: true });
           fs.writeFileSync(`${sub_base_dir}/${queue_front.room_id}/output/error.log`, err.message);
           upload_contest_files(sub_base_dir, queue_front);

@@ -1,6 +1,6 @@
 import express from "express";
-import { client } from "..";
 import { gql } from "graphql-request";
+import { client } from "..";
 
 const router = express.Router();
 

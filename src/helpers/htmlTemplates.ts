@@ -1,3 +1,4 @@
+
 export const verifyEmailTemplate = (verificationCode: string) => {
   return `
     <!doctype html>

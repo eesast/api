@@ -1,23 +1,26 @@
 import bcrypt from "bcrypt";
 import express from "express";
 import jwt from "jsonwebtoken";
-// import recaptcha from "../middlewares/recaptcha";
+import { gql } from "graphql-request";
 import { sendEmail } from "../helpers/email";
-import {
-  verifyEmailTemplate,
-} from "../helpers/htmlTemplates";
+import { verifyEmailTemplate } from "../helpers/htmlTemplates";
 import authenticate, { JwtUserPayload, JwtVerifyPayload } from "../middlewares/authenticate";
 import { validateEmail, validatePassword } from "../helpers/validate";
-import { gql } from "graphql-request";
 import { client } from "..";
 import { sendMessageVerifyCode } from "../helpers/short_message";
+
+
+
 const router = express.Router();
-/*
-`/user/anonymous`：匿名用户。返回一个匿名用户的`token`
-- 请求方法：`GET`
-- 响应：`data`中有`{token: string}`，为`JwtUserPayload`形式
-*/
+
 router.get("/anonymous", (req, res) => {
+  /**
+   * @route GET /user/anonymous
+   * @description 返回一个匿名用户的token
+   * @body {}
+   * @returns {token: string} 匿名用户的token，为JwtUserPayload形式
+   */
+
   const payload: JwtUserPayload = {
     uuid: "00000000-0000-0000-0000-000000000000",
     role: "anonymous",
@@ -32,13 +35,16 @@ router.get("/anonymous", (req, res) => {
   });
   return res.status(200).json({ token });
 });
-/*
-`/user/login`：处理用户登录。根据`username/email/phone/student_no`从`hasura`的`users`表查找用户，并验证密码是否匹配，若验证成功，则返回`token`
-- 请求方法：`POST`
-- 请求：`body`中有`{user: string, password: string}`，其中`user`可以是`username/email/phone/student_no`中任一形式（可以先支持其中一两种），`password`是`bcrypt`加密后的。
-- 响应：`data`中有`{token: string}`，为`JwtUserPayload`形式
-*/
+
+
 router.post("/login", async (req, res) => {
+  /**
+   * @route POST /user/login
+   * @description 处理用户登录，根据`username/email/phone/student_no`从`hasura`的`users`表查找用户，并验证密码是否匹配，若验证成功，则返回`token`
+   * @body {user: string, password: string} 其中`user`可以是`username/email/phone/student_no`中任一形式，`password`是`bcrypt`加密后的
+   * @returns {token: string} 为`JwtUserPayload`形式
+   */
+
   const { user, password } = req.body;
   if (!user || !password) {
     return res
@@ -109,14 +115,17 @@ router.post("/login", async (req, res) => {
     return res.status(500).send(err);
   }
 });
-/*
-`/user/verify`：发送验证码。向提供的`email/phone`发送验证码（不需要验证是否在`users`表中），同时返回一个包含`hash`之后的验证码的、生存时间更短的`token`
-- 请求方法：`POST`
-- 请求：`body`中有`{email: string}`或`{phone: string}`
-- 响应：`data`中有`{token: string}`，为`JwtVerifyPayload`形式
-- 备注：需思考如何防止高频请求（前端会有倒计时，但不够）
-*/
+
+
 router.post("/send-code", async(req, res) => {
+  /**
+   * @route POST /user/send-code
+   * @description 发送验证码，向提供的`email/phone`发送验证码（不需要验证是否在`users`表中），同时返回一个包含`hash`之后的验证码的、生存时间更短的`token`
+   * @body {email: string}或{phone: string}
+   * @returns {token: string} 为`JwtVerifyPayload`形式
+   * @remarks 需思考如何防止高频请求（前端会有倒计时，但不够）
+   */
+
   const { email, phone } = req.body;
   if (!email && !phone) {
     return res.status(422).send("422 Unprocessable Entity: Missing email or phone");
@@ -159,13 +168,16 @@ router.post("/send-code", async(req, res) => {
   }
   res.status(200).json({token});
 });
-/*
-`/user/verify`：前端输完验证码之后会发送请求检验验证码是否正确
-- 请求方法：`POST`
-- 请求：`body`中有{verificationCode:string, verificationToken:string}
-- 响应：检验成功状态码200，失败401，res.status(xxx).end()就行
-*/
+
+
 router.post("/verify",async(req,res) =>{
+  /**
+   * @route POST /user/verify
+   * @description 前端输完验证码之后会发送请求检验验证码是否正确
+   * @body {verificationCode: string, verificationToken: string}
+   * @returns 检验成功状态码200，失败401
+   */
+
   const { verificationCode, verificationToken } = req.body;
   if (!verificationCode || !verificationToken) {
     return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken");
@@ -182,13 +194,16 @@ router.post("/verify",async(req,res) =>{
       return res.status(500).send(err);
   }
 })
-/*
-`/user/register`：创建用户。先验证请求中的验证码与`verificationToken`中的是否一致，再根据`email/phone`和`password`在`hasura`的`users`表中插入新行，并返回`token`
-- 请求方法：`POST`
-- 请求：`body`中有`{password: string, verificationCode: string, verificationToken: string}`，`password`是明文，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
-- 响应：`data`中有`{token: string}`，为`JwtUserPayload`形式，初始`role`应为`user`
-*/
+
+
 router.post("/register", async(req, res) => {
+  /**
+   * @route POST /user/register
+   * @description 创建用户。先验证请求中的验证码与`verificationToken`中的是否一致，再根据`email/phone`和`password`在`hasura`的`users`表中插入新行，并返回`token`
+   * @body {password: string, verificationCode: string, verificationToken: string}，`password`是明文，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
+   * @returns {token: string} 为`JwtUserPayload`形式，初始`role`应为`user`
+   */
+
   const { password, verificationCode, verificationToken } = req.body;
   if (!password || !verificationCode || !verificationToken) {
     return res.status(422).send("422 Unprocessable Entity: Missing password or verificationCode or verificationToken");
@@ -271,13 +286,16 @@ router.post("/register", async(req, res) => {
     return res.status(500).send(err);
   }
 });
-/*
-`/user/change-password`：修改密码。先验证请求中的验证码与`verificationToken`中的是否一致，再更新`hasura`中的密码
-- 请求方法：`POST`
-- 请求：`body`中有`{password: string, verificationCode: string, verificationToken: string}`，`token`是登陆时返回的，`password`是新密码，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
-- 响应：返回更改状态即可
-*/
+
+
 router.post("/change-password", async(req, res) => {
+  /**
+   * @route POST /user/change-password
+   * @description 修改密码。先验证请求中的验证码与`verificationToken`中的是否一致，再更新`hasura`中的密码
+   * @body {password: string, verificationCode: string, verificationToken: string}，`password`是新密码，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
+   * @returns 更改状态
+   */
+
   const { password, verificationCode, verificationToken } = req.body;
   if (!password || !verificationCode || !verificationToken) {
     return res.status(422).send("422 Unprocessable Entity: Missing credentials");
@@ -332,13 +350,16 @@ router.post("/change-password", async(req, res) => {
     return res.send(500).send(err);
   }
 });
-/*
-`/user/edit-profile`：更改通过验证的`email/phone`。先验证请求中的验证码与`verificationToken`中的是否一致，再更新`hasura`中的`email/phone`，如果`isTsinghua=True`那么校验邮箱为清华邮箱后更新`role`并重新返回`token`
-- 请求方法：`POST`
-- 请求：`body`中有`{verificationCode: string, verificationToken: string, isTsinghua: bool}`，`token`是登陆时返回的，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
-- 响应：返回更改状态（若`isTsinghua=True`返回`token`）
-*/
+
+
 router.post("/edit-profile", authenticate(), async(req, res) => {
+  /**
+   * @route POST /user/edit-profile
+   * @description 更改通过验证的`email/phone`。先验证请求中的验证码与`verificationToken`中的是否一致，再更新`hasura`中的`email/phone`，如果`isTsinghua=True`那么校验邮箱为清华邮箱后更新`role`并重新返回`token`
+   * @body {verificationCode: string, verificationToken: string, isTsinghua: bool}，`token`是登陆时返回的，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
+   * @returns 更改状态（若`isTsinghua=True`返回`token`）
+   */
+
   const { verificationCode, verificationToken, isTsinghua } = req.body;
   if (!verificationCode || !verificationToken || isTsinghua === undefined) {
     return res.status(422).send("422 Unprocessable Entity: Missing credentials");
@@ -429,13 +450,16 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
     return res.status(500).send(err);
   };
 });
-/*
-`/user/delete`：删除用户。先验证请求中的验证码与`verificationToken`中的是否一致，再删除`hasura`中的数据列
-- 请求方法：`POST`
-- 请求：`body`中有`{verificationCode: string, verificationToken: string}`，`token`是登陆时返回的，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
-- 响应：返回更改状态即可
-*/
+
+
 router.post("/delete", authenticate(), async(req, res) => {
+  /**
+   * @route POST /user/delete
+   * @description 删除用户。先验证请求中的验证码与`verificationToken`中的是否一致，再删除`hasura`中的数据列
+   * @body {verificationCode: string, verificationToken: string}，`token`是登陆时返回的，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
+   * @returns 更改状态
+   */
+
   const { verificationCode, verificationToken } = req.body;
   if (!verificationCode || !verificationToken) {
     return res.status(422).send("422 Unprocessable Entity: Missing credentials");
