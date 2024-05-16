@@ -30,7 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "1.10.0",
     "node-cron": "^3.0.3",
-    "node-fetch": "2.6.9",
+    "node-fetch": "3.3.2",
     "nodemailer": "^6.9.13",
     "qcloud-cos-sts": "^3.1.0",
     "unisms": "^0.0.6",
