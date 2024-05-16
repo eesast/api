@@ -6,7 +6,6 @@ import { Mutex } from "async-mutex"
 import fs from "fs";
 import * as fs_promises from "fs/promises"
 import { docker_queue } from "..";
-import { JwtServerPayload } from "../middlewares/authenticate";
 import * as utils from "./utils";
 import * as COS from "./cos";
 import * as ContConf from "../configs/contest";
@@ -226,7 +225,7 @@ const docker_cron = async () => {
               round_id: queue_front.round_id,
               room_id: queue_front.room_id,
               team_label_binds: queue_front.team_label_binds,
-            } as JwtServerPayload,
+            } as ContConf.JwtServerPayload,
             process.env.SECRET!,
             {
               expiresIn: ContConf.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT,

@@ -1,7 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { docker_queue } from "..";
-import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
+import authenticate from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
 import * as COS from "../helpers/cos";
@@ -382,7 +382,7 @@ router.post("/get-score", async (req, res) => {
       if (err || !decoded) {
         return res.status(401).send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtServerPayload;
+      const payload = decoded as ContConf.JwtServerPayload;
       const team_label_binds = payload.team_label_binds;
       const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
 
@@ -421,7 +421,7 @@ router.post("/finish", async (req, res) => {
       if (err || !decoded) {
         return res.status(401).send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtServerPayload;
+      const payload = decoded as ContConf.JwtServerPayload;
       const room_id = payload.room_id;
       const contest_id = payload.contest_id;
       const team_label_binds = payload.team_label_binds;

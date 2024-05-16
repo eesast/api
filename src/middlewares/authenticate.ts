@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
-import { TeamLabelBind } from "../configs/contest";
+
 
 export interface JwtUserPayload {
   uuid: string;
@@ -17,18 +17,6 @@ export interface JwtVerifyPayload {
   email: string;
   phone: string;
   code: string; // hash加密后的验证码
-}
-export interface JwtCompilerPayload {
-  code_id: string;
-  team_id: string;
-  contest_name: string;
-  cos_path: string;
-}
-export interface JwtServerPayload {
-  contest_id: string;
-  round_id?: string;
-  room_id: string;
-  team_label_binds: TeamLabelBind[];
 }
 export interface UserInfo {
   uuid: string;

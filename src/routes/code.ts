@@ -1,7 +1,7 @@
 import express from "express";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
+import authenticate from "../middlewares/authenticate";
 import * as utils from "../helpers/utils";
 import * as COS from "../helpers/cos";
 import * as ContConf from "../configs/contest";
@@ -170,7 +170,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
           team_id: team_id,
           contest_name: contest_name,
           cos_path: cosPath,
-        } as JwtCompilerPayload,
+        } as ContConf.JwtCompilerPayload,
         process.env.SECRET!,
         {
           expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT,
@@ -238,7 +238,7 @@ router.post("/compile-finish", async (req, res) => {
       if (err || !decoded) {
         return res.status(401).send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtCompilerPayload;
+      const payload = decoded as ContConf.JwtCompilerPayload;
       const code_id = payload.code_id;
       const team_id = payload.team_id;
       const contest_name = payload.contest_name;
