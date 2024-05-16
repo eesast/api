@@ -37,7 +37,7 @@ EESAST 后端 API
 
 ### 脚本
 
-#### `yarn install --registry https://registry.npmjs.org`
+#### `yarn install --registry https://registry.yarnpkg.com`
 
 安装所有 `dependencies` 和 `devDependencies`
 
