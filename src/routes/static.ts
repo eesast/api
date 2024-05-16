@@ -55,7 +55,7 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
   try{
     if (role == 'student' || role == 'teacher') {
       const application_id = req.params.application_id;
-      const applications = await client.request(
+      const applications: any = await client.request(
         gql`
           query query_if_in_application($application_id: uuid) {
             mentor_application(where: {id: {_eq: $application_id}}) {
@@ -93,7 +93,7 @@ router.get("/chat_record/:application_id/*", async (req, res) => {
 
 //contest
 const checkContestManager = async (name: string) => {
-  const query_if_manager = await client.request(
+  const query_if_manager: any = await client.request(
     gql`
       query query_is_manager($name: String, $user_uuid: uuid) {
         contest_manager(where: {_and: {contest: {name: {_eq: $name}}, user_uuid: {_eq: $user_uuid}}}) {
@@ -109,7 +109,7 @@ const checkContestManager = async (name: string) => {
   return query_if_manager.contest_manager.length != 0;
 };
 const checkTeamMember = async (name: string, team_id: string) => {
-  const query_in_team = await client.request(
+  const query_in_team: any = await client.request(
     gql`
       query query_if_in_team($team_id: uuid, $user_uuid: uuid, $name: String) {
         contest_team(

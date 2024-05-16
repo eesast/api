@@ -204,7 +204,7 @@ router.post("/register", async(req, res) => {
       return res.status(401).send("401 Unauthorized: Verification code does not match");
     }
 
-    const userExist = await client.request(
+    const userExist: any = await client.request(
       gql`
         query MyQuery($email: String, $phone: String) {
           users(where: {_or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}]}) {
@@ -224,7 +224,7 @@ router.post("/register", async(req, res) => {
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
     // graphql mutation, set role to user, password to password_hash, email to decoded.email, phone to decoded.phone
-    const userInsert = await client.request(
+    const userInsert: any = await client.request(
       gql`
         mutation MyMutation($email: String, $phone: String, $password: String!) {
           insert_users_one(object: {email: $email, phone: $phone, password: $password, role: "user"}) {
@@ -294,7 +294,7 @@ router.post("/change-password", async(req, res) => {
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
     //查询数据库中是否已存在该用户的email或phone
-    const userExist = await client.request(
+    const userExist: any = await client.request(
       gql`
         query MyQuery($email: String, $phone: String) {
           users(where: {_or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}]}) {

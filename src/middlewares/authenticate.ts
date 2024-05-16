@@ -89,7 +89,7 @@ const authenticate: (
       const payload = decoded as JwtUserPayload;
       // console.log(payload.uuid); //delete
       try {
-        const user = (await client.request(
+        const users: any = await client.request(
           gql`
             query MyQuery($uuid: uuid!) {
               users(where: {uuid: {_eq: $uuid}}) {
@@ -111,7 +111,8 @@ const authenticate: (
           {
             uuid: payload.uuid
           }
-        )).users[0];
+        )
+        const user = users.users[0];
         req.auth = { user: user ?? anonymous_user };
         if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes(user.role)) {
           return next();

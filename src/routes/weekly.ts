@@ -49,7 +49,7 @@ router.post("/insert", async (req, res) => {
     try {
         if (!req.body.id || !req.body.url) return res.status(400).send("400 Bad Request: not enough params!");
         const title: string = await getTitle(req.body.url);
-        const QueryGreaterIds = await client.request(
+        const QueryGreaterIds: any = await client.request(
             gql`
               query QueryGreaterIds($_id: Int) {
                 weekly(where: {id: {_gt: $_id}}) {
@@ -96,7 +96,7 @@ router.post("/insert", async (req, res) => {
 router.post("/delete", async (req, res) => {
     try {
         if (!req.body.id) return res.status(400).send("400 Bad Request: not enough params!");
-        const QueryGreaterIds = await client.request(
+        const QueryGreaterIds: any = await client.request(
             gql`
               query QueryGreaterIds($_id: Int) {
                 weekly(where: {id: {_gt: $_id}}) {
