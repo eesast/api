@@ -5,8 +5,9 @@ import jwt from "jsonwebtoken";
 import { JwtServerPayload } from "../middlewares/authenticate";
 import fs from "fs";
 import * as fs_promises from "fs/promises"
-import * as hasura from "./hasura";
+import * as hasura from "../hasura/contest";
 import * as utils from "./utils";
+import * as COS from "./cos";
 import yaml from "js-yaml";
 import { Mutex } from "async-mutex"
 
@@ -49,14 +50,14 @@ const upload_contest_files = async (sub_base_dir: string, queue_front: queue_ele
   try {
     await fs_promises.access(`${sub_base_dir}/${queue_front.room_id}/output`);
     try {
-      const cos = await utils.initCOS();
-      const config = await utils.getConfig();
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
       const file_name = await fs_promises.readdir(`${sub_base_dir}/${queue_front.room_id}/output`);
       const upload_file_promises = file_name.map(filename => {
         console.log("filename: " + filename);
         const key = `${contest_name}/${queue_front.competition?`competition/${queue_front.round_id}`:"arena"}/${queue_front.room_id}/${filename}`;
         const localFilePath = `${sub_base_dir}/${queue_front.room_id}/output/${filename}`;
-        return utils.uploadObject(localFilePath, key, cos, config)
+        return COS.uploadObject(localFilePath, key, cos, config)
           .then(() => {
             return Promise.resolve(true);
           })

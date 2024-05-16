@@ -95,7 +95,7 @@ router.post("/insert", async (req, res) => {
 
 router.post("/delete", async (req, res) => {
     try {
-        if (!req.body.id) return res.status(400).send("400 Bad Request: not enough params!");
+        if (!req.body.id) return res.gstatus(400).send("400 Bad Request: not enough params!");
         const QueryGreaterIds: any = await client.request(
             gql`
               query QueryGreaterIds($_id: Int) {

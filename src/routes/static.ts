@@ -1,6 +1,6 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
-import getSTS from "../helpers/sts";
+import { getSTS } from "../helpers/cos";
 import { client } from "..";
 import { gql } from "graphql-request";
 

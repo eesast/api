@@ -3,8 +3,9 @@ import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
 import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
+import * as COS from "../helpers/cos";
 import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
-import * as hasura from "../helpers/hasura"
+import * as hasura from "../hasura/contest"
 
 
 const router = express.Router();
@@ -142,8 +143,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
     console.debug("player_codes_unique: ", player_codes_unique);
     console.debug("index_map: ", index_map);
 
-    const cos = await utils.initCOS();
-    const config = await utils.getConfig();
+    const cos = await COS.initCOS();
+    const config = await COS.getConfig();
     const download_promises = player_codes_unique.map((player_code, index) => {
       if (files_exist[index_map[index]]) {
         return Promise.resolve(true);
@@ -153,7 +154,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
       console.debug("code_file_name: ", code_file_name);
       return fs.mkdir(`${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source`, { recursive: true })
         .then(() => {
-          return utils.downloadObject(`${contest_name}/code/${details_list_available[index_map[index]].team_id}/${code_file_name}`,
+          return COS.downloadObject(`${contest_name}/code/${details_list_available[index_map[index]].team_id}/${code_file_name}`,
             `${base_directory}/${contest_name}/code/${details_list_available[index_map[index]].team_id}/source/${code_file_name}`, cos, config)
         })
         .then(() => {
@@ -192,7 +193,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
     if (map_files_count !== 1) {
       await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
       const map_filename = await hasura.get_map_name(map_id);
-      await utils.downloadObject(`${contest_name}/map/${map_filename}`,
+      await COS.downloadObject(`${contest_name}/map/${map_filename}`,
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
           console.log(`Download ${map_id}.txt failed: ${err}`)
@@ -481,8 +482,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
     console.debug("index_map: ", index_map);
 
     if (files_exist_flat.some(file_exist => !file_exist)) {
-      const cos = await utils.initCOS();
-      const config = await utils.getConfig();
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
       const download_promises = player_codes_flat_unique.map((player_code, index) => {
         if (files_exist_flat[index_map[index]]) {
           return Promise.resolve(true);
@@ -492,7 +493,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
         console.debug("code_file_name: ", code_file_name);
         return fs.mkdir(`${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source`, { recursive: true })
           .then(() => {
-            return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
+            return COS.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
             `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, cos, config);
           })
           .then(() => {
@@ -532,9 +533,9 @@ router.post("/start-one", authenticate(), async (req, res) => {
     if (map_files_count !== 1) {
       const map_filename = await hasura.get_map_name(map_id);
       await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
-      const cos = await utils.initCOS();
-      const config = await utils.getConfig();
-      await utils.downloadObject(`${contest_name}/map/${map_filename}`,
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
+      await COS.downloadObject(`${contest_name}/map/${map_filename}`,
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
           console.log(`Download ${map_id}.txt failed: ${err}`)
@@ -570,8 +571,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
       count === team_ids.length).map(([roomId,]) => roomId);
     console.debug("common_room_ids: ", common_room_ids);
 
-    const cos = await utils.initCOS();
-    const config = await utils.getConfig();
+    const cos = await COS.initCOS();
+    const config = await COS.getConfig();
     const delete_room_promises = common_room_ids.map(room_id => {
       return hasura.delete_room(room_id)
         .then((affected_rows: number) => {
@@ -586,7 +587,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
           }
         })
         .then(() => {
-          return utils.deleteFolder(`${contest_name}/competition/${round_id}/${room_id}`, cos, config);
+          return COS.deleteFolder(`${contest_name}/competition/${round_id}/${room_id}`, cos, config);
         })
         .catch((err: any) => {
           console.log(`Delete room failed: ${err}`);
@@ -774,14 +775,14 @@ router.post("/finish-one", async (req, res) => {
         await fs.access(`${base_directory}/${contest_name}/competition/${room_id}/output`);
 
         try {
-          const cos = await utils.initCOS();
-          const config = await utils.getConfig();
+          const cos = await COS.initCOS();
+          const config = await COS.getConfig();
           const file_name = await fs.readdir(`${base_directory}/${contest_name}/competition/${room_id}/output`);
           const upload_file_promises = file_name.map(filename => {
             console.log("filename: " + filename)
             const key = `${contest_name}/competition/${round_id}/${room_id}/${filename}`;
             const localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${filename}`;
-            return utils.uploadObject(localFilePath, key, cos, config)
+            return COS.uploadObject(localFilePath, key, cos, config)
               .then(() => {
                 return Promise.resolve(true);
               })
@@ -835,10 +836,10 @@ router.get("/playback/:room_id", async (req, res) => {
     const playbackLocalPath = `${base_directory}/temp/${room_id}/playback.thuaipb`;
     const playbackCOSPath = `${contest_name}/competition/${round_id}/${room_id}/playback.thuaipb`;
 
-    const cos = await utils.initCOS();
-    const config = await utils.getConfig();
+    const cos = await COS.initCOS();
+    const config = await COS.getConfig();
     await fs.mkdir(`${base_directory}/temp/${room_id}`, { recursive: true });
-    await utils.downloadObject(playbackCOSPath, playbackLocalPath, cos, config);
+    await COS.downloadObject(playbackCOSPath, playbackLocalPath, cos, config);
 
     res.setHeader(
       "Content-Disposition",

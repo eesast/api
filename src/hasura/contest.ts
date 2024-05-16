@@ -221,57 +221,6 @@ export const get_team_arena_score: any = async (team_id: string) => {
 };
 
 
-// /**
-//  * query score from team_ids, ordered by team_id, ascending
-//  * @param {string[]} team_ids
-//  * @returns {utils.ContestResult[]} [{team_id, score}]
-//  */
-// export const get_teams_score: any = async (team_ids: Array<string>) => {
-//   const query_score: any = await client.request(
-//     gql`
-//       query get_score($team_ids: [uuid!]!) {
-//         contest_team(where: {team_id: {_in: $team_ids}}) {
-//           team_id
-//           score
-//         }
-//       }
-//     `,
-//     {
-//       team_ids: team_ids,
-//     }
-//   );
-//   return query_score.contest_team?.map((team: any) => ({
-//     team_id: team.team_id!,
-//     score: parseInt(team.score ?? "0")
-//   })) ?? [];
-// };
-
-// /**
-//  * query contest_score from team_ids, ordered by team_id, ascending
-//  * @param {string[]} team_ids
-//  * @returns {utils.ContestResult[]} [{team_id, score}]
-//  */
-// export const get_teams_contest_score: any = async (team_ids: Array<string>) => {
-//   const query_contest_score: any = await client.request(
-//     gql`
-//       query get_score($team_ids: [uuid!]!) {
-//         contest_team(where: {team_id: {_in: $team_ids}}) {
-//           team_id
-//           contest_score
-//         }
-//       }
-//     `,
-//     {
-//       team_ids: team_ids,
-//     }
-//   );
-//   return query_contest_score.contest_team?.map((team: any) => ({
-//     team_id: team.team_id,
-//     score: parseInt(team.contest_score ?? "0")
-//   })) ?? [];
-// };
-
-
 /**
  * query manager_uuid from user_uuid and contest_id
  * @param {string} user_uuid
@@ -338,6 +287,7 @@ export const get_server_memory_limit: any = async (contest_id: string) => {
   return server_memory_limit.contest[0].server_memory_limit ?? null;
 }
 
+
 /**
  * get client docker memory limit from contest_id (in GB)
  * @param {string} contest_id
@@ -358,6 +308,7 @@ export const get_client_memory_limit: any = async (contest_id: string) => {
   );
   return client_memory_limit.contest[0].client_memory_limit ?? null;
 }
+
 
 /**
  * query language and contest_id from code_id
@@ -395,6 +346,7 @@ export const query_code: any = async (code_id: string) => {
   };
 }
 
+
 /**
  * Count the number of active rooms that a team is in
  * @param {string} contest_id
@@ -421,6 +373,7 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
   return count_room_from_team.contest_room_team_aggregate.aggregate.count;
 }
 
+
 /**
  * Get all the exposed ports
  * @returns {[{port}]} [{port}]
@@ -438,6 +391,7 @@ export const get_exposed_ports: any = async () => {
   const result = query_exposed_ports.contest_room
   return result;
 }
+
 
 /**
  * Get the exposed port by room id
@@ -458,6 +412,7 @@ export const get_exposed_port_by_room: any = async (room_id: string) => {
   );
   return query_exposed_port_by_room.contest_room[0]?.port
 }
+
 
 /**
  * query player_label from contest_id and team_label
@@ -511,7 +466,6 @@ export const get_player_code: any = async (team_id: string, player_label: string
     role: query_code_id.contest_team_player[0]?.role ?? null
   }
 }
-
 
 
 /**
@@ -618,7 +572,6 @@ export const get_room_id: any = async (team_id: string, team_label: string, roun
 }
 
 
-
 /**
  * query all maps
  * @returns {object} {contest_list, map_list}
@@ -641,6 +594,7 @@ export const get_all_maps: any = async () => {
   }
 }
 
+
 /**
  * get map name
  * @param {string} map_id
@@ -661,6 +615,7 @@ export const get_map_name: any = async (map_id: string) => {
   );
   return query_map.contest_map[0].filename ?? null;
 }
+
 
 /**
  * get room_info by room_id
@@ -689,9 +644,44 @@ export const get_room_info: any = async (room_id: string) => {
   }
 }
 
-/**
- * get round_id by room_id
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
   ============================================================================
@@ -789,6 +779,35 @@ export const insert_room_teams: any = async (room_id: string, team_ids: Array<st
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
   ============================================================================
   ============================ UPDATE FUNCTIONS ==============================
@@ -846,6 +865,7 @@ export const update_room_status_and_port: any = async (room_id: string, status: 
   return update_room_status.update_contest_room.affected_rows;
 }
 
+
 /**
  * update room status
  * @param {string} room_id
@@ -870,6 +890,7 @@ export const update_room_status: any = async (room_id: string, status: string) =
   return update_room_status.update_contest_room.affected_rows;
 }
 
+
 /**
  * update room port
  * @param {string} room_id
@@ -893,6 +914,7 @@ export const update_room_port: any = async (room_id: string, port: number | null
 
   return update_room_status.update_contest_room.affected_rows;
 }
+
 
 /**
  * update room_team score
@@ -945,51 +967,34 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
 }
 
 
-// /**
-//  * update team score
-//  * @param {string} team_id
-//  * @param {number} score
-//  */
-// export const update_team_score: any = async (team_id: string, score: number) => {
-//   const update_team_score: any = await client.request(
-//     gql`
-//       mutation update_team_score($team_id: uuid!, $score: Int!) {
-//         update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {score: $score}) {
-//           affected_rows
-//         }
-//       }
-//     `,
-//     {
-//       team_id: team_id,
-//       score: score
-//     }
-//   );
 
-//   return update_team_score.update_contest_team.affected_rows;
-// }
 
-// /**
-//  * update team score
-//  * @param {string} team_id
-//  * @param {number} score
-//  */
-// export const update_team_contest_score: any = async (team_id: string, score: number) => {
-//   const update_team_score: any = await client.request(
-//     gql`
-//       mutation update_team_score($team_id: uuid!, $score: Int!) {
-//         update_contest_team(where: {team_id: {_eq: $team_id}}, _set: {contest_score: $score}) {
-//           affected_rows
-//         }
-//       }
-//     `,
-//     {
-//       team_id: team_id,
-//       score: score
-//     }
-//   );
 
-//   return update_team_score.update_contest_team.affected_rows;
-// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1022,6 +1027,7 @@ export const delete_room: any = async (room_id: string) => {
 
   return delete_room.delete_contest_room.affected_rows;
 }
+
 
 /**
  * delete contest room team

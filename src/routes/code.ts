@@ -2,8 +2,9 @@ import express from "express";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import authenticate, { JwtCompilerPayload } from "../middlewares/authenticate";
-import * as hasura from "../helpers/hasura";
+import * as hasura from "../hasura/contest";
 import * as utils from "../helpers/utils";
+import * as COS from "../helpers/cos";
 
 
 const router = express.Router();
@@ -48,18 +49,18 @@ router.put("/upload", async (req, res) => {
   const path = req.body.path;
 
   try {
-    const cos = await utils.initCOS();
-    const config = await utils.getConfig();
+    const cos = await COS.initCOS();
+    const config = await COS.getConfig();
     if (!suffix) {
       const key = `${contest_name}/code/${team_id}/${code_id}`;
       const localFilePath = `${path}/${code_id}`;
       console.log("no suffix")
-      await utils.uploadObject(localFilePath, key, cos, config);
+      await COS.uploadObject(localFilePath, key, cos, config);
     } else {
       const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
       const localFilePath = `${path}/${code_id}.${suffix}`;
       console.log(`localFilePath: ${localFilePath}, key: ${key}`);
-      await utils.uploadObject(localFilePath, key, cos, config);
+      await COS.uploadObject(localFilePath, key, cos, config);
     }
     return res.status(200).send("200 OK: Upload success");
   } catch (err) {
@@ -87,17 +88,17 @@ router.get("/download", async (req, res) => {
   const suffix = req.body.suffix;
   const path = req.body.path;
 
-  const cos = await utils.initCOS();
-  const config = await utils.getConfig();
+  const cos = await COS.initCOS();
+  const config = await COS.getConfig();
 
   if (!suffix) {
     const key = `${contest_name}/code/${team_id}/${code_id}`;
     const outputPath = `${path}/${code_id}`;
-    await utils.downloadObject(key, outputPath, cos, config);
+    await COS.downloadObject(key, outputPath, cos, config);
   } else {
     const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
     const outputPath = `${path}/${code_id}.${suffix}`;
-    await utils.downloadObject(key, outputPath, cos, config);
+    await COS.downloadObject(key, outputPath, cos, config);
   }
   return res.status(200).send("200 OK: Download success");
 })
@@ -148,8 +149,8 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     const base_directory = await utils.get_base_directory();
 
     try {
-      const cos = await utils.initCOS();
-      const config = await utils.getConfig();
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
       console.log("start to download files")
 
       const key = `${cosPath}/${code_id}.${language}`;
@@ -157,7 +158,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       const outputPath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source/${code_id}.${language}`;
 
       await fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}/source`, { recursive: true });
-      await utils.downloadObject(key, outputPath, cos, config);
+      await COS.downloadObject(key, outputPath, cos, config);
 
     } catch (err) {
       return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
@@ -271,21 +272,21 @@ router.post("/compile-finish", async (req, res) => {
 
 
       try {
-        const cos = await utils.initCOS();
-        const config = await utils.getConfig();
+        const cos = await COS.initCOS();
+        const config = await COS.getConfig();
 
         let key = `${cosPath}/${code_id}.log`;
         let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
-        await utils.uploadObject(localFilePath, key, cos, config);
+        await COS.uploadObject(localFilePath, key, cos, config);
 
         key = `${cosPath}/${code_id}.curl.log`;
         localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
-        await utils.uploadObject(localFilePath, key, cos, config);
+        await COS.uploadObject(localFilePath, key, cos, config);
 
         if (compile_status === "Completed") {
           key = `${cosPath}/${code_id}`;
           localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
-          await utils.uploadObject(localFilePath, key, cos, config);
+          await COS.uploadObject(localFilePath, key, cos, config);
           try {
             await fs.copyFile(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`);
             await fs.chmod(`${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`, 0o755);
