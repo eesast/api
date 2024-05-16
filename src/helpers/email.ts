@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import HtmlToText from "html-to-text";
+import { convert } from "html-to-text";
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
   const transporter = nodemailer.createTransport({
@@ -21,7 +21,7 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     from: "EESAST <noreply@eesast.com>",
     to,
     subject,
-    text: HtmlToText.fromString(html),
+    text: convert(html),
     html,
   });
 
