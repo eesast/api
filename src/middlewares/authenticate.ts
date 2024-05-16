@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
-import { TeamLabelBind } from "../helpers/utils";
+import { TeamLabelBind } from "../configs/contest";
 
 export interface JwtUserPayload {
   uuid: string;

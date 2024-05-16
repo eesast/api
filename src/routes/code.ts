@@ -10,26 +10,7 @@ import * as ContHasFunc from "../hasura/contest";
 
 const router = express.Router();
 
-// router.put("/upload_by_key", async (req, res) => {
-//   if (process.env.NODE_ENV === "production")
-//     return res.status(403).send("403 Forbidden: This API is disabled in production environment.");
 
-//   const body_key = req.body.key;
-//   const path = req.body.path;
-
-//   try {
-//     const cos = await utils.initCOS();
-//     const config = await utils.getConfig();
-//     const key = `${body_key}`;
-//     const localFilePath = `${path}`;
-//     console.log(`localFilePath: ${localFilePath}, key: ${key}`);
-//     await utils.uploadObject(localFilePath, key, cos, config);
-//     return res.status(200).send("200 OK: Upload success");
-//   } catch (err) {
-//     console.log("error in upload code: ", err);
-//     return res.status(500).send(`500 Internal Server Error: ${err}`);
-//   }
-// })
 /**
  * PUT upload code, for test only
  * @param {string} contest_name
