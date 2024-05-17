@@ -1,3 +1,4 @@
+
 const hexcase = 0;   /* hex output format. 0 - lowercase; 1 - uppercase */
 
 /*

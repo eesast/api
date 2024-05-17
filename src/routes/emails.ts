@@ -21,7 +21,7 @@ router.post("/events", hasura, async (req, res) => {
       try {
         const studentId = data.student_id;
         const mentorId = data.mentor_id;
-        let response = await client.request(
+        let response: any = await client.request(
           gql`
             query GetUserName($uuid: String!) {
               users(where: { uuid: { _eq: $uuid } }) {

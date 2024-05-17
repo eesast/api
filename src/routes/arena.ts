@@ -1,10 +1,12 @@
 import express from "express";
-import { docker_queue } from "..";
 import jwt from "jsonwebtoken";
+import { docker_queue } from "..";
+import authenticate from "../middlewares/authenticate";
 import * as fs from "fs/promises";
 import * as utils from "../helpers/utils";
-import authenticate, { JwtServerPayload } from "../middlewares/authenticate";
-import * as hasura from "../helpers/hasura"
+import * as COS from "../helpers/cos";
+import * as ContConf from "../configs/contest";
+import * as ContHasFunc from "../hasura/contest"
 
 
 const router = express.Router();
@@ -23,7 +25,7 @@ router.post("/create", authenticate(), async (req, res) => {
     const user_uuid = req.auth.user.uuid;
     const contest_name = req.body.contest_name;
     const map_id = req.body.map_id;
-    const team_label_binds: utils.TeamLabelBind[] = req.body.team_labels;
+    const team_label_binds: ContConf.TeamLabelBind[] = req.body.team_labels;
     const exposed = req.body.exposed ?? 1;
     const envoy = req.body.envoy ?? 1;
     console.debug("user_uuid: ", user_uuid);
@@ -42,23 +44,23 @@ router.post("/create", authenticate(), async (req, res) => {
     console.debug("team_ids: ", team_ids);
     console.debug("team_labels: ", team_labels);
 
-    const contest_id = await hasura.get_contest_id(contest_name);
+    const contest_id = await ContHasFunc.get_contest_id(contest_name);
     console.debug("contest_id: ", contest_id);
     if (!contest_id) {
       return res.status(400).send("400 Bad Request: Contest not found");
     }
 
-    const arena_settings = await hasura.get_contest_settings(contest_id);
+    const arena_settings = await ContHasFunc.get_contest_settings(contest_id);
     const arena_switch = arena_settings?.arena_switch;
     console.debug("arena_switch: ", arena_switch);
     if (!arena_switch) {
       return res.status(403).send("403 Forbidden: Arena is not open");
     }
 
-    const is_manager = await hasura.get_maneger_from_user(user_uuid, contest_id);
+    const is_manager = await ContHasFunc.get_maneger_from_user(user_uuid, contest_id);
     console.debug("is_manager: ", is_manager);
     if (!is_manager) {
-      const user_team_id = await hasura.get_team_from_user(user_uuid, contest_id);
+      const user_team_id = await ContHasFunc.get_team_from_user(user_uuid, contest_id);
       console.debug("user_team_id: ", user_team_id);
       if (!user_team_id) {
         return res.status(403).send("403 Forbidden: User not in team");
@@ -67,14 +69,14 @@ router.post("/create", authenticate(), async (req, res) => {
       }
     }
 
-    const active_rooms = await hasura.count_room_team(contest_id, team_ids[0]);
+    const active_rooms = await ContHasFunc.count_room_team(contest_id, team_ids[0]);
     console.debug("active_rooms: ", active_rooms);
     if (active_rooms > 6) {
       return res.status(423).send("423 Locked: Request arena too frequently");
     }
 
     const players_labels_promises = team_labels.map(team_label =>
-      hasura.get_players_label(contest_id, team_label)
+      ContHasFunc.get_players_label(contest_id, team_label)
     );
     const players_labels: string[][] = await Promise.all(players_labels_promises);
     console.debug("players_labels: ", players_labels);
@@ -90,7 +92,7 @@ router.post("/create", authenticate(), async (req, res) => {
     console.debug("team_ids_flat: ", team_ids_flat);
 
     const players_details_promises = player_labels_flat.map((player_label, index) =>
-      hasura.get_player_code(team_ids_flat[index], player_label)
+      ContHasFunc.get_player_code(team_ids_flat[index], player_label)
     );
     const players_details = await Promise.all(players_details_promises);
     const player_roles_flat = players_details.map(player_detail => player_detail.role);
@@ -117,7 +119,7 @@ router.post("/create", authenticate(), async (req, res) => {
     console.debug("players_codes: ", players_codes);
 
     const code_details_promises = player_codes_flat.map(player_code =>
-      hasura.get_compile_status(player_code)
+      ContHasFunc.get_compile_status(player_code)
     );
     const code_details = await Promise.all(code_details_promises);
     const code_status_flat = code_details.map(code => code.compile_status);
@@ -174,8 +176,8 @@ router.post("/create", authenticate(), async (req, res) => {
     console.debug("index_map: ", index_map);
 
     if (files_exist_flat.some(file_exist => !file_exist)) {
-      const cos = await utils.initCOS();
-      const config = await utils.getConfig();
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
       const download_promises = player_codes_flat_unique.map((player_code, index) => {
         if (files_exist_flat[index_map[index]]) {
           return Promise.resolve(true);
@@ -185,7 +187,7 @@ router.post("/create", authenticate(), async (req, res) => {
         console.debug("code_file_name: ", code_file_name);
         return fs.mkdir(`${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source`, { recursive: true })
           .then(() => {
-            return utils.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
+            return COS.downloadObject(`${contest_name}/code/${team_ids_flat[index_map[index]]}/${code_file_name}`,
             `${base_directory}/${contest_name}/code/${team_ids_flat[index_map[index]]}/source/${code_file_name}`, cos, config)
           })
           .then(() => {
@@ -219,15 +221,15 @@ router.post("/create", authenticate(), async (req, res) => {
       });
     console.debug("map_files_count: ", map_files_count);
 
-    const map_filename = await hasura.get_map_name(map_id);
+    const map_filename = await ContHasFunc.get_map_name(map_id);
     if (map_files_count > 1) {
       await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/map/${map_id}`);
     }
     if (map_files_count !== 1) {
       await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, { recursive: true });
-      const cos = await utils.initCOS();
-      const config = await utils.getConfig();
-      await utils.downloadObject(`${contest_name}/map/${map_filename}`,
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
+      await COS.downloadObject(`${contest_name}/map/${map_filename}`,
         `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`, cos, config)
         .catch((err) => {
           console.log(`Download ${map_id}.txt failed: ${err}`)
@@ -299,14 +301,14 @@ router.post("/create", authenticate(), async (req, res) => {
 
     console.log("Files cleaned!")
 
-    const room_id = await hasura.insert_room(contest_id, "Waiting", map_id);
+    const room_id = await ContHasFunc.insert_room(contest_id, "Waiting", map_id);
     console.debug("room_id: ", room_id);
     if (!room_id) {
       // return res.status(500).send("500 Internal Server Error: Room not created");
       return;
     }
 
-    const insert_room_teams_affected_rows = await hasura.insert_room_teams(room_id, team_ids, team_labels, players_roles, players_codes);
+    const insert_room_teams_affected_rows = await ContHasFunc.insert_room_teams(room_id, team_ids, team_labels, players_roles, players_codes);
     if (insert_room_teams_affected_rows !== team_ids.length) {
       // return res.status(500).send("500 Internal Server Error: Room teams not created");
       return;
@@ -380,13 +382,13 @@ router.post("/get-score", async (req, res) => {
       if (err || !decoded) {
         return res.status(401).send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtServerPayload;
+      const payload = decoded as ContConf.JwtServerPayload;
       const team_label_binds = payload.team_label_binds;
       const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
 
       const scores: number[] = [];
       for (const team_id of team_ids) {
-        const score = await hasura.get_team_arena_score(team_id);
+        const score = await ContHasFunc.get_team_arena_score(team_id);
         scores.push(score);
       }
 
@@ -419,7 +421,7 @@ router.post("/finish", async (req, res) => {
       if (err || !decoded) {
         return res.status(401).send("401 Unauthorized: Token expired or invalid");
       }
-      const payload = decoded as JwtServerPayload;
+      const payload = decoded as ContConf.JwtServerPayload;
       const room_id = payload.room_id;
       const contest_id = payload.contest_id;
       const team_label_binds = payload.team_label_binds;
@@ -437,13 +439,13 @@ router.post("/finish", async (req, res) => {
         console.debug("team_ids: ", team_ids);
 
         const update_room_team_score_promises = team_ids.map((team_id, index) =>
-          hasura.update_room_team_score(room_id, team_id, game_scores[index]));
+          ContHasFunc.update_room_team_score(room_id, team_id, game_scores[index]));
         await Promise.all(update_room_team_score_promises);
 
-        await hasura.update_room_status(room_id, "Finished");
+        await ContHasFunc.update_room_status(room_id, "Finished");
         console.log("Update room team score!")
 
-        // const origin_result: utils.TeamResult[] = await hasura.get_teams_score(team_ids);
+        // const origin_result: utils.TeamResult[] = await ContHasFunc.get_teams_score(team_ids);
         // console.debug("origin_result: ", origin_result);
         // const new_resullt: utils.TeamResult[] = origin_result.map(origin => {
         //   const update_index = team_ids.indexOf(origin.team_id);
@@ -454,27 +456,27 @@ router.post("/finish", async (req, res) => {
         // });
         // console.debug("new_result: ", new_resullt);
         // const update_team_score_promises = new_resullt.map(result => {
-        //   return hasura.update_team_score(result.team_id, result.score);
+        //   return ContHasFunc.update_team_score(result.team_id, result.score);
         // });
         // await Promise.all(update_team_score_promises);
         // console.log("Update team score!")
       } else if (game_status === 'Crashed') {
-        await hasura.update_room_status(room_id, "Crashed");
+        await ContHasFunc.update_room_status(room_id, "Crashed");
       }
 
       const base_directory = await utils.get_base_directory();
-      const contest_name = await hasura.get_contest_name(contest_id);
+      const contest_name = await ContHasFunc.get_contest_name(contest_id);
       try {
         await fs.access(`${base_directory}/${contest_name}/arena/${room_id}/output`);
         try {
-          const cos = await utils.initCOS();
-          const config = await utils.getConfig();
+          const cos = await COS.initCOS();
+          const config = await COS.getConfig();
           const file_name = await fs.readdir(`${base_directory}/${contest_name}/arena/${room_id}/output`);
           const upload_file_promises = file_name.map(filename => {
             console.log("filename: " + filename)
             const key = `${contest_name}/arena/${room_id}/${filename}`;
             const localFilePath = `${base_directory}/${contest_name}/arena/${room_id}/output/${filename}`;
-            return utils.uploadObject(localFilePath, key, cos, config)
+            return COS.uploadObject(localFilePath, key, cos, config)
               .then(() => {
                 return Promise.resolve(true);
               })
@@ -524,15 +526,15 @@ router.get("/playback/:room_id", async (req, res) => {
   try {
     const room_id = req.params.room_id;
 
-    const { contest_name } = await hasura.get_room_info(room_id);
+    const { contest_name } = await ContHasFunc.get_room_info(room_id);
     const base_directory = await utils.get_base_directory();
     const playbackLocalPath = `${base_directory}/temp/${room_id}/playback.thuaipb`;
     const playbackCOSPath = `${contest_name}/arena/${room_id}/playback.thuaipb`;
 
-    const cos = await utils.initCOS();
-    const config = await utils.getConfig();
+    const cos = await COS.initCOS();
+    const config = await COS.getConfig();
     await fs.mkdir(`${base_directory}/temp/${room_id}`, { recursive: true });
-    await utils.downloadObject(playbackCOSPath, playbackLocalPath, cos, config);
+    await COS.downloadObject(playbackCOSPath, playbackLocalPath, cos, config);
 
     res.setHeader(
       "Content-Disposition",

@@ -1,6 +1,6 @@
 import express from "express";
-import { client } from "..";
 import { gql } from "graphql-request";
+import { client } from "..";
 
 const router = express.Router();
 
@@ -11,7 +11,7 @@ router.get("/info/honor", async (req, res) => {
     try {
         const year = new Date().getFullYear();
         //在hasura中查询activateIn为year的时间信息
-        const q_honor_time = await client.request(
+        const q_honor_time: any = await client.request(
             gql`
                 query MyQuery($activateIn: Int!){
                     honor_time_by_pk(activateIn: $activateIn) {
@@ -27,7 +27,7 @@ router.get("/info/honor", async (req, res) => {
         if (!q_honor_time?.honor_time_by_pk) {
             return res.status(500).send("Error: No honor time found");
         }
-        const q_honor_type = await client.request(
+        const q_honor_type: any = await client.request(
             gql`
                 query MyQuery {
                     honor_type {
@@ -50,7 +50,7 @@ router.get("/info/mentor", async (req, res) => {
     try {
         const year = new Date().getFullYear();
         //在hasura中查询activateIn为year的时间信息
-        const q_mentor_time = await client.request(
+        const q_mentor_time: any = await client.request(
             gql`
                 query MyQuery($activateIn: Int!){
                     mentor_time_by_pk(activateIn: $activateIn) {

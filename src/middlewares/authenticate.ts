@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
-import { TeamLabelBind } from "../helpers/utils";
+
 
 export interface JwtUserPayload {
   uuid: string;
@@ -17,18 +17,6 @@ export interface JwtVerifyPayload {
   email: string;
   phone: string;
   code: string; // hash加密后的验证码
-}
-export interface JwtCompilerPayload {
-  code_id: string;
-  team_id: string;
-  contest_name: string;
-  cos_path: string;
-}
-export interface JwtServerPayload {
-  contest_id: string;
-  round_id?: string;
-  room_id: string;
-  team_label_binds: TeamLabelBind[];
 }
 export interface UserInfo {
   uuid: string;
@@ -89,7 +77,7 @@ const authenticate: (
       const payload = decoded as JwtUserPayload;
       // console.log(payload.uuid); //delete
       try {
-        const user = (await client.request(
+        const users: any = await client.request(
           gql`
             query MyQuery($uuid: uuid!) {
               users(where: {uuid: {_eq: $uuid}}) {
@@ -111,7 +99,8 @@ const authenticate: (
           {
             uuid: payload.uuid
           }
-        )).users[0];
+        )
+        const user = users.users[0];
         req.auth = { user: user ?? anonymous_user };
         if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes(user.role)) {
           return next();

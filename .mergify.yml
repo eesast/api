@@ -27,3 +27,10 @@ pull_request_rules:
         add:
           - "dependency"
           - "bot"
+  - name: automatic merge for Renovate pull requests
+    conditions:
+      - author=renovate[bot]
+      - check-success=test
+    actions:
+      merge:
+        method: rebase
