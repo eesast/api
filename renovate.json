@@ -1,10 +1,16 @@
 {
   "extends": ["config:base"],
-  "automerge": false,
+  "automerge": true,
   "timezone": "Asia/Shanghai",
   "schedule": "after 4am and before 8am every saturday",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": "after 10pm on saturday"
-  }
+  },
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 5,
+  "rangeStrategy": "pin",
+  "separateMajorMinor": true,
+  "separateMinorPatch": true,
+  "separateMultipleMajor": true
 }

@@ -3,6 +3,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "preinstall": "npm config set registry https://registry.npmjs.org && yarn config set registry https://registry.yarnpkg.com",
     "start": "nodemon",
     "debug": "nodemon --debug",
     "build": "babel src -d build -x \".ts\" --ignore \"src/@types/**/*\" --source-maps",
