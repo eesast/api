@@ -16,7 +16,7 @@ jobs:
       - name: Use Node.js ${{matrix.node-version}}
         uses: actions/setup-node@v1
         with:
-          node-version: "20.x"
+          node-version: "20.5.0"
 
       - name: get yarn cache path
         id: yarn-cache-dir-path
