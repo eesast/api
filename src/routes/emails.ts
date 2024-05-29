@@ -19,13 +19,13 @@ router.post("/events", hasura, async (req, res) => {
   switch (table) {
     case "mentor_application": {
       try {
-        const studentId = data.student_id;
-        const mentorId = data.mentor_id;
+        const studentId = data.student_uuid;
+        const mentorId = data.mentor_uuid;
         let response: any = await client.request(
           gql`
             query GetUserName($uuid: String!) {
               users(where: { uuid: { _eq: $uuid } }) {
-                name
+                realname
               }
             }
           `,
@@ -42,7 +42,7 @@ router.post("/events", hasura, async (req, res) => {
           gql`
             query GetUserNameEmail($uuid: String!) {
               users(where: { uuid: { _eq: $uuid } }) {
-                name
+                realname
                 email
               }
             }
@@ -70,7 +70,7 @@ router.post("/events", hasura, async (req, res) => {
               newMentorApplicationTemplate(
                 mentorName,
                 studentName,
-                "https://eesast.com/info/mentor-applications"
+                "https://eesast.com/#/info/mentor-applications"
               )
             );
             break;
