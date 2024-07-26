@@ -2158,10 +2158,10 @@ cors@2.8.5:
     object-assign "^4"
     vary "^1"
 
-cos-nodejs-sdk-v5@2.14.3:
-  version "2.14.3"
-  resolved "https://registry.yarnpkg.com/cos-nodejs-sdk-v5/-/cos-nodejs-sdk-v5-2.14.3.tgz#dcb8c6129ca2219865b18cd5bebb2855d76dc34b"
-  integrity sha512-r5ONlAyub2VjNQIrg2uncrXhBknI2A2Q3xv0GbPwNCv2njRtEd11A5xR5CdYT+CJJ1KSwu5F0u+OsAdJFOUiCg==
+cos-nodejs-sdk-v5@2.14.4:
+  version "2.14.4"
+  resolved "https://registry.yarnpkg.com/cos-nodejs-sdk-v5/-/cos-nodejs-sdk-v5-2.14.4.tgz#291db4255d4c5c9e78f81373008c4375af667bfc"
+  integrity sha512-PNsk8wdHI2ij6ybBjU5ZKMieo0cqriMNDsKScoKeFEY8IxUaSd1oyFCs0uS1Rt7wPSQRSm/OONjNOJbd5OqZbg==
   dependencies:
     conf "^9.0.0"
     fast-xml-parser "4.2.5"
