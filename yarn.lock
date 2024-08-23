@@ -2121,13 +2121,13 @@ cors@2.8.5:
     object-assign "^4"
     vary "^1"
 
-cos-nodejs-sdk-v5@2.14.5:
-  version "2.14.5"
-  resolved "https://registry.yarnpkg.com/cos-nodejs-sdk-v5/-/cos-nodejs-sdk-v5-2.14.5.tgz#25a6a087774a6a4394756af4f0bc60f64f17d769"
-  integrity sha512-kRVLFHxpZYIz9SwqDRBfRrSN7FzFJXodNzJKtLdS1OhnRz1ekNN3JnCkScYYF/l12isML5ajwqnD6nPgvrI6Pw==
+cos-nodejs-sdk-v5@2.14.6:
+  version "2.14.6"
+  resolved "https://registry.yarnpkg.com/cos-nodejs-sdk-v5/-/cos-nodejs-sdk-v5-2.14.6.tgz#900fb641f7ebf12c6b3e3decc653edd1641bfb36"
+  integrity sha512-b5PIJ0fqzIPCC1tq0GOBlJU0wlo4F0HQgTAqvdk73jYlxrNiMd1RTU9GsLwwX2fGOA2J+TOlcy76FebjlO0Smg==
   dependencies:
     conf "^9.0.0"
-    fast-xml-parser "^4.4.0"
+    fast-xml-parser "4.2.5"
     mime-types "^2.1.24"
     request "^2.88.2"
 
@@ -2742,10 +2742,10 @@ fast-levenshtein@^2.0.6:
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
   integrity sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==
 
-fast-xml-parser@^4.4.0:
-  version "4.4.1"
-  resolved "https://registry.yarnpkg.com/fast-xml-parser/-/fast-xml-parser-4.4.1.tgz#86dbf3f18edf8739326447bcaac31b4ae7f6514f"
-  integrity sha512-xkjOecfnKGkSsOwtZ5Pz7Us/T6mrbPQrq0nh+aCO5V9nk5NLWmasAHumTKjiPJPWANe+kAZ84Jc8ooJkzZ88Sw==
+fast-xml-parser@4.2.5:
+  version "4.2.5"
+  resolved "https://registry.yarnpkg.com/fast-xml-parser/-/fast-xml-parser-4.2.5.tgz#a6747a09296a6cb34f2ae634019bf1738f3b421f"
+  integrity sha512-B9/wizE4WngqQftFPmdaMYlXoJlJOYxGQOanC77fq9k8+Z0v5dDSVh+3glErdIROP//s/jgb7ZuxKfB8nVyo0g==
   dependencies:
     strnum "^1.0.5"
 
