@@ -253,20 +253,6 @@ router.post("/register", async(req, res) => {
         password: password_hash
       }
     );
-    // graphql mutation, set id to uuid
-    await client.request(
-      gql`
-        mutation MyMutation($uuid: uuid!, $id: String!) {
-          update_users_by_pk(pk_columns: {uuid: $uuid}, _set: {id: $id}) {
-            id
-          }
-        }
-      `,
-      {
-        uuid: userInsert.insert_users_one.uuid,
-        id: userInsert.insert_users_one.uuid
-      }
-    );
     // sign JwtUserPayload token
     const payload: JwtUserPayload = {
       uuid: userInsert.insert_users_one.uuid,

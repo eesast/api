@@ -49,7 +49,6 @@ router.get("/info/honor", async (req, res) => {
 router.get("/info/mentor", async (req, res) => {
     try {
         const year = new Date().getFullYear();
-        //在hasura中查询activateIn为year的时间信息
         const q_mentor_time: any = await client.request(
             gql`
                 query MyQuery($activateIn: Int!){
@@ -67,7 +66,9 @@ router.get("/info/mentor", async (req, res) => {
                     }
                 }
             `,
-            { activateIn: year }
+            {
+                activateIn: year
+            }
         )
         if (!q_mentor_time?.mentor_time_by_pk) {
             return res.status(500).send("Error: No mentor time found");
