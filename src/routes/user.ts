@@ -53,7 +53,7 @@ router.post("/login", async (req, res) => {
   }
   try {
     let item: any = {};
-    if (user.includes("@")){
+    if (user.includes("@")){ // login by email
       item = await client.request(
         gql`
           query MyQuery($email: String) {
@@ -69,7 +69,7 @@ router.post("/login", async (req, res) => {
         }
       );
     }
-    else if(user.length === 11 && !isNaN(Number(user))){
+    else if(user.length === 11 && !isNaN(Number(user))){ // login by phone
       item = await client.request(
         gql`
           query MyQuery($phone: String) {
@@ -84,6 +84,22 @@ router.post("/login", async (req, res) => {
           phone: user
         }
       );
+    }
+    else { // login by username
+      item = await client.request(
+        gql`
+          query MyQuery($username: String) {
+            users(where: {username: {_eq: $username}}) {
+              password
+              role
+              uuid
+            }
+          }
+        `,
+        {
+          username: user
+        }
+      )
     }
     if (!item?.users?.length) {
       return res.status(404).send("404 Not Found: User does not exist");
