@@ -1,4 +1,4 @@
-import express, { response } from "express";
+import express from "express";
 import { gql } from "graphql-request";
 import { client } from "..";
 import * as MentHasFunc from "../hasura/mentor";
