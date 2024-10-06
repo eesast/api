@@ -1,4 +1,4 @@
-import { gql } from "graphql-request";
+import { gql } from "graphql    request";
 import { client } from "..";
 import { request } from "express";
 import { UniqueDirectiveNamesRule } from "graphql";
@@ -780,12 +780,12 @@ export const insert_room_teams: any = async (room_id: string, team_ids: Array<st
 }
 
 /**
- * 添加比赛地图
- * @param {string} contest_id - 比赛ID
- * @param {string} name - 地图名称
- * @param {string} filename - 文件名
- * @param {string} team_labels - 队伍标签
- * @returns {Promise<string>} 地图ID
+ * 
+ * @param {string} contest_id 
+ * @param {string} name
+ * @param {string} filename 
+ * @param {string} team_labels 
+ * @returns {Promise<string>} 
  */
 export const add_contest_map:any = async(contest_id:string, name:string, filename:string, team_labels:string) => {
   const add_contest_map:any = await client.request(
@@ -818,12 +818,12 @@ export const add_contest_map:any = async(contest_id:string, name:string, filenam
 }
 
 /**
- * 添加比赛公告
- * @param {string} title - 公告标题
- * @param {string} content - 公告内容
- * @param {string} files - 附件
- * @param {string} contest_id - 比赛ID
- * @returns {Promise<string>} 公告ID
+ * 
+ * @param {string} title 
+ * @param {string} content 
+ * @param {string} files 
+ * @param {string} contest_id 
+ * @returns {Promise<string>} 
  */
 export const add_contest_notice:any = async(title:string,content:string,files:string,contest_id:string) => {
   const add_contest_notice:any = await client.request(
@@ -857,12 +857,12 @@ export const add_contest_notice:any = async(title:string,content:string,files:st
 }
 
 /**
- * 添加比赛选手
- * @param {string} contest_id - 比赛ID
- * @param {string} team_label - 队伍标签
- * @param {string} player_label - 选手标签
- * @param {string} roles_available - 可用角色
- * @returns {Promise<string>} 队伍标签
+ * 
+ * @param {string} contest_id
+ * @param {string} team_label
+ * @param {string} player_label 
+ * @param {string} roles_available 
+ * @returns {Promise<string>} 
  */
 export const add_contest_player:any = async(contest_id:string,team_label:string,player_label:string,roles_available:string) =>{
   const add_contest_player:any = await client.request(
@@ -895,11 +895,11 @@ export const add_contest_player:any = async(contest_id:string,team_label:string,
 }
 
 /**
- * 添加比赛轮次
- * @param {string} contest_id - 比赛ID
- * @param {string} name - 轮次名称
- * @param {string} map_id - 地图ID
- * @returns {Promise<string>} 轮次ID
+ *          
+ * @param {string} contest_id         ID
+ * @param {string} name             
+ * @param {string} map_id         ID
+ * @returns {Promise<string>}     ID
  */
 export const add_contest_round:any = async(contest_id:string,name:string,map_id:string)=>{
   const add_contest_round:any = await client.request(
@@ -921,12 +921,12 @@ export const add_contest_round:any = async(contest_id:string,name:string,map_id:
 }
 
 /**
- * 添加队伍代码
- * @param {string} team_id - 队伍ID
- * @param {string} code_name - 代码名称
- * @param {string} language - 编程语言
- * @param {string} compile_status - 编译状态
- * @returns {Promise<string>} 代码ID
+ *       
+ * @param {string} team_id       ID
+ * @param {string} code_name            
+ * @param {string} language            
+ * @param {string} compile_status         
+ * @returns {Promise<string>}    ID
  */
 export const add_team_code:any = async(team_id:string,code_name:string,language:string,compile_status:string) =>{
   const add_team_code:any = await client.request(
@@ -958,10 +958,10 @@ export const add_team_code:any = async(team_id:string,code_name:string,language:
   }
 
 /**
- * 添加队伍选手
- * @param {string} team_id - 队伍ID
- * @param {string} player - 选手
- * @returns {Promise<string>} 选手
+ *       
+ * @param {string} team_id       ID
+ * @param {string} player         
+ * @returns {Promise<string>}    
  */
 export const add_team_player:any = async(team_id:string,player:string) =>{
   const add_team_player:any = await client.request(
@@ -982,13 +982,13 @@ export const add_team_player:any = async(team_id:string,player:string) =>{
 } 
 
 /**
- * 添加队伍
- * @param {string} team_name - 队伍名称
- * @param {string} team_intro - 队伍介绍
- * @param {string} team_leader_uuid - 队长UUID
- * @param {string} invited_code - 邀请码
- * @param {string} contest_id - 比赛ID
- * @returns {Promise<string>} 队伍ID
+ *    
+ * @param {string} team_name          
+ * @param {string} team_intro          
+ * @param {string} team_leader_uuid         UUID
+ * @param {string} invited_code         
+ * @param {string} contest_id         ID
+ * @returns {Promise<string>}  ID
  */
 export const add_team:any = async(team_name:string,team_intro:string,team_leader_uuid:string,invited_code:string,contest_id:string) =>{
   const add_team:any = await client.request(
@@ -998,7 +998,7 @@ export const add_team:any = async(team_name:string,team_intro:string,team_leader
       $team_intro: String = "" # 此处的intro可以为NULL
       $team_leader_uuid: uuid! # team_leader的uuid
       $invited_code: String!
-      $contest_id: uuid! # 比赛名称是必填的项
+      $contest_id: uuid! #       是必填的项
     ) {
       insert_contest_team_one(
         object: {
@@ -1024,10 +1024,10 @@ export const add_team:any = async(team_name:string,team_intro:string,team_leader
   }
 
 /**
- * 添加队伍成员
- * @param {string} team_id - 队伍ID
- * @param {string} user_uuid - 用户UUID
- * @returns {Promise<string>} 队伍ID
+ *       
+ * @param {string} team_id       ID
+ * @param {string} user_uuid         UUID
+ * @returns {Promise<string>}  ID
  */
 export const add_team_member:any = async(team_id:string,user_uuid:string) =>{
   const add_team_member:any = await client.request(
@@ -1048,13 +1048,13 @@ export const add_team_member:any = async(team_id:string,user_uuid:string) =>{
   }
 
 /**
- * 添加比赛时间
- * @param {string} contest_id - 比赛ID
- * @param {string} event - 事件
- * @param {string} start - 开始时间
- * @param {string} end - 结束时间
- * @param {string} description - 描述
- * @returns {Promise<string>} 事件
+ *         
+ * @param {string} contest_id         ID
+ * @param {string} event         
+ * @param {string} start            
+ * @param {string} end            
+ * @param {string} description         
+ * @returns {Promise<string>}    
  */
 export const add_contest_time:any = async(contest_id:string,event:string,start:string,end:string,description:string) =>{
   const add_contest_time:any = await client.request(
@@ -1087,7 +1087,6 @@ export const add_contest_time:any = async(contest_id:string,event:string,start:s
     });
     return add_contest_time.insert_contest_time_one.event;
     }
-
 
 
 
@@ -1266,6 +1265,16 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
   return update_room_created_at.update_contest_room_by_pk.created_at;
 }
 
+/**
+ * Updates the contest information.
+ * 
+ * @param {string} contest_id      The ID of the contest to update.
+ * @param {string} fullname      The new full name of the contest.
+ * @param {string} description      The new description of the contest.
+ * @param {number} start_date      The new start date of the contest (timestamp).
+ * @param {number} end_date      The new end date of the contest (timestamp).
+ * @returns {string} The ID of the updated contest.
+ */
 export const update_contest_info:any = async(contest_id: string, fullname: string, description: string, start_date: number, end_date: number) => {
   const update_contest_info: any = await client.request(
     gql`
@@ -1285,7 +1294,7 @@ export const update_contest_info:any = async(contest_id: string, fullname: strin
           end_date: $end_date
         }
       ) {
-         id
+        id
       }
     }
     `,
@@ -1295,11 +1304,25 @@ export const update_contest_info:any = async(contest_id: string, fullname: strin
       description: description,
       start_date: new Date(start_date),
       end_date: new Date(end_date)
-    });
+    }
+  );
+
   return update_contest_info.update_contest_by_pk.id;
 }
 
-export const update_contest_switch:any = async(contest_id: string, team_switch: boolean, code_upload_switch: boolean,arena_switch: boolean, playground_switch: boolean, stream_switch: boolean, playback_switch:boolean) => {
+/**
+ * Updates the contest switches.
+ * 
+ * @param {string} contest_id      The ID of the contest to update.
+ * @param {boolean} team_switch      The new state of the team switch.
+ * @param {boolean} code_upload_switch      The new state of the code upload switch.
+ * @param {boolean} arena_switch      The new state of the arena switch.
+ * @param {boolean} playground_switch      The new state of the playground switch.
+ * @param {boolean} stream_switch      The new state of the stream switch.
+ * @param {boolean} playback_switch      The new state of the playback switch.
+ * @returns {string} The ID of the updated contest.
+ */
+export const update_contest_switch:any = async(contest_id: string, team_switch: boolean, code_upload_switch: boolean, arena_switch: boolean, playground_switch: boolean, stream_switch: boolean, playback_switch:boolean) => {
   const update_contest_switch:any = await client.request(
     gql`
     mutation UpdateContestSwitch(
@@ -1334,36 +1357,62 @@ export const update_contest_switch:any = async(contest_id: string, team_switch: 
       playground_switch: playground_switch,
       stream_switch: stream_switch,
       playback_switch: playback_switch
-    });
+    }
+  );
+
   return update_contest_switch.update_contest_by_pk.id;
 }
 
+/**
+ * Updates the contest map.
+ * 
+ * @param {string} map_id      The ID of the map to update.
+ * @param {string} name      The new name of the map.
+ * @param {string} filename      The new filename of the map.
+ * @param {string} team_labels      The new team labels of the map.
+ * @returns {string} The ID of the updated map.
+ */
 export const update_contest_map:any = async(map_id:string,name:string,filename:string,team_labels:string) => {
   const update_contest_map:any = await client.request(
     gql`
-  mutation UpdateContestMap(
-    $map_id: uuid!
-    $name: String!
-    $filename: String!
-    $team_labels: String!
-  ) {
-    update_contest_map_by_pk(
-      pk_columns: { map_id: $map_id }
-      _set: { name: $name, filename: $filename, team_labels: $team_labels }
+    mutation UpdateContestMap(
+      $map_id: uuid!
+      $name: String!
+      $filename: String!
+      $team_labels: String!
     ) {
-      map_id
+      update_contest_map_by_pk(
+        pk_columns: { map_id: $map_id }
+        _set: {
+          name: $name,
+          filename: $filename,
+          team_labels: $team_labels
+        }
+      ) {
+        map_id
+      }
     }
-  }
-  `,
-  {
-    map_id: map_id,
-    name: name,
-    filename: filename,
-    team_labels: team_labels
-  });
-  return update_contest_map.update_contest_map_by_pk.map_id;  
+    `,
+    {
+      map_id: map_id,
+      name: name,
+      filename: filename,
+      team_labels: team_labels
+    }
+  );
+
+  return update_contest_map.update_contest_map_by_pk.map_id;
 }
-  
+
+/**
+ * Updates the contest notice.
+ * 
+ * @param {string} id      The ID of the notice to update.
+ * @param {string} title      The new title of the notice.
+ * @param {string} content      The new content of the notice.
+ * @param {string} files      The new files of the notice.
+ * @returns {string} The ID of the updated notice.
+ */
 export const update_contest_notice:any = async(id:string,title:string,content:string,files:string) => {
   const update_contest_notice:any = await client.request(
     gql`
@@ -1375,7 +1424,11 @@ export const update_contest_notice:any = async(id:string,title:string,content:st
     ) {
       update_contest_notice_by_pk(
         pk_columns: { id: $id }
-        _set: { title: $title, content: $content, files: $files }
+        _set: {
+          title: $title,
+          content: $content,
+          files: $files
+        }
       ) {
         id
       }
@@ -1386,41 +1439,60 @@ export const update_contest_notice:any = async(id:string,title:string,content:st
       title:title,
       content:content,
       files:files
-    });
+    }
+  );
+
   return update_contest_notice.update_contest_notice_by_pk.id;
 }
 
-export const update_contest_player:any = async(contest_id:string,team_label:string,player_label:string,roles_available:string) =>{
+/**
+ * Updates the contest player.
+ * 
+ * @param {string} contest_id      The ID of the contest to update.
+ * @param {string} team_label      The new team label of the player.
+ * @param {string} player_label      The new player label.
+ * @param {string} roles_available      The new roles available for the player.
+ * @returns {string} The team label of the updated player.
+ */
+export const update_contest_player:any = async(contest_id:string,team_label:string,player_label:string,roles_available:string) => {
   const update_contest_player:any = await client.request(
     gql`
-  mutation UpdateContestPlayer(
-    $contest_id: uuid!
-    $team_label: String!
-    $player_label: String!
-    $roles_available: String!
-  ) {
-    update_contest_player_by_pk(
-      pk_columns: {
-        contest_id: $contest_id
-        team_label: $team_label
-        player_label: $player_label
-      }
-      _set: { player_label: $player_label, roles_available: $roles_available }
+    mutation UpdateContestPlayer(
+      $contest_id: uuid!
+      $team_label: String!
+      $player_label: String!
+      $roles_available: String!
     ) {
-      team_label
+      update_contest_player_by_pk(
+        pk_columns: { contest_id: $contest_id, team_label: $team_label, player_label: $player_label }
+        _set: {
+          player_label: $player_label,
+          roles_available: $roles_available
+        }
+      ) {
+        team_label
+      }
     }
-  }    
     `,
     {
       contest_id: contest_id,
       team_label: team_label,
       player_label: player_label,
       roles_available: roles_available
-    });
-    return update_contest_player.update_contest_player_by_pk.team_label;
+    }
+  );
+
+  return update_contest_player.update_contest_player_by_pk.team_label;
 }
 
-export const update_contest_round_name:any = async(round_id:string,name:string) =>{
+/**
+ * Updates the contest round name.
+ * 
+ * @param {string} round_id      The ID of the round to update.
+ * @param {string} name      The new name of the round.
+ * @returns {string} The ID of the updated round.
+ */
+export const update_contest_round_name:any = async(round_id:string,name:string) => {
   const update_contest_round_name:any = await client.request(
     gql`
     mutation UpdateContestRoundName($round_id: uuid!, $name: String!) {
@@ -1429,17 +1501,26 @@ export const update_contest_round_name:any = async(round_id:string,name:string) 
         _set: { name: $name }
       ) {
         round_id
-      } 
+      }
     }
     `,
     {
       round_id: round_id,
       name: name
-    });
-    return update_contest_round_name.update_contest_round_by_pk.round_id;
+    }
+  );
+
+  return update_contest_round_name.update_contest_round_by_pk.round_id;
 }
 
-export const update_team_code_name:any = async(code_id:string,code_name:string)=>{
+/**
+ * Updates the team code name.
+ * 
+ * @param {string} code_id      The ID of the code to update.
+ * @param {string} code_name      The new name of the code.
+ * @returns {string} The ID of the updated code.
+ */
+export const update_team_code_name:any = async(code_id:string,code_name:string) => {
   const update_team_code_name:any = await client.request(
     gql`
     mutation UpdateTeamCodeName($code_id: uuid!, $code_name: String!) {
@@ -1454,10 +1535,20 @@ export const update_team_code_name:any = async(code_id:string,code_name:string)=
     {
       code_id: code_id,
       code_name: code_name
-    });
-    return update_team_code_name.update_contest_team_code_by_pk.code_id;
+    }
+  );
+
+  return update_team_code_name.update_contest_team_code_by_pk.code_id;
 }
 
+/**
+ * Update a team player's information
+ * @param {string} team_id      The ID of the team
+ * @param {string} player      The player to be updated
+ * @param {string} code_id      The code ID associated with the player
+ * @param {string} role      The role of the player
+ * @returns {Promise<string>}      The updated player's information
+ */
 export const update_team_player:any = async(team_id:string,player:string,code_id:string,role:string) =>{
   const update_team_player:any = await client.request(
     gql`
@@ -1484,6 +1575,15 @@ export const update_team_player:any = async(team_id:string,player:string,code_id
     return update_team_player.update_contest_team_player_by_pk.player;
   }
 
+
+/**
+ * Update a team's information
+ * @param {string} team_id      The ID of the team
+ * @param {string} team_name      The name of the team
+ * @param {string} team_intro      The introduction of the team
+ * @returns {Promise<string>}      The updated team's ID
+ */
+
 export const update_team:any = async(team_id:string,team_name:string,team_intro:string) =>{
   const update_team:any = await client.request(
     gql`
@@ -1507,6 +1607,16 @@ export const update_team:any = async(team_id:string,team_name:string,team_intro:
     });
     return update_team.update_contest_team_by_pk.team_id;
   }
+
+/**
+ * Update contest time information
+ * @param {string} contest_id      The ID of the contest
+ * @param {string} event      The event to be updated
+ * @param {string} start      The start time of the event
+ * @param {string} end      The end time of the event
+ * @param {string} description      The description of the event
+ * @returns {Promise<string>}      The updated event information
+ */
 
 export const update_contest_time:any = async(contest_id:string,event:string,start:string,end:string,description:string) =>{
   const update_contest_time:any = await client.request(
@@ -1609,6 +1719,11 @@ export const delete_room_team: any = async (room_id: string) => {
   return delete_room_team.delete_contest_room_team.affected_rows;
 }
 
+/**
+ * Delete a contest
+ * @param {string} contest_id      The ID of the contest to be deleted
+ * @returns {Promise<number>}      The number of affected rows
+ */
 export const delete_contest:any = async (contest_id: string) => {
   const delete_contest: any = await client.request(
     gql`
@@ -1625,6 +1740,12 @@ export const delete_contest:any = async (contest_id: string) => {
 
   return delete_contest.delete_contest.affected_rows;
 }
+
+/**
+ * Delete a contest map
+ * @param {string} map_id      The ID of the map to be deleted
+ * @returns {Promise<string>}      The ID of the deleted map
+ */
 
 export const delete_contest_map:any = async (map_id: string) => {
   const delete_contest_map: any = await client.request(
@@ -1643,6 +1764,12 @@ export const delete_contest_map:any = async (map_id: string) => {
   return delete_contest_map.delete_contest_map_by_pk.map_id;
 }
 
+/**
+ * Delete a contest notice
+ * @param {string} id      The ID of the notice to be deleted
+ * @returns {Promise<string>}      The ID of the deleted notice
+ */
+
 export const delete_contest_notice:any = async(id:string) =>{
   const delete_contest_notice:any = await client.request(
     gql`
@@ -1659,6 +1786,13 @@ export const delete_contest_notice:any = async(id:string) =>{
   return delete_contest_map.delete_contest_notice_by_pk.id;
 }
 
+/**
+ * Delete a contest player
+ * @param {string} contest_id      The ID of the contest
+ * @param {string} team_label      The label of the team
+ * @param {string} player_label      The label of the player
+ * @returns {Promise<string>}      The label of the deleted team
+ */
 
 export const delete_contest_player:any = async(contest_id:string,team_label:string,player_label:string) =>{
   const delete_contest_player:any = await client.request(
@@ -1685,6 +1819,13 @@ export const delete_contest_player:any = async(contest_id:string,team_label:stri
   return delete_contest_player.delete_contest_player_by_pk.team_label;
 }
 
+
+/**
+ * Delete a contest round
+ * @param {string} round_id      The ID of the round to be deleted
+ * @returns {Promise<string>}      The ID of the deleted round
+ */
+
 export const delete_contest_round:any = async(round_id:string) => {
   const delete_contest_round:any = await client.request(
     gql`
@@ -1699,6 +1840,12 @@ export const delete_contest_round:any = async(round_id:string) => {
     });
   return delete_contest_round.delete_contest_round_by_pk.round_id;
 }
+
+/**
+ * Delete a team code
+ * @param {string} code_id      The ID of the code to be deleted
+ * @returns {Promise<string>}      The ID of the deleted code
+ */
 
 export const delete_team_code:any = async(code_id:string)=>{
   const delete_team_code:any = await client.request(
@@ -1717,6 +1864,13 @@ export const delete_team_code:any = async(code_id:string)=>{
 }
 
 
+/**
+ * Delete a team
+ * @param {string} team_id      The ID of the team to be deleted
+ * @returns {Promise<string>}      The ID of the deleted team
+ */
+
+
 export const delete_team:any = async(team_id:string) => {
   const delete_team:any = await client.request(
     gql`
@@ -1731,6 +1885,14 @@ export const delete_team:any = async(team_id:string) => {
     });
     return delete_team.delete_contest_team_by_pk.team_id;
 }
+
+
+/**
+ * Delete a team member
+ * @param {string} user_uuid      The UUID of the user
+ * @param {string} team_id      The ID of the team
+ * @returns {Promise<string>}      The ID of the team
+ */
 
 export const delete_team_member:any = async(user_uuid:string,team_id:string) => {
   const delete_team_member:any = await client.request(
@@ -1747,6 +1909,13 @@ export const delete_team_member:any = async(user_uuid:string,team_id:string) => 
     });
     return delete_team_member.delete_contest_team_member_by_pk.team_id;
 }
+
+/**
+ * Delete contest time
+ * @param {string} contest_id      The ID of the contest
+ * @param {string} event      The event to be deleted
+ * @returns {Promise<string>}      The event of the deleted contest time
+ */
 
 export const delete_contest_time:any = async(contest_id:string,event:string) => {
   const delete_contest_time:any = await client.request(
