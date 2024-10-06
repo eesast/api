@@ -1056,7 +1056,7 @@ export const add_team_member:any = async(team_id:string,user_uuid:string) =>{
  * @param {string} description         
  * @returns {Promise<string>}    
  */
-export const add_contest_time:any = async(contest_id:string,event:string,start:string,end:string,description:string) =>{
+export const add_contest_time:any = async(contest_id:string,event:string,start:Date,end:Date,description:string) =>{
   const add_contest_time:any = await client.request(
     gql`
     mutation AddContestTime(
@@ -1081,8 +1081,8 @@ export const add_contest_time:any = async(contest_id:string,event:string,start:s
     {
       contest_id: contest_id,
       event: event,
-      start: start,
-      end: end,
+      start: new Date(start),
+      end: new Date(end),
       description: description
     });
     return add_contest_time.insert_contest_time_one.event;
@@ -1271,11 +1271,11 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
  * @param {string} contest_id      The ID of the contest to update.
  * @param {string} fullname      The new full name of the contest.
  * @param {string} description      The new description of the contest.
- * @param {number} start_date      The new start date of the contest (timestamp).
- * @param {number} end_date      The new end date of the contest (timestamp).
+ * @param {Date} start_date      The new start date of the contest (timestamp).
+ * @param {Date} end_date      The new end date of the contest (timestamp).
  * @returns {string} The ID of the updated contest.
  */
-export const update_contest_info:any = async(contest_id: string, fullname: string, description: string, start_date: number, end_date: number) => {
+export const update_contest_info:any = async(contest_id: string, fullname: string, description: string, start_date: Date, end_date: Date) => {
   const update_contest_info: any = await client.request(
     gql`
     mutation UpdateContestInfo(
@@ -1612,13 +1612,13 @@ export const update_team:any = async(team_id:string,team_name:string,team_intro:
  * Update contest time information
  * @param {string} contest_id      The ID of the contest
  * @param {string} event      The event to be updated
- * @param {string} start      The start time of the event
- * @param {string} end      The end time of the event
+ * @param {Date} start      The start time of the event
+ * @param {Date} end      The end time of the event
  * @param {string} description      The description of the event
  * @returns {Promise<string>}      The updated event information
  */
 
-export const update_contest_time:any = async(contest_id:string,event:string,start:string,end:string,description:string) =>{
+export const update_contest_time:any = async(contest_id:string,event:string,start:Date,end:Date,description:string) =>{
   const update_contest_time:any = await client.request(
     gql`
     mutation UpdateContestTime(
@@ -1639,8 +1639,8 @@ export const update_contest_time:any = async(contest_id:string,event:string,star
     {
       contest_id: contest_id,
       event: event,
-      start: start,
-      end: end,
+      start: new Date(start),
+      end: new Date(end),
       description: description
     });
     return update_contest_time.update_contest_time_by_pk.event;
