@@ -1,11 +1,6 @@
 import express from "express";
-import jwt from "jsonwebtoken";
-import { docker_queue } from "..";
 import authenticate from "../middlewares/authenticate";
-import * as fs from "fs/promises";
-import * as utils from "../helpers/utils";
-import * as COS from "../helpers/cos";
-import * as ContConf from "../configs/contest";
+
 import * as ContHasFunc from "../hasura/contest"
 
 const router = express.Router();

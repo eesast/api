@@ -1,9 +1,5 @@
 import { gql } from "graphql-request";
 import { client } from "..";
-import { request } from "express";
-import { UniqueDirectiveNamesRule } from "graphql";
-
-
 
 /**
   ============================================================================
