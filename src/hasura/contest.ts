@@ -1779,7 +1779,7 @@ export const delete_contest_notice:any = async(id:string) =>{
       id:id
     }
   );
-  return delete_contest_map.delete_contest_notice_by_pk.id;
+  return delete_contest_notice.delete_contest_notice_by_pk.id;
 }
 
 /**
