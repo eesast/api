@@ -1,4 +1,4 @@
-import { gql } from "graphql    request";
+import { gql } from "graphql-request";
 import { client } from "..";
 import { request } from "express";
 import { UniqueDirectiveNamesRule } from "graphql";
@@ -1049,10 +1049,10 @@ export const add_team_member:any = async(team_id:string,user_uuid:string) =>{
 
 /**
  *         
- * @param {string} contest_id         ID
+ * @param {uuid} contest_id         ID
  * @param {string} event         
- * @param {string} start            
- * @param {string} end            
+ * @param {timestamptz} start            
+ * @param {timestamptz} end            
  * @param {string} description         
  * @returns {Promise<string>}    
  */
