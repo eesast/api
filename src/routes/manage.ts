@@ -6,7 +6,7 @@ import * as ContHasFunc from "../hasura/contest"
 const router = express.Router();
 
 // used in uploadmap.tsx
-router.post("/add_contest_map", authenticate(), async (req, res) => {
+router.post("/add_contest_map", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, name, filename, team_labels } = req.body;
         if (!contest_id || !name || !filename || !team_labels) {
@@ -24,7 +24,7 @@ router.post("/add_contest_map", authenticate(), async (req, res) => {
 });
 
 // used in noticepage.tsx
-router.post("/add_contest_notice", authenticate(), async (req, res) => {
+router.post("/add_contest_notice", authenticate(["counselor"]), async (req, res) => {
     try {
         const { title, content, files, contest_id } = req.body;
         if (!title || !content || !contest_id) {
@@ -42,7 +42,7 @@ router.post("/add_contest_notice", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/add_contest_player", authenticate(), async (req, res) => {
+router.post("/add_contest_player", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, team_label, player_label, roles_available } = req.body;
         if (!contest_id || !team_label || !player_label || !roles_available) {
@@ -61,7 +61,7 @@ router.post("/add_contest_player", authenticate(), async (req, res) => {
 
 
 // used in Competition.tsx
-router.post("/add_contest_round", authenticate(), async (req, res) => {
+router.post("/add_contest_round", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, name, map_id } = req.body;
         if (!contest_id || !name || !map_id) {
@@ -80,7 +80,7 @@ router.post("/add_contest_round", authenticate(), async (req, res) => {
 });
 
 // used in edittimeline.tsx
-router.post("/add_contest_time", authenticate(), async (req, res) => {
+router.post("/add_contest_time", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, event, start, end, description } = req.body;
         if (!contest_id || !event || !start || !end) {
@@ -99,7 +99,7 @@ router.post("/add_contest_time", authenticate(), async (req, res) => {
 
 
 // used in editinfo.tsx
-router.post("/update_contest_info", authenticate(), async (req, res) => {
+router.post("/update_contest_info", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, fullname, description, start_date, end_date } = req.body;
         if (!contest_id || !fullname || !description || !start_date || !end_date) {
@@ -120,7 +120,7 @@ router.post("/update_contest_info", authenticate(), async (req, res) => {
 });
 
 // used in setting.tsx
-router.post("/update_contest_switch", authenticate(), async (req, res) => {
+router.post("/update_contest_switch", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, team_switch, code_upload_switch, arena_switch, playground_switch, stream_switch, playback_switch } = req.body;
         if (!contest_id || team_switch === undefined || code_upload_switch === undefined || arena_switch === undefined || playground_switch === undefined || stream_switch === undefined || playback_switch === undefined) {
@@ -137,7 +137,7 @@ router.post("/update_contest_switch", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/update_contest_map", authenticate(), async (req, res) => {
+router.post("/update_contest_map", authenticate(["counselor"]), async (req, res) => {
     try {
         const { map_id, name, filename, team_labels } = req.body;
         if (!map_id || !name || !filename || !team_labels) {
@@ -157,7 +157,7 @@ router.post("/update_contest_map", authenticate(), async (req, res) => {
 
 
 //used in noticepage.tsx
-router.post("/update_contest_notice", authenticate(), async (req, res) => {
+router.post("/update_contest_notice", authenticate(["counselor"]), async (req, res) => {
     try {
         const { id, title, content, files } = req.body;
         if (!id || !title || !content) {
@@ -174,7 +174,7 @@ router.post("/update_contest_notice", authenticate(), async (req, res) => {
         });
     }
 });
-router.post("/update_contest_player", authenticate(), async (req, res) => {
+router.post("/update_contest_player", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, team_label, player_label, roles_available } = req.body;
         if (!contest_id || !team_label || !player_label || !roles_available) {
@@ -192,7 +192,7 @@ router.post("/update_contest_player", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/update_contest_round_name", authenticate(), async (req, res) => {
+router.post("/update_contest_round_name", authenticate(["counselor"]), async (req, res) => {
     try {
         const { round_id, name } = req.body;
         if (!round_id || !name) {
@@ -210,7 +210,7 @@ router.post("/update_contest_round_name", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/update_contest_time", authenticate(), async (req, res) => {
+router.post("/update_contest_time", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, event, start, end, description } = req.body;
         if (!contest_id || !event || !start || !end || !description) {
@@ -228,7 +228,7 @@ router.post("/update_contest_time", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/delete_contest", authenticate(), async (req, res) => {
+router.post("/delete_contest", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id } = req.body;
         if (!contest_id) {
@@ -248,7 +248,7 @@ router.post("/delete_contest", authenticate(), async (req, res) => {
 
 // used in uploadmap.tsx
 
-router.post("/delete_contest_map", authenticate(), async (req, res) => {
+router.post("/delete_contest_map", authenticate(["counselor"]), async (req, res) => {
     try {
         const { map_id } = req.body;
         if (!map_id) {
@@ -268,7 +268,7 @@ router.post("/delete_contest_map", authenticate(), async (req, res) => {
 
 
 // used in noticepage.tsx
-router.post("/delete_contest_notice", authenticate(), async (req, res) => {
+router.post("/delete_contest_notice", authenticate(["counselor"]), async (req, res) => {
     try {
         const { id } = req.body;
         if (!id) {
@@ -286,7 +286,7 @@ router.post("/delete_contest_notice", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/delete_contest_player", authenticate(), async (req, res) => {
+router.post("/delete_contest_player", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, team_label, player_label } = req.body;
         if (!contest_id || !team_label || !player_label) {
@@ -305,7 +305,7 @@ router.post("/delete_contest_player", authenticate(), async (req, res) => {
 });
 
 
-router.post("/delete_contest_round", authenticate(), async (req, res) => {
+router.post("/delete_contest_round", authenticate(["counselor"]), async (req, res) => {
     try {
         const { round_id } = req.body;
         if (!round_id) {
@@ -324,7 +324,7 @@ router.post("/delete_contest_round", authenticate(), async (req, res) => {
 });
 
 
-router.post("/delete_contest_time", authenticate(), async (req, res) => {
+router.post("/delete_contest_time", authenticate(["counselor"]), async (req, res) => {
     try {
         const { contest_id, event } = req.body;
         if (!contest_id || !event) {

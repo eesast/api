@@ -5,7 +5,7 @@ import * as ContHasFunc from "../hasura/contest"
 const router = express.Router();
 
 // used in codepage.tsx
-router.post("/add_team_code", authenticate(), async (req, res) => {
+router.post("/add_team_code", authenticate(["student"]), async (req, res) => {
     try {
         const { team_id, code_name, language, compile_status } = req.body;
         if (!team_id || !code_name || !language || !compile_status) {
@@ -14,7 +14,6 @@ router.post("/add_team_code", authenticate(), async (req, res) => {
         const code_id = await ContHasFunc.add_team_code(team_id, code_name, language, compile_status);
         res.status(200).json({ code_id:code_id,message:"Code added successfully" });
     } catch (err:any) {
-
         res.status(500).json({            
             error: "500 Internal Server Error",
             message: err.message,
@@ -25,7 +24,7 @@ router.post("/add_team_code", authenticate(), async (req, res) => {
 
 
 // used in joinpage.tsx
-router.post("/add_team_player", authenticate(), async (req, res) => {
+router.post("/add_team_player", authenticate(["student"]), async (req, res) => {
     try {
         const { team_id, player } = req.body;
         if (!team_id || !player) {
@@ -43,7 +42,7 @@ router.post("/add_team_player", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/add_team", authenticate(), async (req, res) => {
+router.post("/add_team", authenticate(["student"]), async (req, res) => {
     try {
         const { team_name, team_intro, team_leader_uuid, invited_code, contest_id } = req.body;
         if (!team_name || !team_intro  || !invited_code || !contest_id) {
@@ -66,7 +65,7 @@ router.post("/add_team", authenticate(), async (req, res) => {
     }
 });
 
-router.post("/add_team_member", authenticate(), async (req, res) => {
+router.post("/add_team_member", authenticate(["student"]), async (req, res) => {
     try {
         const { team_id, user_uuid } = req.body;
         if (!team_id || !user_uuid) {
@@ -86,7 +85,7 @@ router.post("/add_team_member", authenticate(), async (req, res) => {
 
 
 // used in codepage.tsx
-router.post("/update_team_code_name", authenticate(), async (req, res) => {
+router.post("/update_team_code_name", authenticate(["student"]), async (req, res) => {
     try {
         const { code_id, code_name } = req.body;
         if (!code_id || !code_name) {
@@ -106,7 +105,7 @@ router.post("/update_team_code_name", authenticate(), async (req, res) => {
 
 
 // used in codepage.tsx
-router.post("/update_team_player", authenticate(), async (req, res) => {
+router.post("/update_team_player", authenticate(["student"]), async (req, res) => {
     try {
         const { team_id, player, code_id, role } = req.body;
         if (!team_id || !player || !code_id || !role) {
@@ -125,7 +124,7 @@ router.post("/update_team_player", authenticate(), async (req, res) => {
 });
 
 // used in managepage.tsx
-router.post("/update_team", authenticate(), async (req, res) => {
+router.post("/update_team", authenticate(["student"]), async (req, res) => {
     try {
         const { team_id, team_name, team_intro } = req.body;
         if (!team_id || !team_name || !team_intro) {
@@ -147,7 +146,7 @@ router.post("/update_team", authenticate(), async (req, res) => {
 
 //used in codepage.tsx
 
-router.post("/delete_team_code", authenticate(), async (req, res) => {
+router.post("/delete_team_code", authenticate(["student"]), async (req, res) => {
     try {
         const { code_id } = req.body;
         if (!code_id) {
@@ -167,7 +166,7 @@ router.post("/delete_team_code", authenticate(), async (req, res) => {
 
 // used in managepage.tsx
 
-router.post("/delete_team", authenticate(), async (req, res) => {
+router.post("/delete_team", authenticate(["student"]), async (req, res) => {
     try {
         const { team_id } = req.body;
         if (!team_id) {
@@ -186,7 +185,7 @@ router.post("/delete_team", authenticate(), async (req, res) => {
 });
 
 // used in managepage.tsx
-router.post("/delete_team_member", authenticate(), async (req, res) => {
+router.post("/delete_team_member", authenticate(["student"]), async (req, res) => {
     try {
         const { user_uuid, team_id } = req.body;
         if (!user_uuid || !team_id) {
