@@ -11,92 +11,6 @@ import { messageReceiveTemplate } from "../helpers/htmlTemplates";
 
 const router = express.Router();
 
-
-// used in uploadmap.tsx
-router.post("/add_contest_map", authenticate(), async (req, res) => {
-    try {
-        const { contest_id, name, filename, team_labels } = req.body;
-        if (!contest_id || !name || !filename || !team_labels) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
-        }
-        const map_id = await ContHasFunc.add_contest_map(contest_id, name, filename, team_labels);
-        res.json({ map_id });
-    } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
-        res.status(500).json({
-            error: "500 Internal Server Error",
-            message: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-         });
-    }
-});
-
-// used in noticepage.tsx
-router.post("/add_contest_notice", authenticate(), async (req, res) => {
-    try {
-        const { title, content, files, contest_id } = req.body;
-        if (!title || !content || !contest_id) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
-        }
-        const id = await ContHasFunc.add_contest_notice(title, content, files, contest_id);
-        res.json({ id });
-    } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
-        res.status(500).json({             
-            error: "500 Internal Server Error",
-            message: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-        });
-    }
-});
-
-router.post("/add_contest_player", authenticate(), async (req, res) => {
-    try {
-        const { contest_id, team_label, player_label, roles_available } = req.body;
-        if (!contest_id || !team_label || !player_label || !roles_available) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
-        }
-        const team_label_result = await ContHasFunc.add_contest_player(contest_id, team_label, player_label, roles_available);
-        res.json({ team_label: team_label_result });
-    } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
-        res.status(500).json({            
-            error: "500 Internal Server Error",
-            message: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-        });
-    }
-});
-
-
-// used in Competition.tsx
-router.post("/add_contest_round", authenticate(), async (req, res) => {
-    try {
-        const { contest_id, name, map_id } = req.body;
-        if (!contest_id || !name || !map_id) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
-        }
-        const round_id = await ContHasFunc.add_contest_round(contest_id, name, map_id);
-        res.json({ round_id });
-    } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
-        res.status(500).json({             
-            error: "500 Internal Server Error",
-            message: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-        });
-    }
-});
-
-
 // used in codepage.tsx
 router.post("/add_team_code", authenticate(), async (req, res) => {
     try {
@@ -143,9 +57,14 @@ router.post("/add_team_player", authenticate(), async (req, res) => {
 router.post("/add_team", authenticate(), async (req, res) => {
     try {
         const { team_name, team_intro, team_leader_uuid, invited_code, contest_id } = req.body;
-        if (!team_name || !team_intro || !team_leader_uuid || !invited_code || !contest_id) {
+        if (!team_name || !team_intro  || !invited_code || !contest_id) {
             return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
         }
+        else if(!team_leader_uuid){
+            return res.status(400).json({ error: "400 Bad Request: Missing Team Leader UUID" });
+        }
+        // else if(!isValid(contest_id)){
+        //}
         const team_id = await ContHasFunc.add_team(team_name, team_intro, team_leader_uuid, invited_code, contest_id);
         res.status(200).json({ team_id: team_id,message:"Team Added Successfully" });
     } catch (err:any) {
