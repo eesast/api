@@ -810,7 +810,7 @@ export const add_contest_map:any = async(contest_id:string, name:string, filenam
       filename: filename,
       team_labels: team_labels
     });
-  return add_contest_map.insert_contest_map_one.map_id;
+  return add_contest_map.insert_contest_map_one?.map_id ?? undefined;
 }
 
 /**
@@ -849,7 +849,7 @@ export const add_contest_notice:any = async(title:string,content:string,files:st
       contest_id:contest_id
     }
   )
-  return add_contest_notice.insert_contest_notice_one.id;
+  return add_contest_notice.insert_contest_notice_one?.id?? undefined;
 }
 
 /**
@@ -887,7 +887,7 @@ export const add_contest_player:any = async(contest_id:string,team_label:string,
       player_label: player_label,
       roles_available: roles_available
     });
-  return add_contest_player.insert_contest_player_one.team_label;
+  return add_contest_player.insert_contest_player_one?.team_label?? undefined;
 }
 
 /**
@@ -913,7 +913,7 @@ export const add_contest_round:any = async(contest_id:string,name:string,map_id:
     name: name,
     map_id: map_id
   });
-  return add_contest_round.insert_contest_round_one.round_id;
+  return add_contest_round.insert_contest_round_one?.round_id?? undefined;
 }
 
 /**
@@ -950,7 +950,7 @@ export const add_team_code:any = async(team_id:string,code_name:string,language:
       code_name: code_name,
       compile_status: compile_status,
     });
-    return add_team_code.insert_contest_team_code_one.code_id;
+    return add_team_code.insert_contest_team_code_one?.code_id?? undefined;
   }
 
 /**
@@ -974,7 +974,7 @@ export const add_team_player:any = async(team_id:string,player:string) =>{
     team_id:team_id,
     player:player
   });
-  return add_team_player.insert_contest_team_player_one.player;
+  return add_team_player.insert_contest_team_player_one?.player?? undefined;
 } 
 
 /**
@@ -1016,7 +1016,7 @@ export const add_team:any = async(team_name:string,team_intro:string,team_leader
       invited_code: invited_code,
       contest_id: contest_id
     });
-    return add_team.insert_contest_team_one.team_id;
+    return add_team.insert_contest_team_one?.team_id ?? undefined;
   }
 
 /**
@@ -1040,7 +1040,7 @@ export const add_team_member:any = async(team_id:string,user_uuid:string) =>{
       team_id: team_id,
       user_uuid: user_uuid
     });
-    return add_team_member.insert_contest_team_member_one.team_id;
+    return add_team_member.insert_contest_team_member_one?.team_id?? undefined;
   }
 
 /**
@@ -1081,7 +1081,7 @@ export const add_contest_time:any = async(contest_id:string,event:string,start:D
       end: new Date(end),
       description: description
     });
-    return add_contest_time.insert_contest_time_one.event;
+    return add_contest_time.insert_contest_time_one?.event?? undefined;
     }
 
 
@@ -1303,7 +1303,7 @@ export const update_contest_info:any = async(contest_id: string, fullname: strin
     }
   );
 
-  return update_contest_info.update_contest_by_pk.id;
+  return update_contest_info.update_contest_by_pk?.id?? undefined;
 }
 
 /**
@@ -1356,7 +1356,7 @@ export const update_contest_switch:any = async(contest_id: string, team_switch: 
     }
   );
 
-  return update_contest_switch.update_contest_by_pk.id;
+  return update_contest_switch.update_contest_by_pk?.id?? undefined;
 }
 
 /**
@@ -1397,7 +1397,7 @@ export const update_contest_map:any = async(map_id:string,name:string,filename:s
     }
   );
 
-  return update_contest_map.update_contest_map_by_pk.map_id;
+  return update_contest_map.update_contest_map_by_pk?.map_id?? undefined;
 }
 
 /**
@@ -1438,7 +1438,7 @@ export const update_contest_notice:any = async(id:string,title:string,content:st
     }
   );
 
-  return update_contest_notice.update_contest_notice_by_pk.id;
+  return update_contest_notice.update_contest_notice_by_pk?.id?? undefined;
 }
 
 /**
@@ -1478,7 +1478,7 @@ export const update_contest_player:any = async(contest_id:string,team_label:stri
     }
   );
 
-  return update_contest_player.update_contest_player_by_pk.team_label;
+  return update_contest_player.update_contest_player_by_pk?.team_label ?? undefined;
 }
 
 /**
@@ -1506,7 +1506,7 @@ export const update_contest_round_name:any = async(round_id:string,name:string) 
     }
   );
 
-  return update_contest_round_name.update_contest_round_by_pk.round_id;
+  return update_contest_round_name.update_contest_round_by_pk?.round_id?? undefined;
 }
 
 /**
@@ -1534,7 +1534,7 @@ export const update_team_code_name:any = async(code_id:string,code_name:string) 
     }
   );
 
-  return update_team_code_name.update_contest_team_code_by_pk.code_id;
+  return update_team_code_name.update_contest_team_code_by_pk?.code_id?? undefined;
 }
 
 /**
@@ -1568,7 +1568,7 @@ export const update_team_player:any = async(team_id:string,player:string,code_id
       code_id: code_id,
       role: role
     });
-    return update_team_player.update_contest_team_player_by_pk.player;
+    return update_team_player.update_contest_team_player_by_pk?.player?? undefined;
   }
 
 
@@ -1601,7 +1601,7 @@ export const update_team:any = async(team_id:string,team_name:string,team_intro:
       team_name: team_name,
       team_intro: team_intro
     });
-    return update_team.update_contest_team_by_pk.team_id;
+    return update_team.update_contest_team_by_pk?.team_id?? undefined;
   }
 
 /**
@@ -1639,7 +1639,7 @@ export const update_contest_time:any = async(contest_id:string,event:string,star
       end: new Date(end),
       description: description
     });
-    return update_contest_time.update_contest_time_by_pk.event;
+    return update_contest_time.update_contest_time_by_pk?.event?? undefined;
   }
 
 
@@ -1734,7 +1734,7 @@ export const delete_contest:any = async (contest_id: string) => {
     }
   );
 
-  return delete_contest.delete_contest.affected_rows;
+  return delete_contest.delete_contest?.affected_rows?? undefined;
 }
 
 /**
@@ -1757,7 +1757,7 @@ export const delete_contest_map:any = async (map_id: string) => {
     }
   );
 
-  return delete_contest_map.delete_contest_map_by_pk.map_id;
+  return delete_contest_map.delete_contest_map_by_pk?.map_id?? undefined;
 }
 
 /**
@@ -1779,7 +1779,7 @@ export const delete_contest_notice:any = async(id:string) =>{
       id:id
     }
   );
-  return delete_contest_notice.delete_contest_notice_by_pk.id;
+  return delete_contest_notice.delete_contest_notice_by_pk?.id?? undefined;
 }
 
 /**
@@ -1812,7 +1812,7 @@ export const delete_contest_player:any = async(contest_id:string,team_label:stri
       team_label: team_label,
       player_label: player_label
     });
-  return delete_contest_player.delete_contest_player_by_pk.team_label;
+  return delete_contest_player.delete_contest_player_by_pk?.team_label?? undefined;
 }
 
 
@@ -1834,7 +1834,7 @@ export const delete_contest_round:any = async(round_id:string) => {
     {
       round_id: round_id
     });
-  return delete_contest_round.delete_contest_round_by_pk.round_id;
+  return delete_contest_round.delete_contest_round_by_pk?.round_id?? undefined;
 }
 
 /**
@@ -1856,7 +1856,7 @@ export const delete_team_code:any = async(code_id:string)=>{
       code_id: code_id
 
     });
-    return delete_team_code.delete_contest_team_code_by_pk.code_id; 
+    return delete_team_code.delete_contest_team_code_by_pk?.code_id?? undefined; 
 }
 
 
@@ -1879,7 +1879,7 @@ export const delete_team:any = async(team_id:string) => {
     {
       team_id: team_id
     });
-    return delete_team.delete_contest_team_by_pk.team_id;
+    return delete_team.delete_contest_team_by_pk?.team_id?? undefined;
 }
 
 
@@ -1903,7 +1903,7 @@ export const delete_team_member:any = async(user_uuid:string,team_id:string) => 
       user_uuid: user_uuid,
       team_id: team_id
     });
-    return delete_team_member.delete_contest_team_member_by_pk.team_id;
+    return delete_team_member.delete_contest_team_member_by_pk?.team_id?? undefined;
 }
 
 /**
@@ -1926,5 +1926,5 @@ export const delete_contest_time:any = async(contest_id:string,event:string) => 
       contest_id: contest_id,
       event: event
     });
-    return delete_contest_time.delete_contest_time_by_pk.event;
+    return delete_contest_time.delete_contest_time_by_pk?.event?? undefined;
   }
