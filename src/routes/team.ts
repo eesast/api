@@ -14,9 +14,7 @@ router.post("/add_team_code", authenticate(), async (req, res) => {
         const code_id = await ContHasFunc.add_team_code(team_id, code_name, language, compile_status);
         res.status(200).json({ code_id:code_id,message:"Code added successfully" });
     } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({            
             error: "500 Internal Server Error",
             message: err.message,
@@ -36,9 +34,7 @@ router.post("/add_team_player", authenticate(), async (req, res) => {
         const player_result = await ContHasFunc.add_team_player(team_id, player);
         res.status(200).json({ player: player_result,message:"Team Player Added Successfully" });
     } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+ 
         res.status(500).json({            
             error: "500 Internal Server Error",
             message: err.message,
@@ -61,9 +57,7 @@ router.post("/add_team", authenticate(), async (req, res) => {
         const team_id = await ContHasFunc.add_team(team_name, team_intro, team_leader_uuid, invited_code, contest_id);
         res.status(200).json({ team_id: team_id,message:"Team Added Successfully" });
     } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({             
             error: "500 Internal Server Error",
             message: err.message,
@@ -81,9 +75,7 @@ router.post("/add_team_member", authenticate(), async (req, res) => {
         const team_id_result = await ContHasFunc.add_team_member(team_id, user_uuid);
         res.status(200).json({ message:"Team Member Added Successfully",team_id: team_id_result });
     } catch (err:any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({             
             error: "500 Internal Server Error",
             message: err.message,
@@ -103,9 +95,7 @@ router.post("/update_team_code_name", authenticate(), async (req, res) => {
         const update_team_code_name = await ContHasFunc.update_team_code_name(code_id, code_name);
         res.status(200).json({ code_id: update_team_code_name.code_id,message:"Code Name Updated Successfully" });
     } catch (err: any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({ 
             error: "500 Internal Server Error",
             message: err.message,
@@ -125,9 +115,7 @@ router.post("/update_team_player", authenticate(), async (req, res) => {
         const update_team_player = await ContHasFunc.update_team_player(team_id, player, code_id, role);
         res.status(200).json({ player: update_team_player.player,message:"Player Updated Successfully" });
     } catch (err: any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({ 
             error: "500 Internal Server Error",
             message: err.message,
@@ -146,9 +134,7 @@ router.post("/update_team", authenticate(), async (req, res) => {
         const update_team = await ContHasFunc.update_team(team_id, team_name, team_intro);
         res.status(200).json({ message:"Team Updated Successfully",team_id: update_team.team_id });
     } catch (err: any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({ 
             error: "500 Internal Server Error",
             message: err.message,
@@ -170,9 +156,7 @@ router.post("/delete_team_code", authenticate(), async (req, res) => {
         const delete_team_code = await ContHasFunc.delete_team_code(code_id);
         res.status(200).json({ code_id: delete_team_code,message:"Code Deleted Successfully" });
     } catch (err: any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({ 
             error: "500 Internal Server Error",
             message: err.message,
@@ -192,9 +176,7 @@ router.post("/delete_team", authenticate(), async (req, res) => {
         const delete_team = await ContHasFunc.delete_team(team_id);
         res.status(200).json({ team_id: delete_team, message:"Team Deleted Successfully" });
     } catch (err: any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({ 
             error: "500 Internal Server Error",
             message: err.message,
@@ -213,9 +195,7 @@ router.post("/delete_team_member", authenticate(), async (req, res) => {
         const delete_team_member = await ContHasFunc.delete_team_member(user_uuid, team_id);
         res.status(200).json({ team_id: delete_team_member,message:"Team Member Deleted Successfully" });
     } catch (err: any) {
-        if (err.name === 'AuthenticationError') {
-            return res.status(401).json({ error: "401 Unauthorized: Authentication failed" });
-        }
+
         res.status(500).json({ 
             error: "500 Internal Server Error",
             message: err.message,
