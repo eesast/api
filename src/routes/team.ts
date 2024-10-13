@@ -130,7 +130,7 @@ router.post("/update_team", authenticate(["student"]), async (req, res) => {
         if (!team_id) {
             return res.status(400).json({ error: "400 Bad Request: Missing required parameters(team_id)" });
         }
-        const update_team = await ContHasFunc.update_team(team_id, ...update_Fields);
+        const update_team = await ContHasFunc.update_team(team_id, update_Fields);
         res.status(200).json({ message:"Team Updated Successfully",team_id: update_team.team_id });
     } catch (err: any) {
         res.status(500).json({ 

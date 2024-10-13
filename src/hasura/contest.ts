@@ -1273,7 +1273,7 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
  */
 export const update_contest_info:any = async(contest_id: string, updateFields:Partial<{fullname: string; description: string; start_date: Date;end_date: Date}>) => {
   
-  const setFields:any = {};
+  const setFields:{[key:string]:any} = {};
   if (updateFields.fullname) setFields.fullname = updateFields.fullname;
   if (updateFields.description) setFields.description = updateFields.description;
   if (updateFields.start_date) setFields.start_date = updateFields.start_date;
@@ -1284,10 +1284,18 @@ export const update_contest_info:any = async(contest_id: string, updateFields:Pa
     return undefined;
   }
   
+  const setString = Object.keys(setFields)
+  .map(key => `${key}: $${key}`)
+  .join(', ');
+
+  const variableString = Object.keys(setFields)
+  .map(key => `$${key}: String`)
+  .join(', ');
+
   const mutation = gql`
-  mutation UpdateContestInfo($contest_id: uuid!, $fullname: String, $description: String, $start_date: timestamptz, $end_date: timestamptz) {
-    update_contest_info_by_pk(pk_columns: { contest_id: $contest_id }, _set: { fullname: $fullname, description: $description, start_date: $start_date, end_date: $end_date }) {
-      contest_id
+  mutation UpdateContest($contest_id: uuid!, ${variableString}) {
+    update_contest_by_pk(pk_columns: { id: $contest_id }, _set: { ${setString} }) {
+      id
       fullname
       description
       start_date
@@ -1295,14 +1303,18 @@ export const update_contest_info:any = async(contest_id: string, updateFields:Pa
     }
   }
   `;
-  const variables = {
-    contest_id,
-    ...setFields
-  };
+
+  const variables:{[key:string]:any} = {
+    contest_id:contest_id  
+  }
+  if(setFields.fullname) variables.fullname = setFields.fullname;
+  if(setFields.description) variables.description = setFields.description;
+  if(setFields.start_date) variables.start_date = setFields.start_date;
+  if(setFields.end_date) variables.end_date = setFields.end_date;
 
   try {
     const response: any = await client.request(mutation, variables);
-    return response.update_contest_info_by_pk?.contest_id ?? undefined;
+    return response.update_contest_by_pk?.id ?? undefined;
   } catch (error) {
     console.error('Error updating contest info', error);
     throw error;
@@ -1382,9 +1394,17 @@ export const update_contest_map:any = async(map_id:string, updateFields: Partial
       return undefined;
     }
 
+    const setString = Object.keys(setFields)
+    .map(key => `${key}: $${key}`)
+    .join(', ');
+
+    const variableString = Object.keys(setFields)
+    .map(key => `$${key}: String`)
+    .join(', ');
+
     const mutation = gql`
-      mutation UpdateContestMap($map_id: uuid!, $name: String, $filename: String, $team_labels: String) {
-      update_contest_map_by_pk(pk_columns: { map_id: $map_id }, _set: { name: $name, filename: $filename, team_labels: $team_labels }) {
+      mutation UpdateContestMap($map_id: uuid!, ${variableString}) {
+      update_contest_map_by_pk(pk_columns: { map_id: $map_id }, _set: { ${setString} }) {
         map_id
         name
         filename
@@ -1393,11 +1413,21 @@ export const update_contest_map:any = async(map_id:string, updateFields: Partial
     }
     `;
 
-    const variables = {
+/*    const variables = {
       map_id,
       ...setFields
     }
+    本以为这样可以，但是不能，因为setFields是一个对象，而variables是一个数组
+    */
 
+    const variables:{[key:string]:any} = {
+      map_id: map_id
+    }
+
+    if(setFields.name) variables.name = setFields.name;
+    if(setFields.filename) variables.filename = setFields.filename;
+    if(setFields.team_labels) variables.team_labels = setFields.team_labels;
+    
     try {
       const response:any = await client.request(mutation,variables);
       return response.update_contest_map_by_pk?.map_id?? undefined;
@@ -1427,9 +1457,17 @@ export const update_contest_notice: any = async (id: string, updateFields: Parti
     return undefined;
   }
 
+  const variableString = Object.keys(setFields)
+  .map(key=>`$${key}`)
+  .join(', ');
+
+  const setString = Object.keys(setFields)
+  .map(key => `${key}: $${key}`)
+  .join(', ');
+
   const mutation = gql`
-    mutation UpdateContestNotice($id: uuid!, $title: String, $content: String, $files: String) {
-      update_contest_notice_by_pk(pk_columns: { id: $id }, _set: { title: $title, content: $content, files: $files }) {
+    mutation UpdateContestNotice($id: uuid!, ${variableString}) {
+      update_contest_notice_by_pk(pk_columns: { id: $id }, _set: { ${setString} }) {
         id
         title
         content
@@ -1438,10 +1476,13 @@ export const update_contest_notice: any = async (id: string, updateFields: Parti
     }
   `;
 
-  const variables = {
-    id,
-    ...setFields
-  };
+  const variables:{[key:string]:any} = {
+    id:id
+  }
+  if(setFields.title) variables.title = setFields.title;
+  if(setFields.content) variables.content = setFields.content;
+  if(setFields.files) variables.files = setFields.files;
+
 
   try {
     const response: any = await client.request(mutation, variables);
@@ -1461,9 +1502,8 @@ export const update_contest_notice: any = async (id: string, updateFields: Parti
  * @param {string} roles_available   Optional   The new roles available for the player.
  * @returns {string} The team label of the updated player.
  */
-export const update_contest_player: any = async (contest_id: string, team_label: string, updateFields: Partial<{ player_label: string; roles_available: string }>) => {
+export const update_contest_player: any = async (contest_id: string, player_label: string, team_label:string,updateFields: Partial<{roles_available: string }>) => {
   const setFields: any = {};
-  if (updateFields.player_label) setFields.player_label = updateFields.player_label;
   if (updateFields.roles_available) setFields.roles_available = updateFields.roles_available;
 
   if (Object.keys(setFields).length === 0) {
@@ -1471,9 +1511,17 @@ export const update_contest_player: any = async (contest_id: string, team_label:
     return undefined;
   }
 
+  const variableString = Object.keys(setFields)
+  .map(key => `$${key}: String`)
+  .join(', ');
+
+  const setString = Object.keys(setFields)
+  .map(key => `${key}: $${key}`)
+  .join(', ');
+
   const mutation = gql`
-    mutation UpdateContestPlayer($contest_id: uuid!, $team_label: String!, $player_label: String, $roles_available: String) {
-      update_contest_player_by_pk(pk_columns: { contest_id: $contest_id, team_label: $team_label }, _set: { player_label: $player_label, roles_available: $roles_available }) {
+    mutation UpdateContestPlayer($contest_id: uuid!, $player_label: String!, $team_label:String!,${variableString}) {
+      update_contest_player_by_pk(pk_columns: { contest_id: $contest_id, player_label: $player_label ,team_label:$team_label} _set: { ${setString} }) {
         team_label
         player_label
         roles_available
@@ -1481,11 +1529,13 @@ export const update_contest_player: any = async (contest_id: string, team_label:
     }
   `;
 
-  const variables = {
-    contest_id,
-    team_label,
-    ...setFields
-  };
+  const variables:{[key:string]:any} = {
+    contest_id:contest_id,
+    player_label:player_label,
+    team_label:team_label
+  }
+
+  if(setFields.roles_available) variables.roles_available = setFields.roles_available;
 
   try {
     const response: any = await client.request(mutation, variables);
@@ -1604,25 +1654,34 @@ export const update_team:any = async(team_id:string,updateFields:Partial<{ team_
     console.error("At least update one feature");
     return undefined;
   }
+
+  const variableString = Object.keys(setFields)
+  .map(key => `$${key}: String`)
+  .join(',')
+
+  const setString = Object.keys(setFields)
+  .map(key => `${key}: $${key}`)
+  .join(',')
   
   const mutation =  gql`
     mutation UpdateTeam(
-      $team_id: uuid!
-      $team_name: String!
-      $team_intro: String!    
+      $team_id: uuid!,
+      ${variableString}  
     ) {
       update_contest_team_by_pk(
         pk_columns: { team_id: $team_id }
-        _set: { team_name: $team_name, team_intro: $team_intro }
+        _set: { ${setString} }
       ) {
         team_id
       }
     }
     `;
-  const variables = {
-    team_id,
-    ...setFields
-  };
+  const variables:{[key:string]:any}= {
+    team_id:team_id
+  }
+  if(setFields.team_name) variables.team_name = setFields.team_name;
+  if(setFields.team_intro) variables.team_intro = setFields.team_intro;
+
 
   try {
     const response: any = await client.request(mutation, variables);

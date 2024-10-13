@@ -106,8 +106,8 @@ router.post("/update_contest_info", authenticate(["counselor"]), async (req, res
         if(!contest_id){
             return res.status(400).json({error: "400 Bad Request: Missing required parameters (Contest_id)" });
         }
-        const update_contest_info = await ContHasFunc.update_contest_info(contest_id, ...updateFields);
-        res.status(200).json({ map_id: update_contest_info.contest_id,message:"Contest Map updated successfully" });
+        const update_contest_info = await ContHasFunc.update_contest_info(contest_id, updateFields);
+        res.status(200).json({ id: update_contest_info.id,message:"Contest Map updated successfully" });
     }catch (err:any) {
         res.status(500).json({             
             error: "500 Internal Server Error",
@@ -141,7 +141,7 @@ router.post("/update_contest_map", authenticate(["counselor"]), async (req, res)
         if (!map_id) {
             return res.status(400).json({ error: "400 Bad Request: Missing required parameters (Map_ID)" });
         }
-        const update_contest_map = await ContHasFunc.update_contest_map(map_id, ...updateFields);
+        const update_contest_map = await ContHasFunc.update_contest_map(map_id, updateFields);
         res.status(200).json({ map_id: update_contest_map.map_id,message:"Contest Map updated successfully" });
     } catch (err:any) {
         res.status(500).json({             
@@ -160,7 +160,7 @@ router.post("/update_contest_notice", authenticate(["counselor"]), async (req, r
         if (!id) {
             return res.status(400).json({ error: "400 Bad Request: Missing required parameters (Contest_ID)" });
         }
-        const update_contest_notice = await ContHasFunc.update_contest_notice(id, ...updateFields);
+        const update_contest_notice = await ContHasFunc.update_contest_notice(id, );
         res.status(200).json({ id: update_contest_notice.id, message:"Contest Notice Updated Successfully" });
     } catch (err:any) {
         res.status(500).json({             
@@ -173,11 +173,11 @@ router.post("/update_contest_notice", authenticate(["counselor"]), async (req, r
 
 router.post("/update_contest_player", authenticate(["counselor"]), async (req, res) => {
     try {
-        const { contest_id, team_label, ...updateFields } = req.body;
-        if (!contest_id || !team_label) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters (contest_id or team_lable)" });
+        const { contest_id, player_label, team_label,...updateFields } = req.body;
+        if (!contest_id || !player_label || !team_label) {
+            return res.status(400).json({ error: "400 Bad Request: Missing required parameters (contest_id or player_lable or team_label)" });
         }
-        const update_contest_player = await ContHasFunc.update_contest_player(contest_id, team_label, ...updateFields);
+        const update_contest_player = await ContHasFunc.update_contest_player(contest_id, player_label, team_label,updateFields);
         res.status(200).json({ team_label: update_contest_player.team_label, message:"Contest player added successfully" });
     } catch (err: any) {
         res.status(500).json({ 
