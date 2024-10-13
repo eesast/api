@@ -1271,39 +1271,42 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
  * @param {Date} end_date      The new end date of the contest (timestamp).
  * @returns {string} The ID of the updated contest.
  */
-export const update_contest_info:any = async(contest_id: string, fullname: string, description: string, start_date: Date, end_date: Date) => {
-  const update_contest_info: any = await client.request(
-    gql`
-    mutation UpdateContestInfo(
-      $contest_id: uuid!
-      $fullname: String!
-      $description: String
-      $start_date: timestamptz!
-      $end_date: timestamptz!
-    ) {
-      update_contest_by_pk(
-        pk_columns: { id: $contest_id }
-        _set: {
-          fullname: $fullname
-          description: $description
-          start_date: $start_date
-          end_date: $end_date
-        }
-      ) {
-        id
-      }
-    }
-    `,
-    {
-      contest_id: contest_id,
-      fullname: fullname,
-      description: description,
-      start_date: new Date(start_date),
-      end_date: new Date(end_date)
-    }
-  );
+export const update_contest_info:any = async(contest_id: string, ...updateFields:Partial<{fullname: string; description: string; start_date: Date;end_date: Date}>) => {
+  
+  let setFields:any = {};
+  if (updateFields.fullname) setFields.fullname = updateFields.fullname;
+  if (updateFields.description) setFields.description = updateFields.description;
+  if (updateFields.start_date) setFields.start_date = updateFields.start_date;
+  if (updateFields.end_date) setFields.end_date = updateFields.end_date;
 
-  return update_contest_info.update_contest_by_pk?.id?? undefined;
+  if (Object.keys(setFields).length === 0) {
+    console.error("At least update one feature");
+    return undefined;
+  }
+  
+  const mutation = gql`
+  mutation UpdateContestInfo($contest_id: uuid!, $fullname: String, $description: String, $start_date: timestamptz, $end_date: timestamptz) {
+    update_contest_info_by_pk(pk_columns: { contest_id: $contest_id }, _set: { fullname: $fullname, description: $description, start_date: $start_date, end_date: $end_date }) {
+      contest_id
+      fullname
+      description
+      start_date
+      end_date
+    }
+  }
+  `;
+  const variables = {
+    contest_id,
+    ...setFields
+  };
+
+  try {
+    const response: any = await client.request(mutation, variables);
+    return response.update_contest_info_by_pk?.contest_id ?? undefined;
+  } catch (error) {
+    console.error('Error updating contest info', error);
+    throw error;
+  }
 }
 
 /**
@@ -1368,118 +1371,130 @@ export const update_contest_switch:any = async(contest_id: string, team_switch: 
  * @param {string} team_labels      The new team labels of the map.
  * @returns {string} The ID of the updated map.
  */
-export const update_contest_map:any = async(map_id:string,name:string,filename:string,team_labels:string) => {
-  const update_contest_map:any = await client.request(
-    gql`
-    mutation UpdateContestMap(
-      $map_id: uuid!
-      $name: String!
-      $filename: String!
-      $team_labels: String!
-    ) {
-      update_contest_map_by_pk(
-        pk_columns: { map_id: $map_id }
-        _set: {
-          name: $name,
-          filename: $filename,
-          team_labels: $team_labels
-        }
-      ) {
+export const update_contest_map:any = async(map_id:string, updateFields: Partial<{ name: string; filename: string; team_labels: string }>) => {
+  let setFields: any = {};
+    if(updateFields.name) setFields.name = updateFields.name;
+    if(updateFields.filename) setFields.filename = updateFields.filename;
+    if(updateFields.team_labels) setFields.team_labels = updateFields.team_labels;
+
+    if(Object.keys(setFields).length === 0 ){
+      console.error("At least update one feature");
+      return undefined;
+    }
+
+    const mutation = gql`
+      mutation UpdateContestMap($map_id: uuid!, $name: String, $filename: String, $team_labels: String) {
+      update_contest_map_by_pk(pk_columns: { map_id: $map_id }, _set: { name: $name, filename: $filename, team_labels: $team_labels }) {
         map_id
+        name
+        filename
+        team_labels
       }
     }
-    `,
-    {
-      map_id: map_id,
-      name: name,
-      filename: filename,
-      team_labels: team_labels
-    }
-  );
+    `;
 
-  return update_contest_map.update_contest_map_by_pk?.map_id?? undefined;
+    const variables = {
+      map_id,
+      ...setFields
+    }
+
+    try {
+      const response:any = await client.request(mutation,variables);
+      return response.update_contest_map_by_pk?.map_id?? undefined;
+    }catch(error){
+      console.error('Error updating contest map', error);
+      throw(error);
+    }
 }
 
 /**
  * Updates the contest notice.
  * 
  * @param {string} id      The ID of the notice to update.
- * @param {string} title      The new title of the notice.
- * @param {string} content      The new content of the notice.
- * @param {string} files      The new files of the notice.
+ * @param {string} title     Optional The new title of the notice.
+ * @param {string} content    Optional  The new content of the notice.
+ * @param {string} files      Optional The new files of the notice.
  * @returns {string} The ID of the updated notice.
  */
-export const update_contest_notice:any = async(id:string,title:string,content:string,files:string) => {
-  const update_contest_notice:any = await client.request(
-    gql`
-    mutation UpdateContestNotice(
-      $id: uuid!
-      $title: String!
-      $content: String!
-      $files: String
-    ) {
-      update_contest_notice_by_pk(
-        pk_columns: { id: $id }
-        _set: {
-          title: $title,
-          content: $content,
-          files: $files
-        }
-      ) {
+export const update_contest_notice: any = async (id: string, updateFields: Partial<{ title: string; content: string; files: string }>) => {
+  let setFields: any = {};
+  if (updateFields.title) setFields.title = updateFields.title;
+  if (updateFields.content) setFields.content = updateFields.content;
+  if (updateFields.files) setFields.files = updateFields.files;
+
+  if (Object.keys(setFields).length === 0) {
+    console.error("At least update one feature");
+    return undefined;
+  }
+
+  const mutation = gql`
+    mutation UpdateContestNotice($id: uuid!, $title: String, $content: String, $files: String) {
+      update_contest_notice_by_pk(pk_columns: { id: $id }, _set: { title: $title, content: $content, files: $files }) {
         id
+        title
+        content
+        files
       }
     }
-    `,
-    {
-      id:id,
-      title:title,
-      content:content,
-      files:files
-    }
-  );
+  `;
 
-  return update_contest_notice.update_contest_notice_by_pk?.id?? undefined;
-}
+  const variables = {
+    id,
+    ...setFields
+  };
+
+  try {
+    const response: any = await client.request(mutation, variables);
+    return response.update_contest_notice_by_pk?.id ?? undefined;
+  } catch (error) {
+    console.error('Error updating contest notice', error);
+    throw error;
+  }
+};
 
 /**
  * Updates the contest player.
  * 
- * @param {string} contest_id      The ID of the contest to update.
+ * @param  {string} contest_id      The ID of the contest to update.
  * @param {string} team_label      The new team label of the player.
- * @param {string} player_label      The new player label.
- * @param {string} roles_available      The new roles available for the player.
+ * @param {string} player_label   Optional   The new player label.
+ * @param {string} roles_available   Optional   The new roles available for the player.
  * @returns {string} The team label of the updated player.
  */
-export const update_contest_player:any = async(contest_id:string,team_label:string,player_label:string,roles_available:string) => {
-  const update_contest_player:any = await client.request(
-    gql`
-    mutation UpdateContestPlayer(
-      $contest_id: uuid!
-      $team_label: String!
-      $player_label: String!
-      $roles_available: String!
-    ) {
-      update_contest_player_by_pk(
-        pk_columns: { contest_id: $contest_id, team_label: $team_label, player_label: $player_label }
-        _set: {
-          player_label: $player_label,
-          roles_available: $roles_available
-        }
-      ) {
+export const update_contest_player: any = async (contest_id: string, team_label: string, updateFields: Partial<{ player_label: string; roles_available: string }>) => {
+  let setFields: any = {};
+  if (updateFields.player_label) setFields.player_label = updateFields.player_label;
+  if (updateFields.roles_available) setFields.roles_available = updateFields.roles_available;
+
+  if (Object.keys(setFields).length === 0) {
+    console.error("At least update one feature");
+    return undefined;
+  }
+
+  const mutation = gql`
+    mutation UpdateContestPlayer($contest_id: uuid!, $team_label: String!, $player_label: String, $roles_available: String) {
+      update_contest_player_by_pk(pk_columns: { contest_id: $contest_id, team_label: $team_label }, _set: { player_label: $player_label, roles_available: $roles_available }) {
         team_label
+        player_label
+        roles_available
       }
     }
-    `,
-    {
-      contest_id: contest_id,
-      team_label: team_label,
-      player_label: player_label,
-      roles_available: roles_available
-    }
-  );
+  `;
 
-  return update_contest_player.update_contest_player_by_pk?.team_label ?? undefined;
-}
+  const variables = {
+    contest_id,
+    team_label,
+    ...setFields
+  };
+
+  try {
+    const response: any = await client.request(mutation, variables);
+    return response.update_contest_player_by_pk?.team_label ?? undefined;
+  } catch (error) {
+    console.error('Error updating contest player', error);
+    throw error;
+  }
+};
 
 /**
  * Updates the contest round name.
@@ -1580,9 +1595,17 @@ export const update_team_player:any = async(team_id:string,player:string,code_id
  * @returns {Promise<string>}      The updated team's ID
  */
 
-export const update_team:any = async(team_id:string,team_name:string,team_intro:string) =>{
-  const update_team:any = await client.request(
-    gql`
+export const update_team:any = async(team_id:string,updateFields:Partial<{ team_name: string; team_intro: string}>) =>{
+  let setFields: any = {};
+  if (updateFields.team_name) setFields.team_name = updateFields.team_name;
+  if (updateFields.team_intro) setFields.team_intro = updateFields.team_intro;
+
+  if (Object.keys(setFields).length === 0) {
+    console.error("At least update one feature");
+    return undefined;
+  }
+  
+  const mutation =  gql`
     mutation UpdateTeam(
       $team_id: uuid!
       $team_name: String!
@@ -1595,14 +1618,20 @@ export const update_team:any = async(team_id:string,team_name:string,team_intro:
         team_id
       }
     }
-    `,
-    {
-      team_id: team_id,
-      team_name: team_name,
-      team_intro: team_intro
-    });
-    return update_team.update_contest_team_by_pk?.team_id?? undefined;
+    `;
+  const variables = {
+    team_id,
+    ...setFields
+  };
+
+  try {
+    const response: any = await client.request(mutation, variables);
+    return response.update_contest_team_by_pk?.team_id ?? undefined;
+  } catch (error) {
+    console.error('Error updating contest player', error);
+    throw error;
   }
+}
 
 /**
  * Update contest time information

@@ -100,17 +100,15 @@ router.post("/add_contest_time", authenticate(["counselor"]), async (req, res) =
 
 // used in editinfo.tsx
 router.post("/update_contest_info", authenticate(["counselor"]), async (req, res) => {
-    try {
-        const { contest_id, fullname, description, start_date, end_date } = req.body;
-        if (!contest_id || !fullname || !description || !start_date || !end_date) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
+
+    try{
+        const {contest_id, ...updateFields} = req.body
+        if(!contest_id){
+            return res.status(400).json({error: "400 Bad Request: Missing required parameters (Contest_id)" });
         }
-        const update_contest_info = await ContHasFunc.update_contest_info(contest_id, fullname, description, start_date, end_date);
-        res.status(200).json({ id: update_contest_info.id, message:"Contest Info Added Successfully" 
-        });
-
-    } catch (err:any) {
-
+        const update_contest_info = await ContHasFunc.update_contest_info(contest_id, ...updateFields);
+        res.status(200).json({ map_id: update_contest_info.contest_id,message:"Contest Map updated successfully" });
+    }catch (err:any) {
         res.status(500).json({             
             error: "500 Internal Server Error",
             message: err.message,
@@ -139,14 +137,13 @@ router.post("/update_contest_switch", authenticate(["counselor"]), async (req, r
 
 router.post("/update_contest_map", authenticate(["counselor"]), async (req, res) => {
     try {
-        const { map_id, name, filename, team_labels } = req.body;
-        if (!map_id || !name || !filename || !team_labels) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
+        const { map_id, ...updateFields } = req.body;
+        if (!map_id) {
+            return res.status(400).json({ error: "400 Bad Request: Missing required parameters (Map_ID)" });
         }
-        const update_contest_map = await ContHasFunc.update_contest_map(map_id, name, filename, team_labels);
-        res.json({ map_id: update_contest_map.map_id });
+        const update_contest_map = await ContHasFunc.update_contest_map(map_id, ...updateFields);
+        res.status(200).json({ map_id: update_contest_map.map_id,message:"Contest Map updated successfully" });
     } catch (err:any) {
-
         res.status(500).json({             
             error: "500 Internal Server Error",
             message: err.message,
@@ -159,14 +156,13 @@ router.post("/update_contest_map", authenticate(["counselor"]), async (req, res)
 //used in noticepage.tsx
 router.post("/update_contest_notice", authenticate(["counselor"]), async (req, res) => {
     try {
-        const { id, title, content, files } = req.body;
-        if (!id || !title || !content) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
+        const { id, ...updateFields } = req.body;
+        if (!id) {
+            return res.status(400).json({ error: "400 Bad Request: Missing required parameters (Contest_ID)" });
         }
-        const update_contest_notice = await ContHasFunc.update_contest_notice(id, title, content, files);
+        const update_contest_notice = await ContHasFunc.update_contest_notice(id, ...updateFields);
         res.status(200).json({ id: update_contest_notice.id, message:"Contest Notice Updated Successfully" });
     } catch (err:any) {
-
         res.status(500).json({             
             error: "500 Internal Server Error",
             message: err.message,
@@ -174,16 +170,16 @@ router.post("/update_contest_notice", authenticate(["counselor"]), async (req, r
         });
     }
 });
+
 router.post("/update_contest_player", authenticate(["counselor"]), async (req, res) => {
     try {
-        const { contest_id, team_label, player_label, roles_available } = req.body;
-        if (!contest_id || !team_label || !player_label || !roles_available) {
-            return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
+        const { contest_id, team_label, ...updateFields } = req.body;
+        if (!contest_id || !team_label) {
+            return res.status(400).json({ error: "400 Bad Request: Missing required parameters (contest_id or team_lable)" });
         }
-        const update_contest_player = await ContHasFunc.update_contest_player(contest_id, team_label, player_label, roles_available);
-        res.json({ team_label: update_contest_player.team_label });
+        const update_contest_player = await ContHasFunc.update_contest_player(contest_id, team_label, ...updateFields);
+        res.status(200).json({ team_label: update_contest_player.team_label, message:"Contest player added successfully" });
     } catch (err: any) {
-
         res.status(500).json({ 
             error: "500 Internal Server Error",
             message: err.message,
