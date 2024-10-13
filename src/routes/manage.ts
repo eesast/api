@@ -160,7 +160,7 @@ router.post("/update_contest_notice", authenticate(["counselor"]), async (req, r
         if (!id) {
             return res.status(400).json({ error: "400 Bad Request: Missing required parameters (Contest_ID)" });
         }
-        const update_contest_notice = await ContHasFunc.update_contest_notice(id, );
+        const update_contest_notice = await ContHasFunc.update_contest_notice(id, updateFields);
         res.status(200).json({ id: update_contest_notice.id, message:"Contest Notice Updated Successfully" });
     } catch (err:any) {
         res.status(500).json({             
