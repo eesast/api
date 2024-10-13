@@ -1271,9 +1271,9 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
  * @param {Date} end_date      The new end date of the contest (timestamp).
  * @returns {string} The ID of the updated contest.
  */
-export const update_contest_info:any = async(contest_id: string, ...updateFields:Partial<{fullname: string; description: string; start_date: Date;end_date: Date}>) => {
+export const update_contest_info:any = async(contest_id: string, updateFields:Partial<{fullname: string; description: string; start_date: Date;end_date: Date}>) => {
   
-  let setFields:any = {};
+  const setFields:any = {};
   if (updateFields.fullname) setFields.fullname = updateFields.fullname;
   if (updateFields.description) setFields.description = updateFields.description;
   if (updateFields.start_date) setFields.start_date = updateFields.start_date;
@@ -1372,7 +1372,7 @@ export const update_contest_switch:any = async(contest_id: string, team_switch: 
  * @returns {string} The ID of the updated map.
  */
 export const update_contest_map:any = async(map_id:string, updateFields: Partial<{ name: string; filename: string; team_labels: string }>) => {
-  let setFields: any = {};
+  const setFields: any = {};
     if(updateFields.name) setFields.name = updateFields.name;
     if(updateFields.filename) setFields.filename = updateFields.filename;
     if(updateFields.team_labels) setFields.team_labels = updateFields.team_labels;
@@ -1417,7 +1417,7 @@ export const update_contest_map:any = async(map_id:string, updateFields: Partial
  * @returns {string} The ID of the updated notice.
  */
 export const update_contest_notice: any = async (id: string, updateFields: Partial<{ title: string; content: string; files: string }>) => {
-  let setFields: any = {};
+  const setFields: any = {};
   if (updateFields.title) setFields.title = updateFields.title;
   if (updateFields.content) setFields.content = updateFields.content;
   if (updateFields.files) setFields.files = updateFields.files;
@@ -1462,7 +1462,7 @@ export const update_contest_notice: any = async (id: string, updateFields: Parti
  * @returns {string} The team label of the updated player.
  */
 export const update_contest_player: any = async (contest_id: string, team_label: string, updateFields: Partial<{ player_label: string; roles_available: string }>) => {
-  let setFields: any = {};
+  const setFields: any = {};
   if (updateFields.player_label) setFields.player_label = updateFields.player_label;
   if (updateFields.roles_available) setFields.roles_available = updateFields.roles_available;
 
@@ -1596,7 +1596,7 @@ export const update_team_player:any = async(team_id:string,player:string,code_id
  */
 
 export const update_team:any = async(team_id:string,updateFields:Partial<{ team_name: string; team_intro: string}>) =>{
-  let setFields: any = {};
+  const setFields: any = {};
   if (updateFields.team_name) setFields.team_name = updateFields.team_name;
   if (updateFields.team_intro) setFields.team_intro = updateFields.team_intro;
 
