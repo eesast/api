@@ -51,6 +51,16 @@ router.get("/upload/*", async (req, res) => {
   }
 });
 
+//avatar
+router.get("/avatar/*", async (req, res) => {
+  try{
+    const sts = await getSTS(role === "anonymous" ?  viewActions : generalActions , `avatar/*`);
+    return res.status(200).send(sts);
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
 router.get("/chat_record/:application_id/*", async (req, res) => {
   try{
     if (role == 'student' || role == 'teacher') {
