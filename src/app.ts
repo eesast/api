@@ -14,7 +14,7 @@ import codeRouter from "./routes/code";
 import arenaRouter from "./routes/arena";
 import competitionRouter from "./routes/competition";
 import notificationRouter from "./routes/notification";
-
+import chatRoute from "./routes/chat";
 const app = express();
 
 const whitelist =
@@ -51,5 +51,5 @@ app.use("/code", codeRouter);
 app.use("/arena", arenaRouter);
 app.use("/competition", competitionRouter);
 app.use("/notification", notificationRouter);
-
+app.use("/chat", chatRoute);
 export default app;

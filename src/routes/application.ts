@@ -3,9 +3,9 @@ import { gql } from "graphql-request";
 import { client } from "..";
 import * as MentHasFunc from "../hasura/mentor";
 import * as HnrHasFunc from "../hasura/honor";
-
+import authenticate from "../middlewares/authenticate";
+import { StringValueNode } from "graphql";
 const router = express.Router();
-
 /* 查询荣誉类别和当年的荣誉申请时间段
 * @return {types: [type_name], time: {start_A, end_A, start_B, end_B}}
 */
@@ -206,11 +206,11 @@ router.get("/info/mentor/:year", async (req, res) => {
 })
 
 
-router.post("/mentor/insert_one", async (req, res) => {
+router.post("/mentor/insert_one", authenticate(["student"]), async (req, res) => {
     const mentor_uuid: string = req.body.mentor_uuid;
     const student_uuid: string = req.body.student_uuid;
     if (!mentor_uuid || !student_uuid) {
-        return res.status(450).send("Error: Invalid mentor_uuid or student_uuid provided");
+        return res.status(456).send("Error: Invalid parameters provided");
     }
     const year: number = parseInt(req.body.year, 10);
     if (isNaN(year)) {
@@ -268,4 +268,139 @@ router.post("/mentor/insert_one", async (req, res) => {
 //         return res.status(500).send(err);
 //     }
 // })
+
+
+router.post("/mentor/update/status",authenticate(["teacher"]), async (req, res) => {
+    try {
+        const id : string = req.body.applyid;
+        const status : string = req.body.status;
+        if(!id || !status){
+            return res.status(456).send("Error: Invalid parameters provided");
+        }
+        const application_status = await MentHasFunc.update_mentor_application_status(id, status);
+        if(!application_status){
+            return res.status(455).send("Error: Application does not exist");
+        }
+        return res.status(200).send(application_status);
+    } catch (err) {
+        return res.status(500).send("Internal Server Error");
+    }
+});
+router.post("/mentor/update/statement",authenticate(["student"]), async (req, res) => {
+    try {
+        const id : string = req.body.applyid;
+        const statement : string = req.body.statement;
+        if(!id || !statement){
+            return res.status(456).send("Error: Invalid parameters provided");
+        }
+        const application_statement = await MentHasFunc.update_mentor_application_statement(id, statement);
+        if(!application_statement){
+            return res.status(455).send("Error: Application does not exist");
+        }
+        return res.status(200).send(application_statement);
+    } catch (err) {
+        return res.status(500).send("Internal Server Error");
+    }
+});
+router.post("/mentor/update/delete",authenticate(), async (req, res) => {
+    try {
+        const id : string= req.body.applyid;
+        if(!id){
+            return res.status(456).send("Error: Invalid parameters provided");
+        }
+        const application_id = await MentHasFunc.delete_mentor_application(id);
+        if(!application_id){
+            return res.status(455).send("Error: Application does not exist");
+        }
+        return res.status(200).send(application_id);
+    } catch (err) {
+        return res.status(500).send("Internal Server Error");
+    }
+});
+//ID here is the application ID
+router.post("/chat/update/status",authenticate(), async (req, res) => {
+    try {
+        const id : string = req.body.applyid;
+        const status : boolean = req.body.chat_status;
+        if(!id || status === undefined){
+            return res.status(456).send("Error: Invalid parameters provided");
+        }
+        const chat_status = await MentHasFunc.update_mentor_application_chat_status(id, status);
+        if(chat_status === null){
+            return res.status(455).send("Error: Application does not exist");
+        }
+        if(chat_status === true){
+            return res.status(200).send("true");
+        }
+        else{
+            return res.status(200).send("false");
+        }
+    } catch (err) {
+        console.log(err)
+        return res.status(500).send("Internal Server Error");
+    }
+});
+//timestamp should be ISO 8601 format
+router.post("/mentor/update/schedule",authenticate(["counselor","root"]), async (req, res) => {
+    try {
+        const year : number = req.body.year;
+        const start_A_string : string = req.body.start_A;
+        const start_B_string : string = req.body.start_B;
+        const start_C_string : string = req.body.start_C;
+        const start_D_string : string = req.body.start_D;
+        const start_E_string : string = req.body.start_E;
+        const end_A_string : string = req.body.end_A;
+        const end_B_string : string = req.body.end_B;
+        const end_C_string : string = req.body.end_C;
+        const end_D_string : string = req.body.end_D;
+        const end_E_string : string = req.body.end_E;
+        if(!year || !start_A_string || !start_B_string || !start_C_string || !start_D_string || !start_E_string || !end_A_string || !end_B_string || !end_C_string || !end_D_string || !end_E_string){
+            return res.status(456).send("Error: Invalid parameters provided");
+        }
+        const start_A = new Date(start_A_string);
+        const start_B = new Date(start_B_string);
+        const start_C = new Date(start_C_string);
+        const start_D = new Date(start_D_string);
+        const start_E = new Date(start_E_string);
+        const end_A = new Date(end_A_string);
+        const end_B = new Date(end_B_string);
+        const end_C = new Date(end_C_string);
+        const end_D = new Date(end_D_string);
+        const end_E = new Date(end_E_string);
+        const activateIn : number= await MentHasFunc.insert_mentor_application_schedule(year, start_A, start_B, start_C, start_D, start_E, end_A, end_B, end_C, end_D, end_E);
+        if(!activateIn){
+            throw new Error();
+        }
+        return res.status(200).send(activateIn.toString());
+    } catch (err) {
+        console.log(err)
+        return res.status(500).send("Internal Server Error");
+    }
+});
+router.post("/freshman/update/info_list",authenticate(["counselor","root"]), async (req, res) => {
+    try {
+        const info_list = req.body.info_list;
+        if(!info_list){
+            return res.status(456).send("Error: Invalid parameters provided");
+        }
+        const freshman_list = Array<MentHasFunc.Freshman_Insert_Input>();
+        for(let i = 0; i < info_list.length; i++){
+            freshman_list.push({
+                uuid: info_list[i].uuid,
+                realname: info_list[i].realname,
+                student_no: info_list[i].student_no,
+                year: info_list[i].year
+            });
+        }
+        console.log(freshman_list[0])
+        const affected_rows:number = await MentHasFunc.insert_freshman_info_list(info_list);
+        if(!affected_rows){
+            throw new Error();
+        }
+        return res.status(200).send(affected_rows.toString());
+    } catch (err) {
+        console.log(err)
+        return res.status(500).send("Internal Server Error");
+    }
+});
 export default router;
