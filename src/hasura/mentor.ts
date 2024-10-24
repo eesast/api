@@ -1,24 +1,11 @@
 import { gql } from "graphql-request";
 import { client } from "..";
-import { contest_image_map } from "../configs/contest";
 export interface Freshman_Insert_Input {
   realname: string;
   student_no: string;
   year: number;
   uuid: string;
 }
-export type Scalars = {
-  ID: { input: string; output: string; }
-  String: { input: string; output: string; }
-  Boolean: { input: boolean; output: boolean; }
-  Int: { input: number; output: number; }
-  Float: { input: number; output: number; }
-  date: { input: any; output: any; }
-  json: { input: any; output: any; }
-  numeric: { input: any; output: any; }
-  timestamptz: { input: any; output: any; }
-  uuid: { input: any; output: any; }
-};
 export const get_mentor_info_list = async () => {
   const query: any = await client.request(
     gql`
@@ -176,7 +163,7 @@ export const update_mentor_info_available = async (uuid: string, available: bool
   return query.update_mentor_info_by_pk?.available ?? null;
 }
 
-export const update_mentor_info_description = async (mentor_uuid: string, achievement: string, background: string, field: string, intro: string, max_applicants: number) => {
+export const update_mentor_info_description = async (mentor_uuid: string, achievement: string, background: string, field: string, intro: string) => {
   const query: any = await client.request(
     gql`
       mutation UpdateMentorInfoDescription(
@@ -205,7 +192,6 @@ export const update_mentor_info_description = async (mentor_uuid: string, achiev
       background: background,
       field: field,
       intro: intro,
-      max_applicants: max_applicants
     }
   );
   return query.update_mentor_info_by_pk?.mentor_uuid ?? null;
@@ -258,7 +244,6 @@ export const delete_mentor_application = async (id: string) => {
   );
   return query.delete_mentor_application_by_pk?.id ?? null;
 }
-//TODO: implement these routes
 export const update_mentor_application_chat_status = async (id: string, chat_status: boolean) => {
   try{
   const query: any = await client.request(
@@ -281,7 +266,6 @@ export const update_mentor_application_chat_status = async (id: string, chat_sta
     console.log("error");
   }
 }
-//TODO: implement this function
 export const insert_mentor_application_schedule =
   async (
     year: number,

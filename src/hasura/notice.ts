@@ -1,9 +1,9 @@
 import { gql } from "graphql-request";
 import { client } from "..";
-
+// These graphql statements do not actually return id, instead they return nothing.
 export const update_notice = async (id: string, title: string, content: string, files: string, notice_type: string) => {
-    const query: any = await client.request(
-        gql`
+  const query: any = await client.request(
+    gql`
         mutation UpdateNotice(
             $id: uuid!
             $title: String!
@@ -26,20 +26,20 @@ export const update_notice = async (id: string, title: string, content: string, 
         }
     }
         `,
-        {
-            id: id,
-            title: title,
-            content: content,
-            files: files,
-            notice_type: notice_type
-        }
-    );
-    return query.update_info_notice.id ?? null;
+    {
+      id: id,
+      title: title,
+      content: content,
+      files: files,
+      notice_type: notice_type
+    }
+  );
+  return query.update_info_notice?.id ?? null;
 }
 
 export const add_notice = async (title: string, content: string, files: string, notice_type: string) => {
-    const query: any = await client.request(
-        gql`
+  const query: any = await client.request(
+    gql`
         mutation AddNotice(
             $title: String!
             $content: String!
@@ -60,19 +60,19 @@ export const add_notice = async (title: string, content: string, files: string, 
         }
     }
         `,
-        {
-            title: title,
-            content: content,
-            files: files,
-            notice_type: notice_type
-        }
-    );
-    return query.insert_info_notice.id ?? null;
+    {
+      title: title,
+      content: content,
+      files: files,
+      notice_type: notice_type
+    }
+  );
+  return query.insert_info_notice?.id ?? null;
 }
 
 export const delete_notice = async (id: string) => {
-    const query: any = await client.request(
-        gql`
+  const query: any = await client.request(
+    gql`
         mutation DeleteNotice($id: uuid!) {
             delete_info_notice(where: { id: { _eq: $id } }) {
                 returning {
@@ -81,8 +81,8 @@ export const delete_notice = async (id: string) => {
             }
         }
     `,  {
-            id: id
-        }
-    );
-    return query.delete_info_notice_by_pk?.id ?? null;
+    id: id
+  }
+);
+return query.delete_info_notice_by_pk?.id ?? null;
 }

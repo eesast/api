@@ -4,7 +4,6 @@ import { client } from "..";
 import * as MentHasFunc from "../hasura/mentor";
 import * as HnrHasFunc from "../hasura/honor";
 import authenticate from "../middlewares/authenticate";
-import { StringValueNode } from "graphql";
 const router = express.Router();
 /* 查询荣誉类别和当年的荣誉申请时间段
 * @return {types: [type_name], time: {start_A, end_A, start_B, end_B}}
@@ -270,7 +269,7 @@ router.post("/mentor/insert_one", authenticate(["student"]), async (req, res) =>
 // })
 
 
-router.post("/mentor/update/status",authenticate(["teacher"]), async (req, res) => {
+router.post("/mentor/update/status",authenticate(["counselor"]), async (req, res) => {
     try {
         const id : string = req.body.applyid;
         const status : string = req.body.status;
@@ -302,7 +301,7 @@ router.post("/mentor/update/statement",authenticate(["student"]), async (req, re
         return res.status(500).send("Internal Server Error");
     }
 });
-router.post("/mentor/update/delete",authenticate(), async (req, res) => {
+router.post("/mentor/update/delete",authenticate(["student"]), async (req, res) => {
     try {
         const id : string= req.body.applyid;
         if(!id){
@@ -318,7 +317,7 @@ router.post("/mentor/update/delete",authenticate(), async (req, res) => {
     }
 });
 //ID here is the application ID
-router.post("/chat/update/status",authenticate(), async (req, res) => {
+router.post("/chat/update/status",authenticate(["counselor","teacher"]), async (req, res) => {
     try {
         const id : string = req.body.applyid;
         const status : boolean = req.body.chat_status;
