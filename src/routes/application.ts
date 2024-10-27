@@ -329,10 +329,10 @@ router.post("/chat/update/status",authenticate(["counselor","teacher"]), async (
             return res.status(455).send("Error: Application does not exist");
         }
         if(chat_status === true){
-            return res.status(200).send("true");
+            return res.status(200).json({chat_status: true});
         }
         else{
-            return res.status(200).send("false");
+            return res.status(200).json({chat_status: false});
         }
     } catch (err) {
         console.log(err)

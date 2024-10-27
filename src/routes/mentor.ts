@@ -25,7 +25,7 @@ router.post("/update/available", authenticate(["counselor", "teacher"]), async (
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
     const mentor_available = await MentHasFunc.update_mentor_info_available(uuid, available);
-    return res.status(200).send(mentor_available);
+    return res.status(200).json({mentor_available: mentor_available});
   } catch (err) {
     return res.status(500).send("Internal Server Error");
   }
