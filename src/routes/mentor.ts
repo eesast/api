@@ -34,18 +34,21 @@ router.post("/update/description", authenticate(["teacher", "counselor"]), async
   try {
     const uuid: string = req.body.uuid;
     const description: string = req.body.description;
-    const achievements: string = req.body.achievements;
+    const achievement: string = req.body.achievement;
     const background: string = req.body.background;
     const field: string = req.body.field;
     const intro: string = req.body.intro;
-    if (!uuid || !description || !achievements || !background || !field || !intro) {
+    //using partial
+    const updateFields : any = {};
+    if (description) updateFields.description = description;
+    if (achievement) updateFields.achievement = achievement;
+    if (background) updateFields.background = background;
+    if (field) updateFields.field = field;
+    if (intro) updateFields.intro = intro;
+    if (!uuid||updateFields.length === 0) {
       return res.status(422).send("422 Unprocessable Entity: Missing credentials");
     }
-    //const mentor_info = MentHasFunc.get_mentor_info(uuid);
-    //if(!mentor_info){
-    //    return res.status(404).send("404 Not Found: Mentor does not exist");
-    //}
-    const mentor_uuid: string = await MentHasFunc.update_mentor_info_description(uuid, achievements, background, field, intro);
+    const mentor_uuid: string = await MentHasFunc.update_mentor_info_description(uuid,updateFields);
     return res.status(200).send(mentor_uuid);
   } catch (err) {
     console.log(err)

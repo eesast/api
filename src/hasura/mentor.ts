@@ -163,38 +163,124 @@ export const update_mentor_info_available = async (uuid: string, available: bool
   return query.update_mentor_info_by_pk?.available ?? null;
 }
 
-export const update_mentor_info_description = async (mentor_uuid: string, achievement: string, background: string, field: string, intro: string) => {
-  const query: any = await client.request(
-    gql`
-      mutation UpdateMentorInfoDescription(
-        $mentor_uuid: uuid!
-        $achievement: String = ""
-        $background: String = ""
-        $field: String = ""
-        $intro: String = ""
-      ) {
-        update_mentor_info_by_pk(
-          pk_columns: { mentor_uuid: $mentor_uuid }
-          _set: {
-            achievement: $achievement
-            background: $background
-            field: $field
-            intro: $intro
-          }
+//export const update_mentor_info_description = async (mentor_uuid: string, achievement: string, background: string, field: string, intro: string) => {
+//  const query: any = await client.request(
+//    gql`
+//      mutation UpdateMentorInfoDescription(
+//        $mentor_uuid: uuid!
+//        $achievement: String = ""
+//        $background: String = ""
+//        $field: String = ""
+//        $intro: String = ""
+//      ) {
+//        update_mentor_info_by_pk(
+//          pk_columns: { mentor_uuid: $mentor_uuid }
+//          _set: {
+//            achievement: $achievement
+//            background: $background
+//            field: $field
+//            intro: $intro
+//          }
+//        ) {
+//          mentor_uuid
+//        }
+//      }
+//    `,
+//    {
+//      mentor_uuid: mentor_uuid,
+//      achievement: achievement,
+//      background: background,
+//      field: field,
+//      intro: intro,
+//    }
+//  );
+//  return query.update_mentor_info_by_pk?.mentor_uuid ?? null;
+//}
+
+//export const update_contest_notice: any = async (id: string, updateFields: Partial<{ title: string; content: string; files: string }>) => {
+//  const setFields: any = {};
+//  if (updateFields.title) setFields.title = updateFields.title;
+//  if (updateFields.content) setFields.content = updateFields.content;
+//  if (updateFields.files) setFields.files = updateFields.files;
+//
+//  if (Object.keys(setFields).length === 0) {
+//    console.error("At least update one feature");
+//    return undefined;
+//  }
+//
+//  const variableString = Object.keys(setFields)
+//  .map(key=>`$${key}`)
+//  .join(', ');
+//
+//  const setString = Object.keys(setFields)
+//  .map(key => `${key}: $${key}`)
+//  .join(', ');
+//
+//  const mutation = gql`
+//    mutation UpdateContestNotice($id: uuid!, ${variableString}) {
+//      update_contest_notice_by_pk(pk_columns: { id: $id }, _set: { ${setString} }) {
+//        id
+//        title
+//        content
+//        files
+//      }
+//    }
+//  `;
+//
+//  const variables:{[key:string]:any} = {
+//    id:id
+//  }
+//  if(setFields.title) variables.title = setFields.title;
+//  if(setFields.content) variables.content = setFields.content;
+//  if(setFields.files) variables.files = setFields.files;
+//
+//
+//  try {
+//    const response: any = await client.request(mutation, variables);
+//    return response.update_contest_notice_by_pk?.id ?? undefined;
+//  } catch (error) {
+//    console.error('Error updating contest notice', error);
+//    throw error;
+//  }
+//};
+export const update_mentor_info_description = async (mentor_uuid: string,updateFields: Partial<{achievement: string, background: string, field: string, intro: string}>) => {
+  if(Object.keys(updateFields).length === 0) return null;
+  const setFields: any = {};
+  if(updateFields.achievement) setFields.achievement = updateFields.achievement;
+  if(updateFields.background) setFields.background = updateFields.background;
+  if(updateFields.field) setFields.field = updateFields.field;
+  if(updateFields.intro) setFields.intro = updateFields.intro;
+  const variablesString = Object.keys(setFields)
+  .map(key => `$${key} : String`)
+  .join('\n');
+  const setString = Object.keys(setFields)
+  .map(key => `${key}: $${key}`)
+  .join('\n');
+  const mutation = gql`
+    mutation UpdateMentorInfoDescription($mentor_uuid: uuid!
+       ${variablesString}) {
+      update_mentor_info_by_pk(pk_columns: {mentor_uuid: $mentor_uuid }
+        _set: { ${setString} }
         ) {
-          mentor_uuid
-        }
+        mentor_uuid
       }
-    `,
-    {
-      mentor_uuid: mentor_uuid,
-      achievement: achievement,
-      background: background,
-      field: field,
-      intro: intro,
     }
-  );
-  return query.update_mentor_info_by_pk?.mentor_uuid ?? null;
+  `;
+  console.log(mutation);
+  const variables: {[key: string]: any} = {
+    mentor_uuid: mentor_uuid,
+    achievement: updateFields.achievement,
+    background: updateFields.background,
+    field: updateFields.field,
+    intro: updateFields.intro
+  };
+  try {
+    const response: any = await client.request(mutation, variables);
+    return response.update_mentor_info_by_pk?.mentor_uuid ?? null;
+  } catch (error) {
+    console.error('Error updating mentor info', error);
+    throw error;
+  }
 }
 
 export const update_mentor_application_status = async (id: string, status: string) => {
