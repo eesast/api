@@ -321,11 +321,11 @@ router.post("/chat/update/status",authenticate(["counselor","teacher"]), async (
     try {
         const id : string = req.body.applyid;
         const status : boolean = req.body.chat_status;
-        if(!id || status === undefined){
+        if(!id || status === undefined || status === null){
             return res.status(456).send("Error: Invalid parameters provided");
         }
         const chat_status = await MentHasFunc.update_mentor_application_chat_status(id, status);
-        if(chat_status === null){
+        if(chat_status === null || chat_status === undefined){
             return res.status(455).send("Error: Application does not exist");
         }
         if(chat_status === true){
