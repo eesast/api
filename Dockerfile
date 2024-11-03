@@ -20,7 +20,7 @@ RUN yarn build
 
 # Runner stage
 
-FROM node:22.11.0-alpine
+FROM node:22.3.0-alpine
 ENV NODE_ENV=production
 WORKDIR /home/node/app
 
