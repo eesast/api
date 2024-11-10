@@ -12,5 +12,6 @@
   "rangeStrategy": "pin",
   "separateMajorMinor": true,
   "separateMinorPatch": true,
-  "separateMultipleMajor": true
+  "separateMultipleMajor": true,
+  "enabled": false
 }
