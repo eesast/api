@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { URLSearchParams } from "url";
-import fetch from "node-fetch";
+// import fetch from "node-fetch";
 
 const recaptcha = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.body.recaptcha) {
