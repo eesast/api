@@ -2,9 +2,9 @@ name: deploy
 
 on:
   push:
-    branches: [master]
+    branches: [ master ]
   pull_request:
-    branches: [master]
+    branches: [ master ]
 
 jobs:
   test:
@@ -43,7 +43,7 @@ jobs:
     needs: test
 
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event.repository.fork == false && github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
