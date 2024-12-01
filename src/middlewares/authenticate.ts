@@ -18,6 +18,19 @@ export interface JwtVerifyPayload {
   phone: string;
   code: string; // hash加密后的验证码
 }
+export interface IRegister {
+  role: string;
+  verificationEmailCode?: string;
+  verificationEmailToken?: string;
+  verificationPhoneCode?: string;
+  verificationPhoneToken?: string;
+  studentID?: string;
+  name: string;
+  class_?: string;
+  depart?: string;
+  password: string;
+  username?: string;
+}
 export interface UserInfo {
   uuid: string;
   role: string;

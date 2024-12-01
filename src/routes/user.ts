@@ -4,8 +4,8 @@ import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { sendEmail } from "../helpers/email";
 import { verifyEmailTemplate } from "../helpers/htmlTemplates";
-import authenticate, { JwtUserPayload, JwtVerifyPayload } from "../middlewares/authenticate";
-import { validateEmail, validatePassword } from "../helpers/validate";
+import authenticate, { JwtUserPayload, JwtVerifyPayload, IRegister } from "../middlewares/authenticate";
+import * as validator from "../helpers/validate";
 import { client } from "..";
 import { sendMessageVerifyCode } from "../helpers/short_message";
 
@@ -209,7 +209,229 @@ router.post("/verify",async(req,res) =>{
       console.error(err);
       return res.status(500).send(err);
   }
-})
+});
+
+router.post("/register-new", async(req, res) => {
+  try {
+    const RI: IRegister = req.body;
+    console.log(RI);
+    // 所有角色均需填写角色、姓名、密码
+    if (!RI.role || !RI.name || !RI.password) {
+      return res.status(422).send("422 Unprocessable Entity");
+    }
+    // 所有角色均需同时验证邮箱和手机
+    if (!RI.verificationEmailCode || !RI.verificationEmailToken || !RI.verificationPhoneCode || !RI.verificationPhoneToken) {
+      return res.status(422).send("422 Unprocessable Entity");
+    }
+    // 角色只能是 student, teacher, guest
+    if (!['student', 'teacher', 'guest'].includes(RI.role)) {
+      return res.status(422).send("422 Unprocessable Entity");
+    }
+    // 学生需要填写学号、院系、班级
+    if (RI.role === "student") {
+      if (!RI.studentID || !RI.depart || !RI.class_) {
+        return res.status(422).send("422 Unprocessable Entity");
+      }
+    }
+    // 教师需要填写院系
+    else if (RI.role === "teacher") {
+      if (!RI.depart) {
+        return res.status(422).send("422 Unprocessable Entity");
+      }
+    }
+    // 检查邮箱验证码并获取邮箱
+    const emailDecoded: JwtVerifyPayload = jwt.verify(RI.verificationEmailToken, process.env.SECRET!) as JwtVerifyPayload;
+    if (!emailDecoded.email) {
+      return res.status(422).send("422 Unprocessable Entity");
+    }
+    const validEmail = await bcrypt.compare(RI.verificationEmailCode, emailDecoded.code);
+    if (!validEmail) {
+      return res.status(401).send("401 Unauthorized: Verification code does not match");
+    }
+    // 检查手机验证码并获取手机号
+     const phoneDecoded: JwtVerifyPayload = jwt.verify(RI.verificationPhoneToken, process.env.SECRET!) as JwtVerifyPayload;
+      if (!phoneDecoded.phone) {
+        return res.status(422).send("422 Unprocessable Entity");
+      }
+      const validPhone = await bcrypt.compare(RI.verificationPhoneCode, phoneDecoded.code);
+      if (!validPhone) {
+        return res.status(401).send("401 Unauthorized: Verification code does not match");
+      }
+    // 检查数据是否符合规范
+    if (RI.role === "student") {
+      if (!validator.__ValidateStudentEmail(emailDecoded.email)) {
+        return res.status(400).send("400 Bad Request: Invalid studentID format");
+      }
+      if (!validator.__ValidateStudentID(RI.studentID as string)) {
+        return res.status(400).send("400 Bad Request: Invalid studentID format");
+      }
+      if (!validator.__ValidateClass(RI.class_ as string)) {
+        return res.status(400).send("400 Bad Request: Invalid class format");
+      }
+    } else if (RI.role == "teacher") {
+      if (!validator.__ValidateTeacherEmail(emailDecoded.email)) {
+        return res.status(400).send("400 Bad Request: Invalid teacher email format");
+      }
+    } else {
+      if (!validator.__ValidateEmail(emailDecoded.email)) {
+        return res.status(400).send("400 Bad Request: Invalid email format");
+      }
+    }
+    if (!validator.__ValidatePhone(phoneDecoded.phone)) {
+      return res.status(400).send("400 Bad Request: Invalid phone format");
+    }
+    if (!validator.__ValidateName(RI.name)) {
+      return res.status(400).send("400 Bad Request: Invalid name format");
+    }
+
+    // 检查是否重复注册
+    const emailExist = await validator.__ValidateEmailRegistered(emailDecoded.email);
+    if (emailExist) {
+      return res.status(409).send("409 Conflict: Email already exists");
+    }
+    const phoneExist = await validator.__ValidatePhoneRegistered(phoneDecoded.phone);
+    if (phoneExist) {
+      return res.status(409).send("409 Conflict: Phone already exists");
+    }
+    if (RI.role === "student") {
+      const studentIDExist = await validator.__ValidateStudentIDRegistered(RI.studentID as string);
+      if (studentIDExist) {
+        return res.status(409).send("409 Conflict: StudentID already exists");
+      }
+    }
+
+    // 加密密码
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(RI.password, saltRounds);
+
+    // 插入新用户
+    let userInsert: any;
+    if (RI.role === "student") {
+      userInsert = await client.request(
+        gql`
+          mutation MyMutation(
+            $class: String,
+            $department: String,
+            $email: String,
+            $password: String,
+            $phone: String,
+            $realname: String,
+            $role: String,
+            $student_no: String,
+            $tsinghua_email: String
+          ) {
+            insert_users_one(object: {
+              class: $class,
+              department: $department,
+              email: $email,
+              password: $password,
+              phone: $phone,
+              realname: $realname,
+              role: $role,
+              student_no: $student_no,
+              tsinghua_email: $tsinghua_email
+            }) {
+              uuid
+            }
+          }
+        `,
+        {
+          class: RI.class_,
+          department: RI.depart,
+          email: emailDecoded.email,
+          password: password_hash,
+          phone: phoneDecoded.phone,
+          realname: RI.name,
+          role: "student",
+          student_no: RI.studentID,
+          tsinghua_email: emailDecoded.email
+        }
+      );
+    } else if (RI.role === "teacher") {
+      userInsert = await client.request(
+        gql`
+          mutation MyMutation(
+            $department: String,
+            $email: String,
+            $password: String,
+            $phone: String,
+            $realname: String,
+            $role: String,
+            $tsinghua_email: String
+          ) {
+            insert_users_one(object: {
+              department: $department,
+              email: $email,
+              password: $password,
+              phone: $phone,
+              realname: $realname,
+              role: $role,
+              tsinghua_email: $tsinghua_email
+            }) {
+              uuid
+            }
+          }
+        `,
+        {
+          department: RI.depart,
+          email: emailDecoded.email,
+          password: password_hash,
+          phone: phoneDecoded.phone,
+          realname: RI.name,
+          role: "user",
+          tsinghua_email: emailDecoded.email
+        }
+      );
+    } else {
+      userInsert = await client.request(
+        gql`
+          mutation MyMutation(
+            $email: String,
+            $password: String,
+            $phone: String,
+            $realname: String,
+            $role: String
+          ) {
+            insert_users_one(object: {
+              email: $email,
+              password: $password,
+              phone: $phone,
+              realname: $realname,
+              role: $role
+            }) {
+              uuid
+            }
+          }
+        `,
+        {
+          email: emailDecoded.email,
+          password: password_hash,
+          phone: phoneDecoded.phone,
+          realname: RI.name,
+          role: "user"
+        }
+      );
+    }
+
+    // 返回 token
+    const payload: JwtUserPayload = {
+      uuid: userInsert.insert_users_one.uuid,
+      role: "user",
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": ["user"],
+        "x-hasura-default-role": "user",
+        "x-hasura-user-id": userInsert.insert_users_one.uuid,
+      },
+    };
+    const token = jwt.sign(payload, process.env.SECRET!, {
+      expiresIn: "24h",
+    });
+    return res.status(200).json({ token });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send(err);
+  }
+});
 
 
 router.post("/register", async(req, res) => {
@@ -302,7 +524,7 @@ router.post("/change-password", async(req, res) => {
   if (!password || !verificationCode || !verificationToken) {
     return res.status(422).send("422 Unprocessable Entity: Missing credentials");
   }
-  if (!validatePassword(password)) {
+  if (!validator.validatePassword(password)) {
     return res.status(400).send("400 Bad Request: Invalid password format");
   }
   try {
@@ -377,7 +599,7 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
         return res.status(422).send("422 Unprocessable Entity: Missing email");
       }
       // 验证邮箱为清华邮箱
-      if (!validateEmail(decoded.email, true)) {
+      if (!validator.validateEmail(decoded.email, true)) {
         return res.status(421).send("421 Authority Limited: Invalid Tsinghua email");
       }
       // 更新tsinghua_email和role
