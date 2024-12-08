@@ -19,7 +19,7 @@
     "bcrypt": "5.1.1",
     "cors": "2.8.5",
     "cos-nodejs-sdk-v5": "2.14.6",
-    "debug": "4.3.7",
+    "debug": "4.4.0",
     "dockerode": "4.0.2",
     "dotenv": "16.4.7",
     "express": "4.21.2",
