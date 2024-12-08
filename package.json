@@ -57,7 +57,7 @@
     "@types/js-yaml": "4.0.9",
     "@types/jsonwebtoken": "9.0.7",
     "@types/morgan": "1.9.9",
-    "@types/nodemailer": "6.4.16",
+    "@types/nodemailer": "6.4.17",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
     "cross-env": "7.0.3",
