@@ -152,4 +152,25 @@ router.delete("/delete_course_comment_likes", authenticate(["student"]), async (
     }
 });
 
+
+// 更新课程信息
+
+// 更新课程
+
+// 更新课程评分
+
+
+// 添加课程信息
+
+// 添加课程评分
+
+// 添加课程
+
+
+// 删除课程信息
+
+// 删除课程
+
+// 删除课程评分
+
 export default router;
