@@ -1,16 +1,27 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
-import * as ContHasFunc from "../hasura/contest"
+import * as ContHasFunc from "../hasura/contest";
 
 const router = express.Router();
 
 // used in codepage.tsx
 router.post("/add_team_code", authenticate(["student"]), async (req, res) => {
     try {
-        const { team_id, code_name, language, compile_status } = req.body;
+        const { team_id, code_name, language, compile_status, user_id, contest_id } = req.body;
         if (!team_id || !code_name || !language || !compile_status) {
             return res.status(400).json({ error: "400 Bad Request: Missing required parameters" });
         }
+
+        // 获取团队信息
+        const teamInfo = await ContHasFunc.get_team_from_user(user_id, contest_id);
+        if (!teamInfo) {
+            return res.status(404).json({ error: "404 Not Found: Team not found" });
+        }
+        // 判断是否是团队成员
+        if(teamInfo.team_id !== team_id){
+            return res.status(403).json({ error: "403 Forbidden: You are not in this team" });
+        }
+        
         const code_id = await ContHasFunc.add_team_code(team_id, code_name, language, compile_status);
         res.status(200).json({ code_id:code_id,message:"Code added successfully" });
     } catch (err:any) {

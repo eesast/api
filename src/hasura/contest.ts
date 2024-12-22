@@ -1,6 +1,14 @@
 import { gql } from "graphql-request";
 import { client } from "..";
 
+
+export interface TeamInfo {
+  team_id: string;
+  team_name: string;
+  player: string[];
+  team_leader_uuid: string;
+}
+
 /**
   ============================================================================
   ============================ QUERY FUNCTIONS ===============================
