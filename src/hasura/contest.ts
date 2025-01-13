@@ -784,12 +784,12 @@ export const insert_room_teams: any = async (room_id: string, team_ids: Array<st
 }
 
 /**
- * 
- * @param {string} contest_id 
+ *
+ * @param {string} contest_id
  * @param {string} name
- * @param {string} filename 
- * @param {string} team_labels 
- * @returns {Promise<string>} 
+ * @param {string} filename
+ * @param {string} team_labels
+ * @returns {Promise<string>}
  */
 export const add_contest_map:any = async(contest_id:string, name:string, filename:string, team_labels:string) => {
   const add_contest_map:any = await client.request(
@@ -822,12 +822,12 @@ export const add_contest_map:any = async(contest_id:string, name:string, filenam
 }
 
 /**
- * 
- * @param {string} title 
- * @param {string} content 
- * @param {string} files 
- * @param {string} contest_id 
- * @returns {Promise<string>} 
+ *
+ * @param {string} title
+ * @param {string} content
+ * @param {string} files
+ * @param {string} contest_id
+ * @returns {Promise<string>}
  */
 export const add_contest_notice:any = async(title:string,content:string,files:string,contest_id:string) => {
   const add_contest_notice:any = await client.request(
@@ -861,12 +861,12 @@ export const add_contest_notice:any = async(title:string,content:string,files:st
 }
 
 /**
- * 
+ *
  * @param {string} contest_id
  * @param {string} team_label
- * @param {string} player_label 
- * @param {string} roles_available 
- * @returns {Promise<string>} 
+ * @param {string} player_label
+ * @param {string} roles_available
+ * @returns {Promise<string>}
  */
 export const add_contest_player:any = async(contest_id:string,team_label:string,player_label:string,roles_available:string) =>{
   const add_contest_player:any = await client.request(
@@ -899,9 +899,9 @@ export const add_contest_player:any = async(contest_id:string,team_label:string,
 }
 
 /**
- *          
+ *
  * @param {string} contest_id         ID
- * @param {string} name             
+ * @param {string} name
  * @param {string} map_id         ID
  * @returns {Promise<string>}     ID
  */
@@ -925,11 +925,11 @@ export const add_contest_round:any = async(contest_id:string,name:string,map_id:
 }
 
 /**
- *       
+ *
  * @param {string} team_id       ID
- * @param {string} code_name            
- * @param {string} language            
- * @param {string} compile_status         
+ * @param {string} code_name
+ * @param {string} language
+ * @param {string} compile_status
  * @returns {Promise<string>}    ID
  */
 export const add_team_code:any = async(team_id:string,code_name:string,language:string,compile_status:string) =>{
@@ -962,10 +962,10 @@ export const add_team_code:any = async(team_id:string,code_name:string,language:
   }
 
 /**
- *       
+ *
  * @param {string} team_id       ID
- * @param {string} player         
- * @returns {Promise<string>}    
+ * @param {string} player
+ * @returns {Promise<string>}
  */
 export const add_team_player:any = async(team_id:string,player:string) =>{
   const add_team_player:any = await client.request(
@@ -983,14 +983,14 @@ export const add_team_player:any = async(team_id:string,player:string) =>{
     player:player
   });
   return add_team_player.insert_contest_team_player_one?.player?? undefined;
-} 
+}
 
 /**
- *    
- * @param {string} team_name          
- * @param {string} team_intro          
+ *
+ * @param {string} team_name
+ * @param {string} team_intro
  * @param {string} team_leader_uuid         UUID
- * @param {string} invited_code         
+ * @param {string} invited_code
  * @param {string} contest_id         ID
  * @returns {Promise<string>}  ID
  */
@@ -1028,7 +1028,7 @@ export const add_team:any = async(team_name:string,team_intro:string,team_leader
   }
 
 /**
- *       
+ *
  * @param {string} team_id       ID
  * @param {string} user_uuid         UUID
  * @returns {Promise<string>}  ID
@@ -1052,13 +1052,13 @@ export const add_team_member:any = async(team_id:string,user_uuid:string) =>{
   }
 
 /**
- *         
+ *
  * @param {uuid} contest_id         ID
- * @param {string} event         
- * @param {timestamptz} start            
- * @param {timestamptz} end            
- * @param {string} description         
- * @returns {Promise<string>}    
+ * @param {string} event
+ * @param {timestamptz} start
+ * @param {timestamptz} end
+ * @param {string} description
+ * @returns {Promise<string>}
  */
 export const add_contest_time:any = async(contest_id:string,event:string,start:Date,end:Date,description:string) =>{
   const add_contest_time:any = await client.request(
@@ -1271,7 +1271,7 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
 
 /**
  * Updates the contest information.
- * 
+ *
  * @param {string} contest_id      The ID of the contest to update.
  * @param {string} fullname      The new full name of the contest.
  * @param {string} description      The new description of the contest.
@@ -1280,7 +1280,7 @@ export const update_room_created_at: any = async (room_id: string, created_at: s
  * @returns {string} The ID of the updated contest.
  */
 export const update_contest_info:any = async(contest_id: string, updateFields:Partial<{fullname: string; description: string; start_date: Date;end_date: Date}>) => {
-  
+
   const setFields:{[key:string]:any} = {};
   if (updateFields.fullname) setFields.fullname = updateFields.fullname;
   if (updateFields.description) setFields.description = updateFields.description;
@@ -1291,7 +1291,7 @@ export const update_contest_info:any = async(contest_id: string, updateFields:Pa
     console.error("At least update one feature");
     return undefined;
   }
-  
+
   const setString = Object.keys(setFields)
   .map(key => `${key}: $${key}`)
   .join(', ');
@@ -1313,7 +1313,7 @@ export const update_contest_info:any = async(contest_id: string, updateFields:Pa
   `;
 
   const variables:{[key:string]:any} = {
-    contest_id:contest_id  
+    contest_id:contest_id
   }
   if(setFields.fullname) variables.fullname = setFields.fullname;
   if(setFields.description) variables.description = setFields.description;
@@ -1331,7 +1331,7 @@ export const update_contest_info:any = async(contest_id: string, updateFields:Pa
 
 /**
  * Updates the contest switches.
- * 
+ *
  * @param {string} contest_id      The ID of the contest to update.
  * @param {boolean} team_switch      The new state of the team switch.
  * @param {boolean} code_upload_switch      The new state of the code upload switch.
@@ -1384,7 +1384,7 @@ export const update_contest_switch:any = async(contest_id: string, team_switch: 
 
 /**
  * Updates the contest map.
- * 
+ *
  * @param {string} map_id      The ID of the map to update.
  * @param {string} name      The new name of the map.
  * @param {string} filename      The new filename of the map.
@@ -1435,7 +1435,7 @@ export const update_contest_map:any = async(map_id:string, updateFields: Partial
     if(setFields.name) variables.name = setFields.name;
     if(setFields.filename) variables.filename = setFields.filename;
     if(setFields.team_labels) variables.team_labels = setFields.team_labels;
-    
+
     try {
       const response:any = await client.request(mutation,variables);
       return response.update_contest_map_by_pk?.map_id?? undefined;
@@ -1447,7 +1447,7 @@ export const update_contest_map:any = async(map_id:string, updateFields: Partial
 
 /**
  * Updates the contest notice.
- * 
+ *
  * @param {string} id      The ID of the notice to update.
  * @param {string} title     Optional The new title of the notice.
  * @param {string} content    Optional  The new content of the notice.
@@ -1503,7 +1503,7 @@ export const update_contest_notice: any = async (id: string, updateFields: Parti
 
 /**
  * Updates the contest player.
- * 
+ *
  * @param  {string} contest_id      The ID of the contest to update.
  * @param {string} team_label      The new team label of the player.
  * @param {string} player_label   Optional   The new player label.
@@ -1556,7 +1556,7 @@ export const update_contest_player: any = async (contest_id: string, player_labe
 
 /**
  * Updates the contest round name.
- * 
+ *
  * @param {string} round_id      The ID of the round to update.
  * @param {string} name      The new name of the round.
  * @returns {string} The ID of the updated round.
@@ -1584,7 +1584,7 @@ export const update_contest_round_name:any = async(round_id:string,name:string) 
 
 /**
  * Updates the team code name.
- * 
+ *
  * @param {string} code_id      The ID of the code to update.
  * @param {string} code_name      The new name of the code.
  * @returns {string} The ID of the updated code.
@@ -1670,11 +1670,11 @@ export const update_team:any = async(team_id:string,updateFields:Partial<{ team_
   const setString = Object.keys(setFields)
   .map(key => `${key}: $${key}`)
   .join(',')
-  
+
   const mutation =  gql`
     mutation UpdateTeam(
       $team_id: uuid!,
-      ${variableString}  
+      ${variableString}
     ) {
       update_contest_team_by_pk(
         pk_columns: { team_id: $team_id }
@@ -1822,7 +1822,7 @@ export const delete_contest:any = async (contest_id: string) => {
       mutation delete_contest($contest_id: uuid!) {
         delete_contest_by_pk(id: $contest_id) {
           id
-        } 
+        }
       }
     `,
     {
@@ -1952,7 +1952,7 @@ export const delete_team_code:any = async(code_id:string)=>{
       code_id: code_id
 
     });
-    return delete_team_code.delete_contest_team_code_by_pk?.code_id?? undefined; 
+    return delete_team_code.delete_contest_team_code_by_pk?.code_id?? undefined;
 }
 
 

@@ -167,3 +167,36 @@ export async function initCOS() {
       return false;
     }
   }
+
+  export const listFile = (prefix: string, cos: COS, config: any): Promise<COS.CosObject[]> => {
+    return new Promise<COS.CosObject[]>((resolve, reject) => {
+      cos.getBucket(
+        {
+          Bucket: config.bucket,
+          Region: config.region,
+          Prefix: prefix,
+        },
+        (err, data) => {
+          if (err || !data) return reject(err);
+          return resolve(data.Contents);
+        },
+      );
+    });
+  };
+
+
+  export const getAvatarUrl = (key: string, cos: COS, config: any): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      cos.getObjectUrl(
+        {
+          Bucket: config.bucket,
+          Region: config.region,
+          Key: key,
+        },
+        (err, data) => {
+          if (err) return reject(err);
+          resolve(data.Url);
+        },
+      );
+    });
+  };
