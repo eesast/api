@@ -19,6 +19,8 @@ import notificationRouter from "./routes/notification";
 import chatRoute from "./routes/chat";
 import mentorRoute from "./routes/mentor";
 import noticeRoute from "./routes/notice";
+import courseRouter from "./routes/course";
+
 const app = express();
 
 const whitelist =
@@ -60,4 +62,5 @@ app.use("/notification", notificationRouter);
 app.use("/chat", chatRoute);
 app.use("/mentor", mentorRoute);
 app.use("/notice", noticeRoute);
+app.use("/course", courseRouter);
 export default app;
