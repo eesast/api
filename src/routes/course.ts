@@ -61,7 +61,7 @@ router.get("/comments/:course_uuid", authenticate(["student", "counselor"]), asy
     const cos = await COS.initCOS();
     const config = await COS.getConfig();
 
-    let course_comments: Comment[] = [];
+    const course_comments: Comment[] = [];
 
     const promises = course_comments_filtered.map(async (comment: any) => {
       const stars = await CrsHasFunc.get_course_comment_stars(comment.uuid);
@@ -181,6 +181,18 @@ router.post("/comments/add", authenticate(["student", "counselor"]), async (req,
       display
     );
 
+
+    const cos = await COS.initCOS();
+    const config = await COS.getConfig();
+
+    const user_files = await COS.listFile(`avatar/${user_uuid}/`, cos, config);
+    const image_files = user_files.filter((file) => /\.(jpe?g|png)$/i.test(file.Key));
+    let avatar_url = `https://api.dicebear.com/9.x/thumbs/svg?scale=80&backgroundType=gradientLinear&seed=${user_uuid}`;
+    if (image_files.length > 0) {
+      const firstImage = image_files[0];
+      avatar_url = await COS.getAvatarUrl(firstImage.Key, cos, config);
+    }
+
     const comment_detail: Comment = {
       comment: comment,
       created_at: comment_info.created_at,
@@ -194,7 +206,8 @@ router.post("/comments/add", authenticate(["student", "counselor"]), async (req,
       likes: 0,
       stared: false,
       liked: false,
-      replies: []
+      replies: [],
+      avatar_url: avatar_url
     };
 
     res.status(200).json({ comment: comment_detail });
