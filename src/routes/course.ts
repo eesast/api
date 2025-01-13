@@ -1,6 +1,7 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
 import * as CrsHasFunc from "../hasura/course";
+import * as COS from "../helpers/cos";
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ interface Comment {
   stared: boolean;
   liked: boolean;
   replies: string[];
+  avatar_url: string;
 }
 
 /*
@@ -56,6 +58,9 @@ router.get("/comments/:course_uuid", authenticate(["student", "counselor"]), asy
 
     const course_comments_filtered = course_comments_raw.filter((comment: any) => !comment.deleted && (is_manager || comment.display || comment.user_uuid === current_user_uuid));
 
+    const cos = await COS.initCOS();
+    const config = await COS.getConfig();
+
     let course_comments: Comment[] = [];
 
     const promises = course_comments_filtered.map(async (comment: any) => {
@@ -64,6 +69,14 @@ router.get("/comments/:course_uuid", authenticate(["student", "counselor"]), asy
       const stared = comment_stared.includes(comment.uuid);
       const liked = comment_liked.includes(comment.uuid);
       const replies = course_comments_filtered.filter((reply: any) => reply.parent_uuid === comment.uuid).map((reply: any) => reply.uuid);
+
+      const user_files = await COS.listFile(`avatar/${comment.user_uuid}/`, cos, config);
+      const image_files = user_files.filter((file) => /\.(jpe?g|png)$/i.test(file.Key));
+      let avatar_url = `https://api.dicebear.com/9.x/thumbs/svg?scale=80&backgroundType=gradientLinear&seed=${comment.user_uuid}`;
+      if (image_files.length > 0) {
+        const firstImage = image_files[0];
+        avatar_url = await COS.getAvatarUrl(firstImage.Key, cos, config);
+      }
 
       return {
         comment: comment.comment,
@@ -79,6 +92,7 @@ router.get("/comments/:course_uuid", authenticate(["student", "counselor"]), asy
         stared: stared,
         liked: liked,
         replies: replies,
+        avatar_url: avatar_url
       };
     });
 
