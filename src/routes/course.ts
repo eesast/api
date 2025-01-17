@@ -44,7 +44,7 @@ router.get("/is_manager", authenticate([]), async (req, res) => {
   }
 });
 
-router.get("/comments/:course_uuid", authenticate(["student", "counselor"]), async (req, res) => {
+router.get("/comments/:course_uuid", authenticate(["student", "teacher", "counselor"]), async (req, res) => {
   try {
     const current_user_uuid = req.auth.user.uuid;
     const course_uuid = req.params.course_uuid;
@@ -165,7 +165,7 @@ router.post("/comments/display", authenticate(), async (req, res) => {
 });
 
 
-router.post("/comments/add", authenticate(["student", "counselor"]), async (req, res) => {
+router.post("/comments/add", authenticate(["student", "teacher", "counselor"]), async (req, res) => {
   try {
     const comment: string = req.body.comment;
     const user_uuid: string = req.auth.user.uuid;
@@ -221,7 +221,7 @@ router.post("/comments/add", authenticate(["student", "counselor"]), async (req,
   }
 });
 
-router.post("/comments/update", authenticate(["student", "counselor"]), async (req, res) => {
+router.post("/comments/update", authenticate(["student", "teacher", "counselor"]), async (req, res) => {
   try {
     const user_uuid = req.auth.user.uuid;
     const comment_uuid = req.body.comment_uuid;
@@ -256,7 +256,7 @@ router.post("/comments/update", authenticate(["student", "counselor"]), async (r
 });
 
 
-router.post("/comments/delete", authenticate(["student", "counselor"]), async (req, res) => {
+router.post("/comments/delete", authenticate(["student", "teacher", "counselor"]), async (req, res) => {
   try {
     const user_uuid = req.auth.user.uuid;
     const comment_uuid = req.body.comment_uuid;
@@ -285,7 +285,7 @@ router.post("/comments/delete", authenticate(["student", "counselor"]), async (r
 
 
 
-router.post("/comments/stars/toggle", authenticate(["student", "counselor"]), async (req, res) => {
+router.post("/comments/stars/toggle", authenticate(["student", "teacher", "counselor"]), async (req, res) => {
   try {
     const comment_uuid: string = req.body.comment_uuid;
     const user_uuid: string = req.auth.user.uuid;
@@ -309,7 +309,7 @@ router.post("/comments/stars/toggle", authenticate(["student", "counselor"]), as
 });
 
 
-router.post("/comments/likes/toggle", authenticate(["student", "counselor"]), async (req, res) => {
+router.post("/comments/likes/toggle", authenticate(["student", "teacher", "counselor"]), async (req, res) => {
   try {
     const comment_uuid: string = req.body.comment_uuid;
     const user_uuid: string = req.auth.user.uuid;
