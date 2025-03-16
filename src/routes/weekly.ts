@@ -1,81 +1,265 @@
 import express from "express";
 import { gql } from "graphql-request";
 import { client } from "..";
-
+import axios from "axios";
+import * as utils from "../helpers/utils";
+import * as fs from "fs/promises";
+import * as uuid from "../helpers/uuid";
+import { get_newest_weekly, get_newest_weekly_id, add_weekly_list, WeeklyPost } from "../hasura/share"
+import { finished } from "stream";
 const router = express.Router();
+const weixinSpider = async (headers: any, params: any, filename: string) => {
+  const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
+  let fcontrol = 0;
+  try {
+    console.log("Spider Start")
+    const new_weekly_list: any[] = [];
+    let i: number = 0;
+    outerloop:
+    while (true) {
+      params["begin"] = (i * 5).toString();
+      i++;
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 9000 + 1000)); // 等待 1 到 10 秒之间的随机时间
+      const response = await axios.get(url, {
+        headers,
+        params,
+        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
+      });
+      const data = response.data;
+      if (data.base_resp.ret === 200013) {
+        console.log(`Frequency control, stop at ${params["begin"]}`);
+        fcontrol = 1;
+        break;
+      }
+      if (!data.app_msg_list || data.app_msg_list.length === 0) {
+        console.log('All article parsed');
+        break;
+      }
+      const newest_weekly_date = await get_newest_weekly();
+      const newest_weekly_id = await get_newest_weekly_id();
+      for (const item of data.app_msg_list) {
+        if (new Date(item.create_time * 1000) < newest_weekly_date) break outerloop;
+        if (item.title.includes("SAST Weekly")) {
+          let new_item: WeeklyPost = {
+            title: item.title,
+            url: item.link,
+            date: new Date(item.create_time * 1000),
+            id: newest_weekly_id + new_weekly_list.length + 1
+          }
+          new_weekly_list.push(new_item);
+        }
+      }
+    }
+    //sort new_weekly_list by date
+    new_weekly_list.sort((a, b) => {
+      return a.date.getTime() - b.date.getTime();
+    });
+    if (new_weekly_list.length > 0) {
+      await add_weekly_list(new_weekly_list);
+    }
+    //using uuid as the files name
+    const base_directory = await utils.get_base_directory();
+    if (!await utils.checkPathExists(`${base_directory}/weixinSpiderStatus`)) {
+      await fs.mkdir(`${base_directory}/weixinSpiderStatus`);
+    }
+    await fs.writeFile(`${base_directory}/weixinSpiderStatus/${filename}`, "");
+    console.log("Spider finished");
+  }
+  catch (error) {
+    console.error('Error fetching articles:', error);
+  }
+}
+
+router.post("/check", async (req, res) => {
+  try {
+    const filename: string = req.body.filename;
+    const base_directory = await utils.get_base_directory();
+    if (await utils.checkPathExists(`${base_directory}/weixinSpiderStatus/${filename}`)) {
+      return res.status(200).json({ finished: true });
+    } else {
+      return res.status(200).json({ finished: false });
+    }
+  }
+  catch (err) {
+    return res.status(500).send("500 Internal Server Error: " + err);
+  }
+})
+
+router.post("/renew", async (req, res) => {
+
+  try {
+    // 设置 headers
+    const headers = {
+      "Cookie": req.body.cookie,
+      "User-Agent": req.body.useragent
+    };
+    const params = {
+      "token": req.body.token,
+      "lang": "zh_CN",
+      "f": "json",
+      "ajax": "1",
+      "action": "list_ex",
+      "begin": "1",
+      "count": "5",
+      "query": "",
+      "fakeid": "MzA5MjA5NjIxNg%3D%3D",
+      "type": "9",
+    }
+    const filename = uuid.uuid();
+    weixinSpider(headers, params, filename);
+    return res.status(200).json({ "filename": filename });
+  } catch (err) {
+    return res.status(500).send("500 Internal Server Error: " + err);
+  }
+  //// 爬虫初始参数
+  //const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
+  //let begin = "0";
+  //const params = {
+  //    "token": req.body.token,
+  //    "lang": "zh_CN",
+  //    "f": "json",
+  //    "ajax": "1",
+  //    "action": "list_ex",
+  //    "begin": "1",
+  //    "count": "5",
+  //    "query": "",
+  //    "fakeid": "MzA5MjA5NjIxNg%3D%3D",
+  //    "type": "9",
+  //};
+  //// 用于频率控制
+  //let fcontrol = 0;
+  //let j = 0;
+  //  try {
+  //    console.log("开始爬虫")
+
+  //      const app_msg_list: any[] = [];
+  //      let i = Math.floor(app_msg_list.length / 5);
+
+  //      while (true) {
+  //          params["begin"] = (i * 5).toString();
+  //          await new Promise(resolve => setTimeout(resolve, Math.random() * 9000 + 1000)); // 等待 1 到 10 秒之间的随机时间
+  //          try {
+  //              const response = await axios.get(url, {
+  //                  headers,
+  //                  params,
+  //                  httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
+  //              });
+  //              const data = response.data;
+
+  //              if (data.base_resp.ret === 200013) {
+  //                  console.log(`Frequency control, stop at ${params["begin"]}`);
+  //                  fcontrol = 1;
+  //                  break;
+  //              }
+
+  //              if (!data.app_msg_list || data.app_msg_list.length === 0) {
+  //                  console.log('All article parsed');
+  //                  break;
+  //              }
+
+  //              app_msg_list.push(...data.app_msg_list);
+
+  //              const result = data.app_msg_list.map((item: any) => ({
+  //                  title: item.title,
+  //                  link: item.link
+  //              }));
+  //              //todo: 获取数据库最新一条的id
+  //              for (const { title, link } of result) {
+  //                  if (title.includes("SAST Weekly")) {
+  //                      //todo：插入数据库
+  //                    }
+  //                  }
+  //                  j++;
+  //              } catch (error) {
+  //              console.error('Error fetching articles:', error);
+  //          }
+  //      }
+
+  //      if (!fcontrol) {
+  //        return res.status(300).send("frequency control");
+  //      } else {
+  //        return res.status(200).send("ok");
+  //      }
+  //  } catch (error) {
+  //    return res.status(500).send("error");
+  //  }
+  //} catch (err) {
+  //    return res.status(500).send("500 Internal Server Error: " + err);
+  //}
+})
 
 router.get("/cover", async (req, res) => {
-    try {
-        if (!req.query.url) return res.status(400).send("400 Bad Request: no url provided!");
-        const url: any = req.query.url;
-        const response = await fetch(
-            url,
-            { method: "GET"}
-        );
-        if (response.ok) {
-            const text: string = await response.text();
-            const match = text.match(/var msg_cdn_url = "(.*?)";/);
-            if (match && match[1])
-              res.status(200).send(match[1]);
-            else throw(Error("capture failed!"));
-        }
-        else return res.status(500).send("500 Internal Server Error: fetch failed!");
-    } catch (err) {
-        return res.status(500).send("500 Internal Server Error: " + err);
+  try {
+    if (!req.query.url) return res.status(400).send("400 Bad Request: no url provided!");
+    const url: any = req.query.url;
+    const response = await fetch(
+      url,
+      { method: "GET" }
+    );
+    if (response.ok) {
+      const text: string = await response.text();
+      const match = text.match(/var msg_cdn_url = "(.*?)";/);
+      if (match && match[1])
+        res.status(200).send(match[1]);
+      else throw (Error("capture failed!"));
     }
+    else return res.status(500).send("500 Internal Server Error: fetch failed!");
+  } catch (err) {
+    return res.status(500).send("500 Internal Server Error: " + err);
+  }
 })
 
 const getTitle = async (url: string) => {
-    try {
-        const response = await fetch(
-            url,
-            { method: "GET"}
-        );
-        if (response.ok) {
-            const text: string = await response.text();
-            const match = text.match(/meta property="og:title" content=".*"/);
-            if (match == null) throw(Error("capture failed!"));
-            const title = match[0].slice(34, -1);
-            return title;
-        }
-        else throw(Error("fetch failed!"));
-    } catch (err: any) {
-        return err;
+  try {
+    const response = await fetch(
+      url,
+      { method: "GET" }
+    );
+    if (response.ok) {
+      const text: string = await response.text();
+      const match = text.match(/meta property="og:title" content=".*"/);
+      if (match == null) throw (Error("capture failed!"));
+      const title = match[0].slice(34, -1);
+      return title;
     }
+    else throw (Error("fetch failed!"));
+  } catch (err: any) {
+    return err;
+  }
 }
 
 router.post("/insert", async (req, res) => {
-    try {
-        if (!req.body.id || !req.body.url) return res.status(400).send("400 Bad Request: not enough params!");
-        const title: string = await getTitle(req.body.url);
-        const QueryGreaterIds: any = await client.request(
-            gql`
+  try {
+    if (!req.body.id || !req.body.url) return res.status(400).send("400 Bad Request: not enough params!");
+    const title: string = await getTitle(req.body.url);
+    const QueryGreaterIds: any = await client.request(
+      gql`
               query QueryGreaterIds($_id: Int) {
                 weekly(where: {id: {_gt: $_id}}) {
                   id
                 }
               }
             `,
-            { _id: req.body.id }
-        );
-        const sorted_ids = [...QueryGreaterIds.weekly];
-        sorted_ids.sort((a: any, b: any) => {
-            return a.id - b.id;
-        })
-        for (let i = sorted_ids.length - 1; i >= 0; i--) {
-            await client.request(
-                gql`
+      { _id: req.body.id }
+    );
+    const sorted_ids = [...QueryGreaterIds.weekly];
+    sorted_ids.sort((a: any, b: any) => {
+      return a.id - b.id;
+    })
+    for (let i = sorted_ids.length - 1; i >= 0; i--) {
+      await client.request(
+        gql`
                   mutation IncreaseIds($_id: Int) {
                     update_weekly(where: {id: {_eq: $_id}}, _inc: {id: 1}) {
                       affected_rows
                     }
                   }
                 `,
-                { _id: sorted_ids[i].id }
-            );
-        }
-        await client.request(
-            gql`
+        { _id: sorted_ids[i].id }
+      );
+    }
+    await client.request(
+      gql`
               mutation Insert_Weekly_One($id: Int, $title: String, $url: String) {
                 insert_weekly_one(object: {id: $id, title: $title, url: $url}) {
                   id
@@ -84,76 +268,76 @@ router.post("/insert", async (req, res) => {
                 }
               }
             `,
-            { id: req.body.id + 1, title: title, url: req.body.url }
-        );
-        return res.status(200).send("ok");
-    } catch (err) {
-        return res.status(500).send("500 Internal Server Error: " + err);
-    }
+      { id: req.body.id + 1, title: title, url: req.body.url }
+    );
+    return res.status(200).send("ok");
+  } catch (err) {
+    return res.status(500).send("500 Internal Server Error: " + err);
+  }
 })
 
 router.post("/delete", async (req, res) => {
-    try {
-        if (!req.body.id) return res.status(400).send("400 Bad Request: not enough params!");
-        const QueryGreaterIds: any = await client.request(
-            gql`
+  try {
+    if (!req.body.id) return res.status(400).send("400 Bad Request: not enough params!");
+    const QueryGreaterIds: any = await client.request(
+      gql`
               query QueryGreaterIds($_id: Int) {
                 weekly(where: {id: {_gt: $_id}}) {
                   id
                 }
               }
             `,
-            { _id: req.body.id }
-        );
-        const sorted_ids = [...QueryGreaterIds.weekly];
-        sorted_ids.sort((a: any, b: any) => {
-            return a.id - b.id;
-        })
-        await client.request(
-            gql`
+      { _id: req.body.id }
+    );
+    const sorted_ids = [...QueryGreaterIds.weekly];
+    sorted_ids.sort((a: any, b: any) => {
+      return a.id - b.id;
+    })
+    await client.request(
+      gql`
               mutation Delete_Weekly_One($_id: Int) {
                 delete_weekly(where: {id: {_eq: $_id}}) {
                   affected_rows
                 }
               }
             `,
-            { _id: req.body.id }
-        );
-        for (let i = 0; i < sorted_ids.length; i++) {
-            await client.request(
-                gql`
+      { _id: req.body.id }
+    );
+    for (let i = 0; i < sorted_ids.length; i++) {
+      await client.request(
+        gql`
                   mutation IncreaseIds($_id: Int) {
                     update_weekly(where: {id: {_eq: $_id}}, _inc: {id: -1}) {
                       affected_rows
                     }
                   }
                 `,
-                { _id: sorted_ids[i].id }
-            );
-        }
-        return res.status(200).send("ok");
-    } catch (err) {
-        return res.status(500).send("500 Internal Server Error: " + err);
+        { _id: sorted_ids[i].id }
+      );
     }
+    return res.status(200).send("ok");
+  } catch (err) {
+    return res.status(500).send("500 Internal Server Error: " + err);
+  }
 })
 
 router.post("/init", async (req, res) => {
-    try {
-        if (!req.body.data) return res.status(400).send("400 Bad Request: no data provided!");
-        await client.request(
-            gql`
+  try {
+    if (!req.body.data) return res.status(400).send("400 Bad Request: no data provided!");
+    await client.request(
+      gql`
               mutation Init($objects: [weekly_insert_input!] = {}) {
                 insert_weekly(objects: $objects) {
                   affected_rows
                 }
               }
             `,
-            { objects: req.body.data }
-        );
-        return res.status(200).send("ok");
-    } catch (err) {
-        return res.status(500).send("500 Internal Server Error: " + err);
-    }
+      { objects: req.body.data }
+    );
+    return res.status(200).send("ok");
+  } catch (err) {
+    return res.status(500).send("500 Internal Server Error: " + err);
+  }
 })
 
 export default router;

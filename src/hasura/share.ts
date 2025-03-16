@@ -1,6 +1,14 @@
 import { gql } from "graphql-request";
 import { client } from "..";
+import exp from "constants";
 
+type WeeklyPost = {
+    id: number;
+    title: string;
+    url: string;
+    date: Date;
+  }
+export { WeeklyPost };
 /**
   ============================================================================
   ============================ QUERY FUNCTIONS ===============================
@@ -554,4 +562,67 @@ export const delete_course_comment_likes = async(comment_uuid: string, user_uuid
         }
     );
     return delete_course_comment_likes_query?.delete_course_comment_likes_by_pk?.comment_uuid;
+}
+
+export const get_newest_weekly = async(): Promise<Date> => {
+    const get_newest_weekly_query: any = await client.request(
+        gql`
+        query MyQuery {
+          weekly_aggregate {
+            aggregate {
+              max {
+                date
+              }
+            }
+          }
+        }
+`
+    );
+    const date = get_newest_weekly_query?.weekly_aggregate?.aggregate?.max?.date + "T00:00:00.000+08:00";
+    return new Date(date);
+}
+/**
+ * 
+ * mutation MyMutation($date: date = "", $title: String = "", $url: String = "") {
+  insert_weekly(objects: {date: $date, title: $title, url: $url}) {
+    returning {
+      id
+    }
+  }
+}
+
+ */
+export const add_weekly_list = async(weekly_list: WeeklyPost[]): Promise<string | undefined> => {
+    const add_weekly_list_query: any = await client.request(
+        gql`
+        mutation MyMutation($objects: [weekly_insert_input!]!) {
+            insert_weekly(objects: $objects) {
+              returning {
+                id
+              }
+            }
+          }
+`,
+        {
+            objects: weekly_list
+        }
+    );
+    return add_weekly_list_query?.insert_weekly?.returning;
+}
+
+export const get_newest_weekly_id = async(): Promise<number> => {
+    const get_newest_weekly_id_query: any = await client.request(
+        gql`
+       query MyQuery {
+          weekly_aggregate {
+            aggregate {
+              max {
+                id
+              }
+            }
+          }
+        } 
+`
+    );
+    return get_newest_weekly_id_query?.weekly_aggregate?.aggregate?.max?.id;
 }
