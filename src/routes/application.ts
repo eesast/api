@@ -1,61 +1,65 @@
 import express from "express";
 import { gql } from "graphql-request";
 import { client } from "..";
-import * as MentHasFunc from "../hasura/mentor";
 import * as HnrHasFunc from "../hasura/honor";
 import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();
 
 interface IMentor {
-    uuid: string;     // 导师uuid
-    name: string;     // 导师姓名
-    dept: string;     // 导师院系
-    mail: string;     // 导师邮箱
-    phon?: string;     // 导师电话
-    intr?: string;     // 导师简介
-    bgnd?: string;     // 导师背景
-    flds?: string;     // 导师领域
-    achv?: string;     // 导师成就
-    avail?: boolean;   // 导师是否可用
-    max_apl?: number;  // 导师最大申请人数
-    tot_apl?: number;  // 导师总申请人数
-    mat_apl?: number;  // 导师已匹配人数
+    uuid: string;       // 导师uuid
+    name: string;       // 导师姓名
+    dept: string;       // 导师院系
+    mail: string;       // 导师邮箱
+    phon?: string;      // 导师电话
+    intr?: string;      // 导师简介
+    bgnd?: string;      // 导师背景
+    flds?: string;      // 导师领域
+    achv?: string;      // 导师成就
+    avail?: boolean;    // 导师是否可用
+    is_mem?: boolean;   // 导师是否参与积极分子谈话
+    dig_type?: string;  // 导师谈话类型
+    max_apl?: number;   // 导师最大申请人数
+    tot_apl?: number;   // 导师总申请人数
+    mat_apl?: number;   // 导师已匹配人数
 }
 
 
 interface IStudent {
-    uuid: string;     // 学生uuid
-    name: string;     // 学生姓名
-    stid: string;     // 学生学号
-    dept: string;     // 学生院系
-    clss: string;     // 学生班级
-    mail: string;     // 学生邮箱
-    phon: string;     // 学生电话
+    uuid: string;       // 学生uuid
+    name: string;       // 学生姓名
+    stid: string;       // 学生学号
+    dept: string;       // 学生院系
+    clss: string;       // 学生班级
+    mail: string;       // 学生邮箱
+    phon: string;       // 学生电话
 }
 
 interface IApplication {
-    id: string;       // 申请id
-    stmt: string;     // 申请陈述
-    created: string;  // 申请时间
-    year: number;     // 申请年份
-    status: string;   // 申请状态
-    chat: boolean;    // 申请聊天状态
-    men?: IMentor;     // 申请导师
-    stu?: IStudent;    // 申请学生
+    id: string;         // 申请id
+    stmt: string;       // 申请陈述
+    created: string;    // 申请时间
+    year: number;       // 申请年份
+    status: string;     // 申请状态
+    is_mem: boolean;    // 是否参与积极分子谈话
+    chat: boolean;      // 申请聊天状态，由学生发起
+    chat2: boolean;     // 申请聊天状态，由导师确认
+    chat_t?: string;    // 申请聊天时间
+    men?: IMentor;      // 申请导师
+    stu?: IStudent;     // 申请学生
 }
 
 interface IFreshman {
-    name: string;     // 学生姓名
-    stid: string;     // 学生学号
-    uuid?: string;     // 学生uuid
+    name: string;       // 学生姓名
+    stid: string;       // 学生学号
+    uuid?: string;      // 学生uuid
 }
 
 interface ISchedulePeriod {
-    beg: Date;        // 开始时间
-    end: Date;        // 结束时间
-    roles?: string[];  // 参与角色（显示用）
-    prompt?: string;   // 提示信息（显示用）
+    beg: Date;          // 开始时间
+    end: Date;          // 结束时间
+    roles?: string[];   // 参与角色（显示用）
+    prompt?: string;    // 提示信息（显示用）
 }
 interface ISchedule {
     A: ISchedulePeriod;  // 预备阶段：导师更新个人信息
@@ -240,6 +244,8 @@ router.post("/honor/update_status_one", async (req, res) => {
 
 // 获取导师列表
 router.get("/info/mentor/mentor_list", authenticate(["student", "teacher", "counselor"]), async (req, res) => {
+    const role: string = req.auth.user.role;
+    const user_uuid: string = req.auth.user.uuid;
     const mentor_query: any = await client.request(
         gql`
         query MyQuery {
@@ -250,6 +256,8 @@ router.get("/info/mentor/mentor_list", authenticate(["student", "teacher", "coun
                 field
                 intro
                 max_applicants
+                is_member
+                dialogue_type
                 mentor_uuid
                 user {
                     department
@@ -321,6 +329,8 @@ router.get("/info/mentor/mentor_list", authenticate(["student", "teacher", "coun
                 flds: mentor_info.field,
                 achv: mentor_info.achievement,
                 avail: mentor_info.available,
+                is_mem: mentor_info.is_member,
+                dig_type: mentor_info.dialogue_type,
                 max_apl: mentor_info.max_applicants,
                 tot_apl: total_application_aggregate.mentor_application_aggregate.aggregate.count,
                 mat_apl: matched_application_aggregate.mentor_application_aggregate.aggregate.count
@@ -328,7 +338,13 @@ router.get("/info/mentor/mentor_list", authenticate(["student", "teacher", "coun
             return mentor;
         })
     );
-    return res.status(200).send(mentors);
+    if (role === "student" || role === "teacher") {
+        return res.status(200).send(mentors.filter((mentor: IMentor) => mentor.avail || mentor.uuid === user_uuid));
+    } else if (role === "counselor") {
+        return res.status(200).send(mentors);
+    } else {
+        return res.status(400).send("Error: Unauthorized");
+    }
 });
 
 // 获取时间表，自动创建新年份的时间表
@@ -423,11 +439,14 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                         }
                     ) {
                         chat_status
+                        chat_confirm
+                        chat_time
                         created_at
                         id
                         mentor_uuid
                         statement
                         status
+                        is_member
                         year
                         mentor {
                             department
@@ -455,7 +474,10 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                     created: app.created_at,
                     year: app.year,
                     status: app.status,
+                    is_mem: app.is_member,
                     chat: app.chat_status,
+                    chat2: app.chat_confirm,
+                    chat_t: app.chat_time,
                     men: mentor
                 }
                 return application;
@@ -475,11 +497,14 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                         }
                     ) {
                         chat_status
+                        chat_confirm
+                        chat_time
                         created_at
                         id
                         statement
                         status
                         student_uuid
+                        is_member
                         year
                         student {
                             class
@@ -513,7 +538,10 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                     created: app.created_at,
                     year: app.year,
                     status: app.status,
+                    is_mem: app.is_member,
                     chat: app.chat_status,
+                    chat2: app.chat_confirm,
+                    chat_t: app.chat_time,
                     stu: student
                 }
                 return application;
@@ -525,12 +553,15 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                 query MyQuery($year: Int!) {
                     mentor_application(where: {year: {_eq: $year}}) {
                         chat_status
+                        chat_confirm
+                        chat_time
                         created_at
                         id
                         mentor_uuid
                         statement
                         status
                         student_uuid
+                        is_member
                         year
                         mentor {
                             department
@@ -576,7 +607,10 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                     created: app.created_at,
                     year: app.year,
                     status: app.status,
+                    is_mem: app.is_member,
                     chat: app.chat_status,
+                    chat2: app.chat_confirm,
+                    chat_t: app.chat_time,
                     men: mentor,
                     stu: student
                 }
@@ -607,6 +641,8 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
                     field
                     intro
                     max_applicants
+                    is_member
+                    dialogue_type
                     user {
                         department
                         email
@@ -633,7 +669,7 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
                             }
                         }
                     ) {
-                    status
+                        status
                     }
                 }
                 `,
@@ -656,6 +692,8 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
                 flds: mentor_info.field,
                 achv: mentor_info.achievement,
                 avail: mentor_info.available,
+                is_mem: mentor_info.is_member,
+                dig_type: mentor_info.dialogue_type,
                 max_apl: mentor_info.max_applicants,
                 tot_apl: total_applications,
                 mat_apl: matched_applications
@@ -664,12 +702,13 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
         } else {
             const add_mentor_mutation: any = await client.request(
                 gql`
-                mutation MyMutation($mentor_uuid: uuid!, $max_applicants: Int!, $available: Boolean!) {
+                mutation MyMutation($mentor_uuid: uuid!, $max_applicants: Int!, $available: Boolean!, $is_member: Boolean!) {
                     insert_mentor_info_one(
                         object: {
                             mentor_uuid: $mentor_uuid,
                             max_applicants: $max_applicants,
                             available: $available
+                            is_member: $is_member
                         }
                     ) {
                         user {
@@ -684,7 +723,8 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
                 {
                     mentor_uuid: user_uuid,
                     max_applicants: 5,
-                    available: false
+                    available: false,
+                    is_member: false
                 }
             );
             if (!add_mentor_mutation.insert_mentor_info_one) {
@@ -702,6 +742,8 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
                 flds: "",
                 achv: "",
                 avail: false,
+                is_mem: false,
+                dig_type: undefined,
                 max_apl: 5,
                 tot_apl: 0,
                 mat_apl: 0
@@ -915,6 +957,36 @@ router.post("/info/mentor/max_app", authenticate(["teacher"]), async (req, res) 
     }
 });
 
+// 更新导师是否参与党员谈话
+router.post("/info/mentor/member", authenticate(["teacher"]), async (req, res) => {
+    try {
+        const is_member: boolean = req.body.is_member;
+        const update_member_mutation: any = await client.request(
+            gql`
+            mutation MyMutation($mentor_uuid: uuid!, $is_member: Boolean!) {
+                update_mentor_info_by_pk(
+                    pk_columns: {mentor_uuid: $mentor_uuid},
+                    _set: {is_member: $is_member}
+                ) {
+                    is_member
+                }
+            }
+            `,
+            {
+                mentor_uuid: req.auth.user.uuid,
+                is_member: is_member
+            }
+        );
+        if (!update_member_mutation.update_mentor_info_by_pk) {
+            return res.status(500).send("Error: Update is_member failed");
+        }
+        return res.status(200).send(update_member_mutation.update_mentor_info_by_pk);
+    } catch (err) {
+        console.log(err);
+        return res.status(500);
+    }
+});
+
 // 更新导师介绍
 router.post("/info/mentor/intro", authenticate(["teacher"]), async (req, res) => {
     try {
@@ -922,21 +994,23 @@ router.post("/info/mentor/intro", authenticate(["teacher"]), async (req, res) =>
         const bgnd: string = req.body.bgnd;
         const flds: string = req.body.flds;
         const intr: string = req.body.intr;
+        const dig_type: string = req.body.dig_type;
         if (achv.length == 0 || bgnd.length == 0 || flds.length == 0 || intr.length == 0) {
             return res.status(400).send("Error: Invalid intro");
         }
 
         const update_intro_mutation: any = await client.request(
             gql`
-            mutation MyMutation($mentor_uuid: uuid!, $achievement: String!, $background: String!, $field: String!, $intro: String!) {
+            mutation MyMutation($mentor_uuid: uuid!, $achievement: String!, $background: String!, $field: String!, $intro: String!, $dialogue_type: String!) {
                 update_mentor_info_by_pk(
                     pk_columns: {mentor_uuid: $mentor_uuid},
-                    _set: {achievement: $achievement, background: $background, field: $field, intro: $intro}
+                    _set: {achievement: $achievement, background: $background, field: $field, intro: $intro, dialogue_type: $dialogue_type}
                 ) {
                     achievement
                     background
                     field
                     intro
+                    dialogue_type
                 }
             }
             `,
@@ -945,7 +1019,8 @@ router.post("/info/mentor/intro", authenticate(["teacher"]), async (req, res) =>
                 achievement: achv,
                 background: bgnd,
                 field: flds,
-                intro: intr
+                intro: intr,
+                dialogue_type: dig_type
             }
         );
         if (!update_intro_mutation.update_mentor_info_by_pk) {
@@ -1045,11 +1120,12 @@ router.post("/info/mentor/status", authenticate(["teacher"]), async (req, res) =
     }
 });
 
-// 更新申请陈述
+// 更新申请
 router.post("/info/mentor/application", authenticate(["student"]), async (req, res) => {
     try {
         const id: string = req.body.id;
         const statement: string = req.body.statement;
+        const is_member: boolean = req.body.is_member;
         const user_uuid: string = req.auth.user.uuid;
 
         if (statement.length == 0) {
@@ -1114,18 +1190,23 @@ router.post("/info/mentor/application", authenticate(["student"]), async (req, r
 
         const update_application_mutation: any = await client.request(
             gql`
-            mutation MyMutation($id: uuid!, $statement: String!) {
+            mutation MyMutation($id: uuid!, $statement: String!, $is_member: Boolean!) {
                 update_mentor_application_by_pk(
                     pk_columns: {id: $id},
-                    _set: {statement: $statement}
+                    _set: {
+                        statement: $statement,
+                        is_member: $is_member
+                    }
                 ) {
                     statement
+                    is_member
                 }
             }
             `,
             {
                 id: id,
-                statement: statement
+                statement: statement,
+                is_member: is_member
             }
         );
 
@@ -1151,6 +1232,8 @@ router.post("/info/mentor/chat", authenticate(["student"]), async (req, res) => 
             query MyQuery($id: uuid!) {
                 mentor_application_by_pk(id: $id) {
                     student_uuid
+                    chat_confirm
+                    status
                 }
             }
             `,
@@ -1165,26 +1248,98 @@ router.post("/info/mentor/chat", authenticate(["student"]), async (req, res) => 
         if (user_uuid !== application_query.mentor_application_by_pk.student_uuid) {
             return res.status(400).send("Error: Unauthorized");
         }
+        if (application_query.mentor_application_by_pk.status !== "approved") {
+            return res.status(400).send("Error: Application not approved");
+        }
+        if (application_query.mentor_application_by_pk.chat_confirm) {
+            return res.status(400).send("Error: Chat confirmed");
+        }
 
         const update_application_mutation: any = await client.request(
             gql`
-            mutation MyMutation($id: uuid!, $chat_status: Boolean!) {
+            mutation MyMutation($id: uuid!, $chat_status: Boolean!, $chat_time: timestamptz!) {
                 update_mentor_application_by_pk(
                     pk_columns: {id: $id},
-                    _set: {chat_status: $chat_status}
+                    _set: {
+                        chat_status: $chat_status,
+                        chat_time: $chat_time
+                    }
                 ) {
                     chat_status
+                    chat_time
                 }
             }
             `,
             {
                 id: id,
-                chat_status: true
+                chat_status: true,
+                chat_time: new Date().toISOString()
             }
         );
 
         if (!update_application_mutation.update_mentor_application_by_pk) {
             return res.status(500).send("Error: Update chat_status failed");
+        }
+        return res.status(200).send(update_application_mutation.update_mentor_application_by_pk);
+    } catch (err) {
+        console.log(err);
+        return res.status(500);
+    }
+});
+
+// 更新谈话确认状态
+router.post("/info/mentor/confirm", authenticate(["teacher"]), async (req, res) => {
+    try {
+        const id: string = req.body.id;
+        const user_uuid: string = req.auth.user.uuid;
+
+        const application_query: any = await client.request(
+            gql`
+            query MyQuery($id: uuid!) {
+                mentor_application_by_pk(id: $id) {
+                    mentor_uuid
+                    chat_status
+                    status
+                }
+            }
+            `,
+            {
+                id: id
+            }
+        );
+
+        if (!application_query.mentor_application_by_pk) {
+            return res.status(400).send("Error: Application not found");
+        }
+        if (user_uuid !== application_query.mentor_application_by_pk.mentor_uuid) {
+            return res.status(400).send("Error: Unauthorized");
+        }
+        if (application_query.mentor_application_by_pk.status !== "approved") {
+            return res.status(400).send("Error: Application not approved");
+        }
+        if (!application_query.mentor_application_by_pk.chat_status) {
+            return res.status(400).send("Error: Chat not started");
+        }
+
+        const update_application_mutation: any = await client.request(
+            gql`
+            mutation MyMutation($id: uuid!, $chat_confirm: Boolean!) {
+                update_mentor_application_by_pk(
+                    pk_columns: {id: $id},
+                    _set: {chat_confirm: $chat_confirm}
+                ) {
+                    chat_confirm
+                }
+            }
+            `,
+            {
+                id: id,
+                chat_confirm: true
+            }
+        );
+
+        if (!update_application_mutation.update_mentor_application_by_pk) {
+            return res.status(500).send("Error: Update chat_confirm failed");
         }
         return res.status(200).send(update_application_mutation.update_mentor_application_by_pk);
     } catch (err) {
@@ -1263,6 +1418,7 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
     try {
         const mentor_uuid: string = req.body.mentor_uuid;
         const statement: string = req.body.statement;
+        const is_member: boolean = req.body.is_member;
         const user_uuid: string = req.auth.user.uuid;
 
         if (statement.length == 0) {
@@ -1322,6 +1478,25 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
             return res.status(400).send("Error: Freshman not found");
         }
 
+        const application_query: any = await client.request(
+            gql`
+            query MyQuery($student_uuid: uuid!, $year: Int!) {
+                mentor_application_aggregate(where: {_and: {student_uuid: {_eq: $student_uuid}, year: {_eq: $year}}}) {
+                    aggregate {
+                        count
+                    }
+                }
+            }
+            `,
+            {
+                student_uuid: user_uuid,
+                year: (new Date()).getFullYear()
+            }
+        );
+        if (application_query.mentor_application_aggregate.aggregate.count >= 1) {
+            return res.status(400).send("Error: Exceeds max_applicants");
+        }
+
         const mentor_info_query: any = await client.request(
             gql`
             query MyQuery($mentor_uuid: uuid!) {
@@ -1367,17 +1542,14 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
 
         const add_application_mutation: any = await client.request(
             gql`
-            mutation MyMutation($mentor_uuid: uuid!, $student_uuid: uuid!, $statement: String!, $year: Int!) {
+            mutation MyMutation($mentor_uuid: uuid!, $student_uuid: uuid!, $statement: String!, $year: Int!, $is_member: Boolean!) {
                 insert_mentor_application_one(
                     object: {
                         mentor_uuid: $mentor_uuid,
                         student_uuid: $student_uuid,
                         statement: $statement,
-                        year: $year
-                    },
-                    on_conflict: {
-                        update_columns: statement,
-                        constraint: mentor_application_pkey1
+                        year: $year,
+                        is_member: $is_member
                     }
                 ) {
                     id
@@ -1388,7 +1560,8 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
                 mentor_uuid: mentor_uuid,
                 student_uuid: user_uuid,
                 statement: statement,
-                year: (new Date()).getFullYear()
+                year: (new Date()).getFullYear(),
+                is_member: is_member
             }
         );
 
