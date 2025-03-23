@@ -7,7 +7,7 @@ import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();
 
-export interface IMentor {
+interface IMentor {
     uuid: string;     // 导师uuid
     name: string;     // 导师姓名
     dept: string;     // 导师院系
@@ -24,7 +24,7 @@ export interface IMentor {
 }
 
 
-export interface IStudent {
+interface IStudent {
     uuid: string;     // 学生uuid
     name: string;     // 学生姓名
     stid: string;     // 学生学号
@@ -34,7 +34,7 @@ export interface IStudent {
     phon: string;     // 学生电话
 }
 
-export interface IApplication {
+interface IApplication {
     id: string;       // 申请id
     stmt: string;     // 申请陈述
     created: string;  // 申请时间
@@ -45,19 +45,19 @@ export interface IApplication {
     stu?: IStudent;    // 申请学生
 }
 
-export interface IFreshman {
+interface IFreshman {
     name: string;     // 学生姓名
     stid: string;     // 学生学号
     uuid?: string;     // 学生uuid
 }
 
-export interface ISchedulePeriod {
+interface ISchedulePeriod {
     beg: Date;        // 开始时间
     end: Date;        // 结束时间
     roles?: string[];  // 参与角色（显示用）
     prompt?: string;   // 提示信息（显示用）
 }
-export interface ISchedule {
+interface ISchedule {
     A: ISchedulePeriod;  // 预备阶段：导师更新个人信息
     B: ISchedulePeriod;  // 预备阶段：学生了解导师信息
     C: ISchedulePeriod;  // 第一阶段：自由申请与匹配
@@ -336,27 +336,27 @@ router.get("/info/mentor/schedule", authenticate(["student", "teacher", "counsel
     try {
         const add_schedule_mutation: any = await client.request(
             gql`
-        mutation MyMutation($activateIn: Int!) {
-            insert_mentor_time_one(
-                object: {activateIn: $activateIn},
-                on_conflict: {
-                    constraint: mentor_time_pkey,
-                    update_columns: activateIn
+            mutation MyMutation($activateIn: Int!) {
+                insert_mentor_time_one(
+                    object: {activateIn: $activateIn},
+                    on_conflict: {
+                        constraint: mentor_time_pkey,
+                        update_columns: activateIn
+                    }
+                ) {
+                    start_A
+                    end_A
+                    start_B
+                    end_B
+                    start_C
+                    end_C
+                    start_D
+                    end_D
+                    start_E
+                    end_E
                 }
-            ) {
-                start_A
-                end_A
-                start_B
-                end_B
-                start_C
-                end_C
-                start_D
-                end_D
-                start_E
-                end_E
             }
-        }
-        `,
+            `,
             {
                 activateIn: (new Date()).getFullYear()
             }
@@ -413,30 +413,30 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
         if (role === "student") {
             const application_query: any = await client.request(
                 gql`
-            query MyQuery($student_uuid: uuid!, $year: Int!) {
-                mentor_application(
-                    where: {
-                        _and: {
-                            student_uuid: {_eq: $student_uuid},
-                            year: {_eq: $year}
+                query MyQuery($student_uuid: uuid!, $year: Int!) {
+                    mentor_application(
+                        where: {
+                            _and: {
+                                student_uuid: {_eq: $student_uuid},
+                                year: {_eq: $year}
+                            }
+                        }
+                    ) {
+                        chat_status
+                        created_at
+                        id
+                        mentor_uuid
+                        statement
+                        status
+                        year
+                        mentor {
+                            department
+                            email
+                            realname
                         }
                     }
-                ) {
-                    chat_status
-                    created_at
-                    id
-                    mentor_uuid
-                    statement
-                    status
-                    year
-                    mentor {
-                        department
-                        email
-                        realname
                     }
-                }
-                }
-            `,
+                `,
                 {
                     student_uuid: user_uuid,
                     year: (new Date()).getFullYear()
@@ -465,33 +465,33 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
         } else if (role === "teacher") {
             const applications_query: any = await client.request(
                 gql`
-            query MyQuery($mentor_uuid: uuid!, $year: Int!) {
-                mentor_application(
-                    where: {
-                        _and: {
-                            mentor_uuid: {_eq: $mentor_uuid},
-                            year: {_eq: $year}
+                query MyQuery($mentor_uuid: uuid!, $year: Int!) {
+                    mentor_application(
+                        where: {
+                            _and: {
+                                mentor_uuid: {_eq: $mentor_uuid},
+                                year: {_eq: $year}
+                            }
+                        }
+                    ) {
+                        chat_status
+                        created_at
+                        id
+                        statement
+                        status
+                        student_uuid
+                        year
+                        student {
+                            class
+                            department
+                            email
+                            phone
+                            realname
+                            student_no
                         }
                     }
-                ) {
-                    chat_status
-                    created_at
-                    id
-                    statement
-                    status
-                    student_uuid
-                    year
-                    student {
-                        class
-                        department
-                        email
-                        phone
-                        realname
-                        student_no
                     }
-                }
-                }
-            `,
+                `,
                 {
                     mentor_uuid: user_uuid,
                     year: (new Date()).getFullYear()
@@ -522,33 +522,33 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
         } else if (role === "counselor") {
             const applications_query: any = await client.request(
                 gql`
-            query MyQuery($year: Int!) {
-                mentor_application(where: {year: {_eq: $year}}) {
-                    chat_status
-                    created_at
-                    id
-                    mentor_uuid
-                    statement
-                    status
-                    student_uuid
-                    year
-                    mentor {
-                        department
-                        email
-                        phone
-                        realname
-                    }
-                    student {
-                        class
-                        department
-                        email
-                        phone
-                        realname
-                        student_no
+                query MyQuery($year: Int!) {
+                    mentor_application(where: {year: {_eq: $year}}) {
+                        chat_status
+                        created_at
+                        id
+                        mentor_uuid
+                        statement
+                        status
+                        student_uuid
+                        year
+                        mentor {
+                            department
+                            email
+                            phone
+                            realname
+                        }
+                        student {
+                            class
+                            department
+                            email
+                            phone
+                            realname
+                            student_no
+                        }
                     }
                 }
-            }
-            `,
+                `,
                 {
                     year: (new Date()).getFullYear()
                 }
@@ -599,23 +599,23 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
 
         const mentor_query: any = await client.request(
             gql`
-        query MyQuery($mentor_uuid: uuid!) {
-            mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
-                achievement
-                available
-                background
-                field
-                intro
-                max_applicants
-                user {
-                    department
-                    email
-                    phone
-                    realname
+            query MyQuery($mentor_uuid: uuid!) {
+                mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
+                    achievement
+                    available
+                    background
+                    field
+                    intro
+                    max_applicants
+                    user {
+                        department
+                        email
+                        phone
+                        realname
+                    }
                 }
             }
-        }
-        `,
+            `,
             {
                 mentor_uuid: user_uuid
             }
@@ -624,19 +624,19 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
         if (mentor_query.mentor_info_by_pk) {
             const application_query: any = await client.request(
                 gql`
-            query MyQuery($mentor_uuid: uuid!, $year: Int!) {
-                mentor_application(
-                    where: {
-                        _and: {
-                            mentor_uuid: {_eq: $mentor_uuid},
-                            year: {_eq: $year}
+                query MyQuery($mentor_uuid: uuid!, $year: Int!) {
+                    mentor_application(
+                        where: {
+                            _and: {
+                                mentor_uuid: {_eq: $mentor_uuid},
+                                year: {_eq: $year}
+                            }
                         }
+                    ) {
+                    status
                     }
-                ) {
-                  status
                 }
-              }
-              `,
+                `,
                 {
                     mentor_uuid: user_uuid,
                     year: (new Date()).getFullYear()
@@ -664,23 +664,23 @@ router.get("/info/mentor/mentor", authenticate(["teacher"]), async (req, res) =>
         } else {
             const add_mentor_mutation: any = await client.request(
                 gql`
-            mutation MyMutation($mentor_uuid: uuid!, $max_applicants: Int!, $available: Boolean!) {
-                insert_mentor_info_one(
-                    object: {
-                        mentor_uuid: $mentor_uuid,
-                        max_applicants: $max_applicants,
-                        available: $available
-                    }
-                ) {
-                    user {
-                        department
-                        email
-                        phone
-                        realname
+                mutation MyMutation($mentor_uuid: uuid!, $max_applicants: Int!, $available: Boolean!) {
+                    insert_mentor_info_one(
+                        object: {
+                            mentor_uuid: $mentor_uuid,
+                            max_applicants: $max_applicants,
+                            available: $available
+                        }
+                    ) {
+                        user {
+                            department
+                            email
+                            phone
+                            realname
+                        }
                     }
                 }
-              }
-              `,
+                `,
                 {
                     mentor_uuid: user_uuid,
                     max_applicants: 5,
@@ -726,21 +726,21 @@ router.get("/info/mentor/freshmen", authenticate(["student", "counselor"]), asyn
             const freshman_query: any = await client.request(
                 gql`
                 query MyQuery($year: Int!, $realname: String!, $student_no: String!) {
-                freshman(
-                    where: {
-                        _and: {
-                            year: {_eq: $year},
+                    freshman(
+                        where: {
                             _and: {
-                                realname: {_eq: $realname},
-                                student_no: {_eq: $student_no}
+                                year: {_eq: $year},
+                                _and: {
+                                    realname: {_eq: $realname},
+                                    student_no: {_eq: $student_no}
+                                }
                             }
                         }
+                    ) {
+                        uuid
                     }
-                ) {
-                    uuid
                 }
-            }
-            `,
+                `,
                 {
                     year: (new Date()).getFullYear(),
                     realname: realname,
@@ -760,14 +760,14 @@ router.get("/info/mentor/freshmen", authenticate(["student", "counselor"]), asyn
         } else if (role === "counselor") {
             const freshman_query: any = await client.request(
                 gql`
-            query MyQuery($year: Int!) {
-                freshman(where: {year: {_eq: $year}}) {
-                    realname
-                    student_no
-                    uuid
+                query MyQuery($year: Int!) {
+                    freshman(where: {year: {_eq: $year}}) {
+                        realname
+                        student_no
+                        uuid
+                    }
                 }
-            }
-            `,
+                `,
                 {
                     year: (new Date()).getFullYear()
                 }
@@ -776,19 +776,19 @@ router.get("/info/mentor/freshmen", authenticate(["student", "counselor"]), asyn
                 freshman_query.freshman.map(async (freshman: any) => {
                     const user_query: any = await client.request(
                         gql`
-                    query MyQuery($student_no: String!, $realname: String!) {
-                        users(
-                            where: {
-                                _and: {
-                                    student_no: {_eq: $student_no},
-                                    realname: {_eq: $realname}
+                        query MyQuery($student_no: String!, $realname: String!) {
+                            users(
+                                where: {
+                                    _and: {
+                                        student_no: {_eq: $student_no},
+                                        realname: {_eq: $realname}
+                                    }
                                 }
+                            ) {
+                                uuid
                             }
-                        ) {
-                            uuid
                         }
-                    }
-                    `,
+                        `,
                         {
                             student_no: freshman.student_no,
                             realname: freshman.realname
@@ -818,15 +818,15 @@ router.post("/info/mentor/schedule", authenticate(["counselor"]), async (req, re
         const schedule: ISchedule = req.body.schedule;
         const update_schedule_mutation: any = await client.request(
             gql`
-        mutation MyMutation($activateIn: Int!, $start_A: timestamptz!, $end_A: timestamptz!, $start_B: timestamptz!, $end_B: timestamptz!, $start_C: timestamptz!, $end_C: timestamptz!, $start_D: timestamptz!, $end_D: timestamptz!, $start_E: timestamptz!, $end_E: timestamptz!) {
-            update_mentor_time_by_pk(
-                pk_columns: {activateIn: $activateIn},
-                _set: {start_A: $start_A, end_A: $end_A, start_B: $start_B, end_B: $end_B, start_C: $start_C, end_C: $end_C, start_D: $start_D, end_D: $end_D, start_E: $start_E, end_E: $end_E}
-            ) {
-                activateIn
+            mutation MyMutation($activateIn: Int!, $start_A: timestamptz!, $end_A: timestamptz!, $start_B: timestamptz!, $end_B: timestamptz!, $start_C: timestamptz!, $end_C: timestamptz!, $start_D: timestamptz!, $end_D: timestamptz!, $start_E: timestamptz!, $end_E: timestamptz!) {
+                update_mentor_time_by_pk(
+                    pk_columns: {activateIn: $activateIn},
+                    _set: {start_A: $start_A, end_A: $end_A, start_B: $start_B, end_B: $end_B, start_C: $start_C, end_C: $end_C, start_D: $start_D, end_D: $end_D, start_E: $start_E, end_E: $end_E}
+                ) {
+                    activateIn
+                }
             }
-        }
-        `,
+            `,
             {
                 activateIn: (new Date()).getFullYear(),
                 start_A: schedule.A.beg,
@@ -858,15 +858,15 @@ router.post("/info/mentor/avail", authenticate(["teacher"]), async (req, res) =>
         const available: boolean = req.body.available;
         const update_avail_mutation: any = await client.request(
             gql`
-        mutation MyMutation($mentor_uuid: uuid!, $available: Boolean!) {
-            update_mentor_info_by_pk(
-                pk_columns: {mentor_uuid: $mentor_uuid},
-                _set: {available: $available}
-            ) {
-                available
+            mutation MyMutation($mentor_uuid: uuid!, $available: Boolean!) {
+                update_mentor_info_by_pk(
+                    pk_columns: {mentor_uuid: $mentor_uuid},
+                    _set: {available: $available}
+                ) {
+                    available
+                }
             }
-        }
-        `,
+            `,
             {
                 mentor_uuid: req.auth.user.uuid,
                 available: available
@@ -891,15 +891,15 @@ router.post("/info/mentor/max_app", authenticate(["teacher"]), async (req, res) 
         }
         const update_max_app_mutation: any = await client.request(
             gql`
-        mutation MyMutation($mentor_uuid: uuid!, $max_applicants: Int!) {
-            update_mentor_info_by_pk(
-                pk_columns: {mentor_uuid: $mentor_uuid},
-                _set: {max_applicants: $max_applicants}
-            ) {
-                max_applicants
+            mutation MyMutation($mentor_uuid: uuid!, $max_applicants: Int!) {
+                update_mentor_info_by_pk(
+                    pk_columns: {mentor_uuid: $mentor_uuid},
+                    _set: {max_applicants: $max_applicants}
+                ) {
+                    max_applicants
+                }
             }
-        }
-        `,
+            `,
             {
                 mentor_uuid: req.auth.user.uuid,
                 max_applicants: max_applicants
@@ -928,18 +928,18 @@ router.post("/info/mentor/intro", authenticate(["teacher"]), async (req, res) =>
 
         const update_intro_mutation: any = await client.request(
             gql`
-        mutation MyMutation($mentor_uuid: uuid!, $achievement: String!, $background: String!, $field: String!, $intro: String!) {
-            update_mentor_info_by_pk(
-                pk_columns: {mentor_uuid: $mentor_uuid},
-                _set: {achievement: $achievement, background: $background, field: $field, intro: $intro}
-            ) {
-                achievement
-                background
-                field
-                intro
+            mutation MyMutation($mentor_uuid: uuid!, $achievement: String!, $background: String!, $field: String!, $intro: String!) {
+                update_mentor_info_by_pk(
+                    pk_columns: {mentor_uuid: $mentor_uuid},
+                    _set: {achievement: $achievement, background: $background, field: $field, intro: $intro}
+                ) {
+                    achievement
+                    background
+                    field
+                    intro
+                }
             }
-        }
-        `,
+            `,
             {
                 mentor_uuid: req.auth.user.uuid,
                 achievement: achv,
@@ -967,15 +967,15 @@ router.post("/info/mentor/status", authenticate(["teacher"]), async (req, res) =
 
         const schedule_query: any = await client.request(
             gql`
-        query MyQuery($activateIn: Int!) {
-            mentor_time_by_pk(activateIn: $activateIn) {
-                start_C
-                end_C
-                start_D
-                end_D
+            query MyQuery($activateIn: Int!) {
+                mentor_time_by_pk(activateIn: $activateIn) {
+                    start_C
+                    end_C
+                    start_D
+                    end_D
+                }
             }
-        }
-        `,
+            `,
             {
                 activateIn: (new Date()).getFullYear()
             }
@@ -995,13 +995,13 @@ router.post("/info/mentor/status", authenticate(["teacher"]), async (req, res) =
 
         const application_query: any = await client.request(
             gql`
-        query MyQuery($id: uuid!) {
-            mentor_application_by_pk(id: $id) {
-              mentor_uuid
-              year
+            query MyQuery($id: uuid!) {
+                mentor_application_by_pk(id: $id) {
+                mentor_uuid
+                year
+                }
             }
-          }
-          `,
+            `,
             {
                 id: id
             }
@@ -1019,15 +1019,15 @@ router.post("/info/mentor/status", authenticate(["teacher"]), async (req, res) =
 
         const update_status_mutation: any = await client.request(
             gql`
-        mutation MyMutation($id: uuid!, $status: String!) {
-            update_mentor_application_by_pk(
-                pk_columns: {id: $id},
-                _set: {status: $status}
-            ) {
-                status
-            }
-            }
-        `,
+            mutation MyMutation($id: uuid!, $status: String!) {
+                update_mentor_application_by_pk(
+                    pk_columns: {id: $id},
+                    _set: {status: $status}
+                ) {
+                    status
+                }
+                }
+            `,
             {
                 id: id,
                 status: status
@@ -1058,15 +1058,15 @@ router.post("/info/mentor/application", authenticate(["student"]), async (req, r
 
         const schedule_query: any = await client.request(
             gql`
-        query MyQuery($activateIn: Int!) {
-            mentor_time_by_pk(activateIn: $activateIn) {
-                start_C
-                end_C
-                start_D
-                end_D
+            query MyQuery($activateIn: Int!) {
+                mentor_time_by_pk(activateIn: $activateIn) {
+                    start_C
+                    end_C
+                    start_D
+                    end_D
+                }
             }
-        }
-        `,
+            `,
             {
                 activateIn: (new Date()).getFullYear()
             }
@@ -1086,13 +1086,14 @@ router.post("/info/mentor/application", authenticate(["student"]), async (req, r
 
         const application_query: any = await client.request(
             gql`
-        query MyQuery($id: uuid!) {
-            mentor_application_by_pk(id: $id) {
-                student_uuid
-                year
+            query MyQuery($id: uuid!) {
+                mentor_application_by_pk(id: $id) {
+                    status
+                    student_uuid
+                    year
+                }
             }
-        }
-        `,
+            `,
             {
                 id: id
             }
@@ -1104,21 +1105,24 @@ router.post("/info/mentor/application", authenticate(["student"]), async (req, r
         if (user_uuid !== application_query.mentor_application_by_pk.student_uuid) {
             return res.status(400).send("Error: Unauthorized");
         }
+        if (application_query.mentor_application_by_pk.status === "approved") {
+            return res.status(400).send("Error: Application approved");
+        }
         if ((new Date()).getFullYear() !== application_query.mentor_application_by_pk.year) {
             return res.status(400).send("Error: Invalid year");
         }
 
         const update_application_mutation: any = await client.request(
             gql`
-        mutation MyMutation($id: uuid!, $statement: String!) {
-            update_mentor_application_by_pk(
-                pk_columns: {id: $id},
-                _set: {statement: $statement}
-            ) {
-                statement
+            mutation MyMutation($id: uuid!, $statement: String!) {
+                update_mentor_application_by_pk(
+                    pk_columns: {id: $id},
+                    _set: {statement: $statement}
+                ) {
+                    statement
+                }
             }
-        }
-        `,
+            `,
             {
                 id: id,
                 statement: statement
@@ -1144,12 +1148,12 @@ router.post("/info/mentor/chat", authenticate(["student"]), async (req, res) => 
 
         const application_query: any = await client.request(
             gql`
-        query MyQuery($id: uuid!) {
-            mentor_application_by_pk(id: $id) {
-                student_uuid
+            query MyQuery($id: uuid!) {
+                mentor_application_by_pk(id: $id) {
+                    student_uuid
+                }
             }
-        }
-        `,
+            `,
             {
                 id: id
             }
@@ -1164,15 +1168,15 @@ router.post("/info/mentor/chat", authenticate(["student"]), async (req, res) => 
 
         const update_application_mutation: any = await client.request(
             gql`
-        mutation MyMutation($id: uuid!, $chat_status: Boolean!) {
-            update_mentor_application_by_pk(
-                pk_columns: {id: $id},
-                _set: {chat_status: $chat_status}
-            ) {
-                chat_status
+            mutation MyMutation($id: uuid!, $chat_status: Boolean!) {
+                update_mentor_application_by_pk(
+                    pk_columns: {id: $id},
+                    _set: {chat_status: $chat_status}
+                ) {
+                    chat_status
+                }
             }
-        }
-        `,
+            `,
             {
                 id: id,
                 chat_status: true
@@ -1200,12 +1204,12 @@ router.put("/info/mentor/intro", authenticate(["counselor"]), async (req, res) =
 
         const user_query: any = await client.request(
             gql`
-        query MyQuery($realname: String!) {
-            users(where: {realname: {_eq: $realname}}) {
-                uuid
+            query MyQuery($realname: String!) {
+                users(where: {realname: {_eq: $realname}}) {
+                    uuid
+                }
             }
-        }
-        `,
+            `,
             {
                 realname: name
             }
@@ -1217,24 +1221,24 @@ router.put("/info/mentor/intro", authenticate(["counselor"]), async (req, res) =
 
         const add_mentor_mutation: any = await client.request(
             gql`
-        mutation MyMutation($achievement: String!, $background: String!, $field: String!, $intro: String!, $mentor_uuid: uuid!) {
-            insert_mentor_info_one(
-                object: {
-                    achievement: $achievement,
-                    background: $background,
-                    field: $field,
-                    intro: $intro,
-                    mentor_uuid: $mentor_uuid
-                },
-                on_conflict: {
-                    constraint: mentor_info_pkey,
-                    update_columns: [achievement, background, field, intro]
+            mutation MyMutation($achievement: String!, $background: String!, $field: String!, $intro: String!, $mentor_uuid: uuid!) {
+                insert_mentor_info_one(
+                    object: {
+                        achievement: $achievement,
+                        background: $background,
+                        field: $field,
+                        intro: $intro,
+                        mentor_uuid: $mentor_uuid
+                    },
+                    on_conflict: {
+                        constraint: mentor_info_pkey,
+                        update_columns: [achievement, background, field, intro]
+                    }
+                ) {
+                    mentor_uuid
                 }
-            ) {
-                mentor_uuid
             }
-        }
-        `,
+            `,
             {
                 achievement: achv,
                 background: bgnd,
@@ -1267,15 +1271,15 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
 
         const schedule_query: any = await client.request(
             gql`
-        query MyQuery($activateIn: Int!) {
-            mentor_time_by_pk(activateIn: $activateIn) {
-                start_C
-                end_C
-                start_D
-                end_D
+            query MyQuery($activateIn: Int!) {
+                mentor_time_by_pk(activateIn: $activateIn) {
+                    start_C
+                    end_C
+                    start_D
+                    end_D
+                }
             }
-        }
-        `,
+            `,
             {
                 activateIn: (new Date()).getFullYear()
             }
@@ -1295,19 +1299,19 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
 
         const freshman_query: any = await client.request(
             gql`
-        query MyQuery($uuid: uuid!, $year: Int!) {
-            freshman(
-                where: {
-                    _and: {
-                        uuid: {_eq: $uuid},
-                        year: {_eq: $year}
+            query MyQuery($uuid: uuid!, $year: Int!) {
+                freshman(
+                    where: {
+                        _and: {
+                            uuid: {_eq: $uuid},
+                            year: {_eq: $year}
+                        }
                     }
+                ) {
+                    uuid
                 }
-            ) {
-                uuid
             }
-        }
-        `,
+            `,
             {
                 uuid: user_uuid,
                 year: (new Date()).getFullYear()
@@ -1320,12 +1324,12 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
 
         const mentor_info_query: any = await client.request(
             gql`
-        query MyQuery($mentor_uuid: uuid!) {
-            mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
-                max_applicants
+            query MyQuery($mentor_uuid: uuid!) {
+                mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
+                    max_applicants
+                }
             }
-        }
-        `,
+            `,
             {
                 mentor_uuid: mentor_uuid
             }
@@ -1336,21 +1340,21 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
 
         const total_application_aggregate: any = await client.request(
             gql`
-        query MyQuery($mentor_uuid: uuid!, $year: Int!) {
-            mentor_application_aggregate(
-                where: {
-                    _and: {
-                        mentor_uuid: {_eq: $mentor_uuid},
-                        year: {_eq: $year}
+            query MyQuery($mentor_uuid: uuid!, $year: Int!) {
+                mentor_application_aggregate(
+                    where: {
+                        _and: {
+                            mentor_uuid: {_eq: $mentor_uuid},
+                            year: {_eq: $year}
+                        }
+                    }
+                ) {
+                    aggregate {
+                        count
                     }
                 }
-            ) {
-                aggregate {
-                    count
-                }
             }
-        }
-        `,
+            `,
             {
                 mentor_uuid: mentor_uuid,
                 year: (new Date()).getFullYear()
@@ -1363,23 +1367,23 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
 
         const add_application_mutation: any = await client.request(
             gql`
-        mutation MyMutation($mentor_uuid: uuid!, $student_uuid: uuid!, $statement: String!, $year: Int!) {
-            insert_mentor_application_one(
-                object: {
-                    mentor_uuid: $mentor_uuid,
-                    student_uuid: $student_uuid,
-                    statement: $statement,
-                    year: $year
-                },
-                on_conflict: {
-                    update_columns: statement,
-                    constraint: mentor_application_pkey1
+            mutation MyMutation($mentor_uuid: uuid!, $student_uuid: uuid!, $statement: String!, $year: Int!) {
+                insert_mentor_application_one(
+                    object: {
+                        mentor_uuid: $mentor_uuid,
+                        student_uuid: $student_uuid,
+                        statement: $statement,
+                        year: $year
+                    },
+                    on_conflict: {
+                        update_columns: statement,
+                        constraint: mentor_application_pkey1
+                    }
+                ) {
+                    id
                 }
-            ) {
-                id
             }
-        }
-        `,
+            `,
             {
                 mentor_uuid: mentor_uuid,
                 student_uuid: user_uuid,
@@ -1406,18 +1410,18 @@ router.put("/info/mentor/freshman", authenticate(["counselor"]), async (req, res
 
         const add_freshman_mutation: any = await client.request(
             gql`
-        mutation MyMutation($realname: String!, $student_no: String!, $year: Int!) {
-            insert_freshman_one(
-                object: {
-                    realname: $realname,
-                    student_no: $student_no,
-                    year: $year
+            mutation MyMutation($realname: String!, $student_no: String!, $year: Int!) {
+                insert_freshman_one(
+                    object: {
+                        realname: $realname,
+                        student_no: $student_no,
+                        year: $year
+                    }
+                ) {
+                    uuid
                 }
-            ) {
-                uuid
             }
-        }
-        `,
+            `,
             {
                 realname: name,
                 student_no: stid,
@@ -1443,15 +1447,15 @@ router.post("/info/mentor/delete", authenticate(["student"]), async (req, res) =
 
         const schedule_query: any = await client.request(
             gql`
-        query MyQuery($activateIn: Int!) {
-            mentor_time_by_pk(activateIn: $activateIn) {
-                start_C
-                end_C
-                start_D
-                end_D
+            query MyQuery($activateIn: Int!) {
+                mentor_time_by_pk(activateIn: $activateIn) {
+                    start_C
+                    end_C
+                    start_D
+                    end_D
+                }
             }
-        }
-        `,
+            `,
             {
                 activateIn: (new Date()).getFullYear()
             }
@@ -1471,13 +1475,14 @@ router.post("/info/mentor/delete", authenticate(["student"]), async (req, res) =
 
         const application_query: any = await client.request(
             gql`
-        query MyQuery($id: uuid!) {
-            mentor_application_by_pk(id: $id) {
-                student_uuid
-                year
+            query MyQuery($id: uuid!) {
+                mentor_application_by_pk(id: $id) {
+                    status
+                    student_uuid
+                    year
+                }
             }
-        }
-        `,
+            `,
             {
                 id: id
             }
@@ -1489,18 +1494,21 @@ router.post("/info/mentor/delete", authenticate(["student"]), async (req, res) =
         if (user_uuid !== application_query.mentor_application_by_pk.student_uuid) {
             return res.status(400).send("Error: Unauthorized");
         }
+        if (application_query.mentor_application_by_pk.status === "approved") {
+            return res.status(400).send("Error: Application has been approved");
+        }
         if ((new Date()).getFullYear() !== application_query.mentor_application_by_pk.year) {
             return res.status(400).send("Error: Invalid year");
         }
 
         const delete_application_mutation: any = await client.request(
             gql`
-        mutation MyMutation($id: uuid!) {
-            delete_mentor_application_by_pk(id: $id) {
-                id
+            mutation MyMutation($id: uuid!) {
+                delete_mentor_application_by_pk(id: $id) {
+                    id
+                }
             }
-        }
-        `,
+            `,
             {
                 id: id
             }
@@ -1515,233 +1523,4 @@ router.post("/info/mentor/delete", authenticate(["student"]), async (req, res) =
     }
 });
 
-router.get("/info/mentor/:year", async (req, res) => {
-    try {
-        const year: number = parseInt(req.params.year, 10);
-        if (isNaN(year)) {
-            return res.status(450).send("Error: Invalid year provided");
-        }
-        const mentor_info = await MentHasFunc.get_mentor_info_list();
-        if (!mentor_info) {
-            return res.status(451).send("Error: No mentor info found");
-        }
-        const info = await Promise.all(
-            mentor_info.map(async (mentor: any) => {
-                const applicationsCount = await MentHasFunc.get_mentor_applications_count(mentor.mentor_uuid, year);
-                const applicationsApprovedCount = await MentHasFunc.get_mentor_applications_approved_count(mentor.mentor_uuid, year);
-                return {
-                    ...mentor,
-                    total_applicants: applicationsCount,
-                    matched_applicants: applicationsApprovedCount
-                }
-            })
-        );
-        return res.status(200).send(info);
-    } catch (err) {
-        return res.status(500).send(err);
-    }
-})
-
-
-router.post("/mentor/insert_one", authenticate(["student"]), async (req, res) => {
-    try {
-        const mentor_uuid: string = req.body.mentor_uuid;
-        const student_uuid: string = req.body.student_uuid;
-        if (!mentor_uuid || !student_uuid) {
-            return res.status(456).send("Error: Invalid parameters provided");
-        }
-        const year: number = parseInt(req.body.year, 10);
-        if (isNaN(year)) {
-            return res.status(451).send("Error: Invalid year provided");
-        }
-        const statement: string = req.body.statement ?? "";
-
-        const mentor_info = await MentHasFunc.get_mentor_info(mentor_uuid);
-        if (!mentor_info) {
-            return res.status(452).send("Error: No mentor info found");
-        }
-        const mentor_applications_count = await MentHasFunc.get_mentor_applications_count(mentor_uuid, year);
-        if (mentor_applications_count >= mentor_info.max_applicants) {
-            return res.status(453).send("Error: Exceeds max_applicants");
-        }
-        const insert_id = await MentHasFunc.insert_mentor_application(mentor_uuid, student_uuid, year, statement);
-        if (!insert_id) {
-            return res.status(454).send("Error: Insert mentor application failed");
-        }
-        return res.status(200).send(insert_id);
-    } catch (err) {
-        console.log(err);
-        return res.status(500);
-    }
-})
-
-// /* 查询当年的新生导师申请时间段
-// * @return {time: {start_A, end_A, ..., start_E, end_E}}
-// */
-// router.get("/info/mentor", async (req, res) => {
-//     try {
-//         const year = new Date().getFullYear();
-//         const q_mentor_time: any = await client.request(
-//             gql`
-//                 query MyQuery($activateIn: Int!){
-//                     mentor_time_by_pk(activateIn: $activateIn) {
-//                         start_A
-//                         end_A
-//                         start_B
-//                         end_B
-//                         start_C
-//                         end_C
-//                         start_D
-//                         end_D
-//                         start_E
-//                         end_E
-//                     }
-//                 }
-//             `,
-//             {
-//                 activateIn: year
-//             }
-//         )
-//         if (!q_mentor_time?.mentor_time_by_pk) {
-//             return res.status(500).send("Error: No mentor time found");
-//         }
-//         return res.status(200).send({time: q_mentor_time.mentor_time_by_pk});
-//     } catch (err) {
-//         return res.status(500).send(err);
-//     }
-// })
-
-
-router.post("/mentor/update/status", authenticate(["counselor"]), async (req, res) => {
-    try {
-        const id: string = req.body.applyid;
-        const status: string = req.body.status;
-        if (!id || !status) {
-            return res.status(456).send("Error: Invalid parameters provided");
-        }
-        const application_status = await MentHasFunc.update_mentor_application_status(id, status);
-        if (!application_status) {
-            return res.status(455).send("Error: Application does not exist");
-        }
-        return res.status(200).send(application_status);
-    } catch (err) {
-        return res.status(500).send("Internal Server Error");
-    }
-});
-router.post("/mentor/update/statement", authenticate(["student"]), async (req, res) => {
-    try {
-        const id: string = req.body.applyid;
-        const statement: string = req.body.statement;
-        if (!id || !statement) {
-            return res.status(456).send("Error: Invalid parameters provided");
-        }
-        const application_statement = await MentHasFunc.update_mentor_application_statement(id, statement);
-        if (!application_statement) {
-            return res.status(455).send("Error: Application does not exist");
-        }
-        return res.status(200).send(application_statement);
-    } catch (err) {
-        return res.status(500).send("Internal Server Error");
-    }
-});
-router.post("/mentor/update/delete", authenticate(["student"]), async (req, res) => {
-    try {
-        const id: string = req.body.applyid;
-        if (!id) {
-            return res.status(456).send("Error: Invalid parameters provided");
-        }
-        const application_id = await MentHasFunc.delete_mentor_application(id);
-        if (!application_id) {
-            return res.status(455).send("Error: Application does not exist");
-        }
-        return res.status(200).send(application_id);
-    } catch (err) {
-        return res.status(500).send("Internal Server Error");
-    }
-});
-//ID here is the application ID
-router.post("/chat/update/status", authenticate(["counselor", "teacher"]), async (req, res) => {
-    try {
-        const id: string = req.body.applyid;
-        const status: boolean = req.body.chat_status;
-        if (!id || status === undefined || status === null) {
-            return res.status(456).send("Error: Invalid parameters provided");
-        }
-        const chat_status = await MentHasFunc.update_mentor_application_chat_status(id, status);
-        if (chat_status === null || chat_status === undefined) {
-            return res.status(455).send("Error: Application does not exist");
-        }
-        if (chat_status === true) {
-            return res.status(200).json({ chat_status: true });
-        }
-        else {
-            return res.status(200).json({ chat_status: false });
-        }
-    } catch (err) {
-        console.log(err)
-        return res.status(500).send("Internal Server Error");
-    }
-});
-//timestamp should be ISO 8601 format
-router.post("/mentor/update/schedule", authenticate(["counselor", "root"]), async (req, res) => {
-    try {
-        const year: number = req.body.year;
-        const start_A_string: string = req.body.start_A;
-        const start_B_string: string = req.body.start_B;
-        const start_C_string: string = req.body.start_C;
-        const start_D_string: string = req.body.start_D;
-        const start_E_string: string = req.body.start_E;
-        const end_A_string: string = req.body.end_A;
-        const end_B_string: string = req.body.end_B;
-        const end_C_string: string = req.body.end_C;
-        const end_D_string: string = req.body.end_D;
-        const end_E_string: string = req.body.end_E;
-        if (!year || !start_A_string || !start_B_string || !start_C_string || !start_D_string || !start_E_string || !end_A_string || !end_B_string || !end_C_string || !end_D_string || !end_E_string) {
-            return res.status(456).send("Error: Invalid parameters provided");
-        }
-        const start_A = new Date(start_A_string);
-        const start_B = new Date(start_B_string);
-        const start_C = new Date(start_C_string);
-        const start_D = new Date(start_D_string);
-        const start_E = new Date(start_E_string);
-        const end_A = new Date(end_A_string);
-        const end_B = new Date(end_B_string);
-        const end_C = new Date(end_C_string);
-        const end_D = new Date(end_D_string);
-        const end_E = new Date(end_E_string);
-        const activateIn: number = await MentHasFunc.insert_mentor_application_schedule(year, start_A, start_B, start_C, start_D, start_E, end_A, end_B, end_C, end_D, end_E);
-        if (!activateIn) {
-            throw new Error();
-        }
-        return res.status(200).send(activateIn.toString());
-    } catch (err) {
-        console.log(err)
-        return res.status(500).send("Internal Server Error");
-    }
-});
-router.post("/freshman/update/info_list", authenticate(["counselor", "root"]), async (req, res) => {
-    try {
-        const info_list = req.body.info_list;
-        if (!info_list) {
-            return res.status(456).send("Error: Invalid parameters provided");
-        }
-        const freshman_list = Array<MentHasFunc.Freshman_Insert_Input>();
-        for (let i = 0; i < info_list.length; i++) {
-            freshman_list.push({
-                uuid: info_list[i].uuid,
-                realname: info_list[i].realname,
-                student_no: info_list[i].student_no,
-                year: info_list[i].year
-            });
-        }
-        const affected_rows: number = await MentHasFunc.insert_freshman_info_list(info_list);
-        if (!affected_rows) {
-            throw new Error();
-        }
-        return res.status(200).send(affected_rows.toString());
-    } catch (err) {
-        console.log(err)
-        return res.status(500).send("Internal Server Error");
-    }
-});
 export default router;

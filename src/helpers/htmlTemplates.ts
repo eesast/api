@@ -254,7 +254,7 @@ export const verifyEmailTemplate = (verificationCode: string) => {
                     <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                     <tr>
                         <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2020 EESAST</div>
+                        <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2024 EESAST</div>
                         </td>
                     </tr>
                     </table>
@@ -536,7 +536,7 @@ export const resetPasswordTemplate = (verificationCode: string) => {
                     <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                     <tr>
                         <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                        <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2020 EESAST</div>
+                        <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2024 EESAST</div>
                         </td>
                     </tr>
                     </table>
@@ -823,7 +823,7 @@ export const newMentorApplicationTemplate = (
                       <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                       <tr>
                           <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                          <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2020 EESAST</div>
+                          <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2024 EESAST</div>
                           </td>
                       </tr>
                       </table>
@@ -1110,7 +1110,7 @@ export const updateMentorApplicationTemplate = (
                         <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                         <tr>
                             <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                            <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2020 EESAST</div>
+                            <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2024 EESAST</div>
                             </td>
                         </tr>
                         </table>
@@ -1397,7 +1397,7 @@ export const messageReceiveTemplate = (
                           <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                           <tr>
                               <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                              <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2020 EESAST</div>
+                              <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';font-size:18px;line-height:1.4;text-align:center;color:#000000;">© 2024 EESAST</div>
                               </td>
                           </tr>
                           </table>
