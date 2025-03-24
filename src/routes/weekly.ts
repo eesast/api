@@ -7,31 +7,30 @@ import * as fs from "fs/promises";
 import * as uuid from "../helpers/uuid";
 import { get_newest_weekly, get_newest_weekly_id, add_weekly_list, WeeklyPost } from "../hasura/share"
 import authenticate from "../middlewares/authenticate";
+import { Agent } from "https";
 const router = express.Router();
 const weixinSpider = async (headers: any, params: any, filename: string) => {
   const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
-  let fcontrol = 0;
+  let fcontrol :boolean = false;
   const base_directory = await utils.get_base_directory();
   try {
     console.log("Spider Start")
     const new_weekly_list: any[] = [];
     let i: number = 0;
-    let failed: boolean = false;
     outerloop:
-    while (!failed) {
+    while (!fcontrol) {
       params["begin"] = (i * 5).toString();
       i++;
       await new Promise(resolve => setTimeout(resolve, Math.random() * 9000 + 1000)); // 等待 1 到 10 秒之间的随机时间
       const response = await axios.get(url, {
         headers,
         params,
-        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
+        httpsAgent: new Agent({ rejectUnauthorized: false })
       });
       const data = response.data;
       if (data.base_resp.ret === 200013) {
         console.log(`Frequency control, stop at ${params["begin"]}`);
-        failed = true;
-        fcontrol = 1;
+        fcontrol = true;
         break;
       }
       if (!data.app_msg_list || data.app_msg_list.length === 0) {
@@ -43,7 +42,7 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
       for (const item of data.app_msg_list) {
         if (new Date(item.create_time * 1000) < newest_weekly_date) break outerloop;
         if (item.title.includes("SAST Weekly")) {
-          let new_item: WeeklyPost = {
+          const new_item: WeeklyPost = {
             title: item.title,
             url: item.link,
             date: new Date(item.create_time * 1000),
