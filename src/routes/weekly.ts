@@ -6,11 +6,14 @@ import * as utils from "../helpers/utils";
 import * as fs from "fs/promises";
 import * as uuid from "../helpers/uuid";
 import { get_newest_weekly, get_newest_weekly_id, add_weekly_list, WeeklyPost } from "../hasura/share"
+import authenticate from "../middlewares/authenticate";
 import { finished } from "stream";
+import { FAILSAFE_SCHEMA } from "js-yaml";
 const router = express.Router();
 const weixinSpider = async (headers: any, params: any, filename: string) => {
   const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
   let fcontrol = 0;
+  const base_directory = await utils.get_base_directory();
   try {
     console.log("Spider Start")
     const new_weekly_list: any[] = [];
@@ -58,7 +61,6 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
       await add_weekly_list(new_weekly_list);
     }
     //using uuid as the files name
-    const base_directory = await utils.get_base_directory();
     if (!await utils.checkPathExists(`${base_directory}/weixinSpiderStatus`)) {
       await fs.mkdir(`${base_directory}/weixinSpiderStatus`);
     }
@@ -67,17 +69,20 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
   }
   catch (error) {
     console.error('Error fetching articles:', error);
+    await fs.writeFile(`${base_directory}/weixinSpiderStatus/${filename}-failed`, "");
   }
 }
 
-router.post("/check", async (req, res) => {
+router.post("/check", authenticate(["admin","counselor"]), async (req, res) => {
   try {
     const filename: string = req.body.filename;
     const base_directory = await utils.get_base_directory();
     if (await utils.checkPathExists(`${base_directory}/weixinSpiderStatus/${filename}`)) {
-      return res.status(200).json({ finished: true });
+      return res.status(200).json({ finished: true , failed: false});
+    } else if (await utils.checkPathExists(`${base_directory}/weixinSpiderStatus/${filename}-failed`)) {
+      return res.status(200).json({ finished: false , failed: true});
     } else {
-      return res.status(200).json({ finished: false });
+      return res.status(200).json({ finished: false , failed: false});
     }
   }
   catch (err) {
@@ -85,7 +90,7 @@ router.post("/check", async (req, res) => {
   }
 })
 
-router.post("/renew", async (req, res) => {
+router.post("/renew", authenticate(["admin","counselor"]), async (req, res) => {
 
   try {
     // 设置 headers
