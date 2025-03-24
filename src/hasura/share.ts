@@ -1,6 +1,5 @@
 import { gql } from "graphql-request";
 import { client } from "..";
-import exp from "constants";
 
 type WeeklyPost = {
     id: number;

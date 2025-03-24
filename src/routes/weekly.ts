@@ -7,8 +7,6 @@ import * as fs from "fs/promises";
 import * as uuid from "../helpers/uuid";
 import { get_newest_weekly, get_newest_weekly_id, add_weekly_list, WeeklyPost } from "../hasura/share"
 import authenticate from "../middlewares/authenticate";
-import { finished } from "stream";
-import { FAILSAFE_SCHEMA } from "js-yaml";
 const router = express.Router();
 const weixinSpider = async (headers: any, params: any, filename: string) => {
   const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
@@ -18,8 +16,9 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
     console.log("Spider Start")
     const new_weekly_list: any[] = [];
     let i: number = 0;
+    let failed: boolean = false;
     outerloop:
-    while (true) {
+    while (!failed) {
       params["begin"] = (i * 5).toString();
       i++;
       await new Promise(resolve => setTimeout(resolve, Math.random() * 9000 + 1000)); // 等待 1 到 10 秒之间的随机时间
@@ -31,6 +30,7 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
       const data = response.data;
       if (data.base_resp.ret === 200013) {
         console.log(`Frequency control, stop at ${params["begin"]}`);
+        failed = true;
         fcontrol = 1;
         break;
       }
