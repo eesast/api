@@ -52,6 +52,7 @@ interface IApplication {
 interface IFreshman {
     name: string;       // 学生姓名
     stid: string;       // 学生学号
+    is_mem: boolean; // 是否参与积极分子谈话
     uuid?: string;      // 学生uuid
 }
 
@@ -341,7 +342,7 @@ router.get("/info/mentor/mentor_list", authenticate(["student", "teacher", "coun
     if (role === "student" || role === "teacher") {
         return res.status(200).send(mentors.filter((mentor: IMentor) => mentor.avail || mentor.uuid === user_uuid));
     } else if (role === "counselor") {
-        return res.status(200).send(mentors);
+        return res.status(200).send(mentors.sort((a: IMentor, b: IMentor) => a.uuid > b.uuid ? 1 : -1));
     } else {
         return res.status(400).send("Error: Unauthorized");
     }
@@ -429,13 +430,10 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
         if (role === "student") {
             const application_query: any = await client.request(
                 gql`
-                query MyQuery($student_uuid: uuid!, $year: Int!) {
+                query MyQuery($student_uuid: uuid!) {
                     mentor_application(
                         where: {
-                            _and: {
-                                student_uuid: {_eq: $student_uuid},
-                                year: {_eq: $year}
-                            }
+                            student_uuid: {_eq: $student_uuid}
                         }
                     ) {
                         chat_status
@@ -454,11 +452,10 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                             realname
                         }
                     }
-                    }
+                }
                 `,
                 {
-                    student_uuid: user_uuid,
-                    year: (new Date()).getFullYear()
+                    student_uuid: user_uuid
                 }
             );
             const applications: IApplication[] = application_query.mentor_application.map((app: any) => {
@@ -487,13 +484,10 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
         } else if (role === "teacher") {
             const applications_query: any = await client.request(
                 gql`
-                query MyQuery($mentor_uuid: uuid!, $year: Int!) {
+                query MyQuery($mentor_uuid: uuid!) {
                     mentor_application(
                         where: {
-                            _and: {
-                                mentor_uuid: {_eq: $mentor_uuid},
-                                year: {_eq: $year}
-                            }
+                            mentor_uuid: {_eq: $mentor_uuid}
                         }
                     ) {
                         chat_status
@@ -518,8 +512,7 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                     }
                 `,
                 {
-                    mentor_uuid: user_uuid,
-                    year: (new Date()).getFullYear()
+                    mentor_uuid: user_uuid
                 }
             );
             const applications: IApplication[] = applications_query.mentor_application.map((app: any) => {
@@ -547,11 +540,12 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                 return application;
             });
             return res.status(200).send(applications);
+
         } else if (role === "counselor") {
             const applications_query: any = await client.request(
                 gql`
-                query MyQuery($year: Int!) {
-                    mentor_application(where: {year: {_eq: $year}}) {
+                query MyQuery {
+                    mentor_application {
                         chat_status
                         chat_confirm
                         chat_time
@@ -579,10 +573,7 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                         }
                     }
                 }
-                `,
-                {
-                    year: (new Date()).getFullYear()
-                }
+                `
             );
             const applications: IApplication[] = applications_query.mentor_application.map((app: any) => {
                 const mentor: IMentor = {
@@ -616,7 +607,7 @@ router.get("/info/mentor/applications", authenticate(["student", "teacher", "cou
                 }
                 return application;
             });
-            return res.status(200).send(applications);
+            return res.status(200).send(applications.sort((a: IApplication, b: IApplication) => a.id > b.id ? -1 : 1));
         } else {
             return res.status(400).send("Error: Unauthorized");
         }
@@ -779,7 +770,7 @@ router.get("/info/mentor/freshmen", authenticate(["student", "counselor"]), asyn
                             }
                         }
                     ) {
-                        uuid
+                        is_member
                     }
                 }
                 `,
@@ -795,7 +786,8 @@ router.get("/info/mentor/freshmen", authenticate(["student", "counselor"]), asyn
             const freshman: IFreshman = {
                 name: realname,
                 stid: student_no,
-                uuid: user_uuid
+                uuid: user_uuid,
+                is_mem: freshman_query.freshman[0].is_member
             }
             return res.status(200).send([freshman]);
 
@@ -807,6 +799,7 @@ router.get("/info/mentor/freshmen", authenticate(["student", "counselor"]), asyn
                         realname
                         student_no
                         uuid
+                        is_member
                     }
                 }
                 `,
@@ -839,6 +832,7 @@ router.get("/info/mentor/freshmen", authenticate(["student", "counselor"]), asyn
                     const student: IFreshman = {
                         name: freshman.realname,
                         stid: freshman.student_no,
+                        is_mem: freshman.is_member,
                         uuid: user_query.users.length > 0 ? user_query.users[0].uuid : undefined
                     }
                     return student;
@@ -895,9 +889,11 @@ router.post("/info/mentor/schedule", authenticate(["counselor"]), async (req, re
 });
 
 // 更新导师可申请状态
-router.post("/info/mentor/avail", authenticate(["teacher"]), async (req, res) => {
+router.post("/info/mentor/avail", authenticate(["teacher", "counselor"]), async (req, res) => {
     try {
         const available: boolean = req.body.available;
+        const role: string = req.auth.user.role;
+        const mentor_uuid: string = role === "teacher" ? req.auth.user.uuid : req.body.mentor_uuid;
         const update_avail_mutation: any = await client.request(
             gql`
             mutation MyMutation($mentor_uuid: uuid!, $available: Boolean!) {
@@ -910,7 +906,7 @@ router.post("/info/mentor/avail", authenticate(["teacher"]), async (req, res) =>
             }
             `,
             {
-                mentor_uuid: req.auth.user.uuid,
+                mentor_uuid: mentor_uuid,
                 available: available
             }
         );
@@ -925,10 +921,12 @@ router.post("/info/mentor/avail", authenticate(["teacher"]), async (req, res) =>
 });
 
 // 更新导师可申请数量
-router.post("/info/mentor/max_app", authenticate(["teacher"]), async (req, res) => {
+router.post("/info/mentor/max_app", authenticate(["teacher", "counselor"]), async (req, res) => {
     try {
         const max_applicants: number = req.body.max_applicants;
-        if (max_applicants < 1 || max_applicants > 5) {
+        const role: string = req.auth.user.role;
+        const mentor_uuid: string = role === "teacher" ? req.auth.user.uuid : req.body.mentor_uuid;
+        if (max_applicants < 5 || max_applicants > 10) {
             return res.status(400).send("Error: Invalid max_applicants");
         }
         const update_max_app_mutation: any = await client.request(
@@ -943,7 +941,7 @@ router.post("/info/mentor/max_app", authenticate(["teacher"]), async (req, res) 
             }
             `,
             {
-                mentor_uuid: req.auth.user.uuid,
+                mentor_uuid: mentor_uuid,
                 max_applicants: max_applicants
             }
         );
@@ -958,9 +956,11 @@ router.post("/info/mentor/max_app", authenticate(["teacher"]), async (req, res) 
 });
 
 // 更新导师是否参与党员谈话
-router.post("/info/mentor/member", authenticate(["teacher"]), async (req, res) => {
+router.post("/info/mentor/member", authenticate(["teacher", "counselor"]), async (req, res) => {
     try {
         const is_member: boolean = req.body.is_member;
+        const role: string = req.auth.user.role;
+        const mentor_uuid: string = role === "teacher" ? req.auth.user.uuid : req.body.mentor_uuid;
         const update_member_mutation: any = await client.request(
             gql`
             mutation MyMutation($mentor_uuid: uuid!, $is_member: Boolean!) {
@@ -973,7 +973,7 @@ router.post("/info/mentor/member", authenticate(["teacher"]), async (req, res) =
             }
             `,
             {
-                mentor_uuid: req.auth.user.uuid,
+                mentor_uuid: mentor_uuid,
                 is_member: is_member
             }
         );
@@ -988,16 +988,15 @@ router.post("/info/mentor/member", authenticate(["teacher"]), async (req, res) =
 });
 
 // 更新导师介绍
-router.post("/info/mentor/intro", authenticate(["teacher"]), async (req, res) => {
+router.post("/info/mentor/intro", authenticate(["teacher", "counselor"]), async (req, res) => {
     try {
+        const role: string = req.auth.user.role;
+        const mentor_uuid: string = role === "teacher" ? req.auth.user.uuid : req.body.mentor_uuid;
         const achv: string = req.body.achv;
         const bgnd: string = req.body.bgnd;
         const flds: string = req.body.flds;
         const intr: string = req.body.intr;
         const dig_type: string = req.body.dig_type;
-        if (achv.length == 0 || bgnd.length == 0 || flds.length == 0 || intr.length == 0) {
-            return res.status(400).send("Error: Invalid intro");
-        }
 
         const update_intro_mutation: any = await client.request(
             gql`
@@ -1015,7 +1014,7 @@ router.post("/info/mentor/intro", authenticate(["teacher"]), async (req, res) =>
             }
             `,
             {
-                mentor_uuid: req.auth.user.uuid,
+                mentor_uuid: mentor_uuid,
                 achievement: achv,
                 background: bgnd,
                 field: flds,
@@ -1034,7 +1033,7 @@ router.post("/info/mentor/intro", authenticate(["teacher"]), async (req, res) =>
 });
 
 // 更新申请状态
-router.post("/info/mentor/status", authenticate(["teacher"]), async (req, res) => {
+router.post("/info/mentor/status", authenticate(["teacher", "counselor"]), async (req, res) => {
     try {
         const id: string = req.body.id;  // 申请id
         const status: string = req.body.status;  // 申请状态
@@ -1072,8 +1071,8 @@ router.post("/info/mentor/status", authenticate(["teacher"]), async (req, res) =
             gql`
             query MyQuery($id: uuid!) {
                 mentor_application_by_pk(id: $id) {
-                mentor_uuid
-                year
+                    mentor_uuid
+                    year
                 }
             }
             `,
@@ -1120,15 +1119,14 @@ router.post("/info/mentor/status", authenticate(["teacher"]), async (req, res) =
     }
 });
 
-// 更新申请
+// 更新申请陈述
 router.post("/info/mentor/application", authenticate(["student"]), async (req, res) => {
     try {
         const id: string = req.body.id;
         const statement: string = req.body.statement;
-        const is_member: boolean = req.body.is_member;
         const user_uuid: string = req.auth.user.uuid;
 
-        if (statement.length == 0) {
+        if (statement.length === 0) {
             return res.status(400).send("Error: Invalid statement");
         }
 
@@ -1190,23 +1188,18 @@ router.post("/info/mentor/application", authenticate(["student"]), async (req, r
 
         const update_application_mutation: any = await client.request(
             gql`
-            mutation MyMutation($id: uuid!, $statement: String!, $is_member: Boolean!) {
+            mutation MyMutation($id: uuid!, $statement: String!) {
                 update_mentor_application_by_pk(
                     pk_columns: {id: $id},
-                    _set: {
-                        statement: $statement,
-                        is_member: $is_member
-                    }
+                    _set: {statement: $statement}
                 ) {
                     statement
-                    is_member
                 }
             }
             `,
             {
                 id: id,
-                statement: statement,
-                is_member: is_member
+                statement: statement
             }
         );
 
@@ -1222,10 +1215,11 @@ router.post("/info/mentor/application", authenticate(["student"]), async (req, r
 });
 
 // 更新谈话状态
-router.post("/info/mentor/chat", authenticate(["student"]), async (req, res) => {
+router.post("/info/mentor/chat", authenticate(["student", "counselor"]), async (req, res) => {
     try {
         const id: string = req.body.id;
         const user_uuid: string = req.auth.user.uuid;
+        const role: string = req.auth.user.role;
 
         const application_query: any = await client.request(
             gql`
@@ -1245,7 +1239,7 @@ router.post("/info/mentor/chat", authenticate(["student"]), async (req, res) => 
         if (!application_query.mentor_application_by_pk) {
             return res.status(400).send("Error: Application not found");
         }
-        if (user_uuid !== application_query.mentor_application_by_pk.student_uuid) {
+        if (role !== "counselor" && user_uuid !== application_query.mentor_application_by_pk.student_uuid) {
             return res.status(400).send("Error: Unauthorized");
         }
         if (application_query.mentor_application_by_pk.status !== "approved") {
@@ -1421,7 +1415,7 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
         const is_member: boolean = req.body.is_member;
         const user_uuid: string = req.auth.user.uuid;
 
-        if (statement.length == 0) {
+        if (statement.length === 0) {
             return res.status(400).send("Error: Invalid statement");
         }
 
@@ -1465,6 +1459,7 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
                     }
                 ) {
                     uuid
+                    is_member
                 }
             }
             `,
@@ -1474,8 +1469,11 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
             }
 
         );
-        if (!freshman_query.freshman) {
+        if (freshman_query.freshman.length === 0) {
             return res.status(400).send("Error: Freshman not found");
+        }
+        if (!freshman_query.freshman[0].is_member && is_member) {
+            return res.status(400).send("Error: Freshman not member");
         }
 
         const application_query: any = await client.request(
@@ -1502,6 +1500,7 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
             query MyQuery($mentor_uuid: uuid!) {
                 mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
                     max_applicants
+                    is_member
                 }
             }
             `,
@@ -1511,6 +1510,10 @@ router.put("/info/mentor/application", authenticate(["student"]), async (req, re
         );
         if (!mentor_info_query.mentor_info_by_pk) {
             return res.status(400).send("Error: Mentor not found");
+        }
+
+        if (!mentor_info_query.mentor_info_by_pk.is_member && is_member) {
+            return res.status(400).send("Error: Mentor not member");
         }
 
         const total_application_aggregate: any = await client.request(
@@ -1580,15 +1583,17 @@ router.put("/info/mentor/freshman", authenticate(["counselor"]), async (req, res
     try {
         const name: string = req.body.name;
         const stid: string = req.body.stid;
+        const is_mem: boolean = req.body.is_mem;
 
         const add_freshman_mutation: any = await client.request(
             gql`
-            mutation MyMutation($realname: String!, $student_no: String!, $year: Int!) {
+            mutation MyMutation($realname: String!, $student_no: String!, $year: Int!, $is_member: Boolean!) {
                 insert_freshman_one(
                     object: {
                         realname: $realname,
                         student_no: $student_no,
-                        year: $year
+                        year: $year,
+                        is_member: $is_member
                     }
                 ) {
                     uuid
@@ -1598,7 +1603,8 @@ router.put("/info/mentor/freshman", authenticate(["counselor"]), async (req, res
             {
                 realname: name,
                 student_no: stid,
-                year: (new Date()).getFullYear()
+                year: (new Date()).getFullYear(),
+                is_member: is_mem
             }
         );
 
