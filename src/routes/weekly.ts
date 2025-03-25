@@ -72,7 +72,7 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
   }
 }
 
-router.post("/check", authenticate(["admin","counselor"]), async (req, res) => {
+router.post("/check", authenticate(["counselor"]), async (req, res) => {
   try {
     const filename: string = req.body.filename;
     const base_directory = await utils.get_base_directory();
@@ -89,7 +89,7 @@ router.post("/check", authenticate(["admin","counselor"]), async (req, res) => {
   }
 })
 
-router.post("/renew", authenticate(["admin","counselor"]), async (req, res) => {
+router.post("/renew", authenticate(["counselor"]), async (req, res) => {
 
   try {
     // 设置 headers
