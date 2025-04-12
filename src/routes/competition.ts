@@ -734,10 +734,13 @@ router.post("/finish-one", async (req, res) => {
 
       const game_scores: number[] = req.body.scores;
       const game_status: string = req.body.status;
+      const player_roles: string[][] = req.body.player_roles;
+      const extra: string | string[] = req.body.extra;
+      const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
 
       console.log("result: ", game_scores);
       if (game_status === 'Finished') {
-        const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
+        //const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
 
         console.debug("room_id: ", room_id);
         console.debug("contest_id: ", contest_id);
@@ -747,8 +750,16 @@ router.post("/finish-one", async (req, res) => {
           ContHasFunc.update_room_team_score(room_id, team_id, game_scores[index]));
         await Promise.all(update_room_team_score_promises);
 
+
         await ContHasFunc.update_room_status(room_id, "Finished");
         console.log("Update room team score!")
+
+        if (!player_roles || player_roles.length ===0){
+          return res.status(400).send("400 Bad Request: Player roles cannot be empty");
+        } 
+        await ContHasFunc.update_room_team_player_roles(room_id, team_ids, player_roles);
+        console.log("Update room team player roles!")
+
 
         // const origin_result: utils.TeamResult[] = await ContHasFunc.get_teams_contest_score(team_ids);
         // console.debug("origin_result: ", origin_result);
@@ -767,6 +778,11 @@ router.post("/finish-one", async (req, res) => {
         // console.log("Update team score!")
       } else if (game_status === 'Crashed') {
         await ContHasFunc.update_room_status(room_id, "Crashed");
+
+        if (player_roles && player_roles.length >= 0){
+          await ContHasFunc.update_room_team_player_roles(room_id, team_ids, player_roles);
+          console.log("Update room team player roles!")
+        }
       }
 
 
@@ -797,6 +813,36 @@ router.post("/finish-one", async (req, res) => {
             return res.status(500).send("500 Internal Server Error: File upload failed");
           }
           console.log("Files uploaded!")
+
+          if (
+            extra &&
+            (
+              (typeof extra === 'string' && extra.trim() !== '') ||
+              (Array.isArray(extra) && extra.length > 0)
+            )
+          ) {
+            const extraArray = Array.isArray(extra) ? extra : [extra];
+            const extraUploadPromises = extraArray.map((content, index) => {
+              const extraFileName = `extra${index + 1}.txt`;
+              const localFilePath = `${base_directory}/${contest_name}/competition/${room_id}/output/${extraFileName}`;
+              const key = `${contest_name}/competition/${round_id}/${room_id}/${extraFileName}`;
+              return fs.writeFile(localFilePath, content)
+                .then(() => COS.uploadObject(localFilePath, key, cos, config))
+                .then(() => {
+                  console.log(`Uploaded ${extraFileName} to COS`);
+                  return true;
+                })
+                .catch((err) => {
+                  console.log(`Upload ${extraFileName} failed: ${err}`);
+                  return false;
+                });
+            });
+            const extraUploadResults = await Promise.all(extraUploadPromises);
+            if (extraUploadResults.some(result => !result)) {
+              return res.status(500).send("500 Internal Server Error: Extra file upload failed");
+            }
+            console.log("Extra files uploaded!");
+          }
 
         } catch (err) {
           return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);

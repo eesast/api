@@ -363,7 +363,7 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
   const count_room_from_team: any = await client.request(
     gql`
       query count_room($contest_id: uuid!, $team_id: uuid!) {
-        contest_room_team_aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, status: {_in: [ "Waiting", "Running" ]}}}}}) {
+        _aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, status: {_in: [ "Waiting", "Running" ]}}}}}) {
           aggregate {
             count
           }
@@ -1244,6 +1244,40 @@ export const update_room_team_score: any = async (room_id: string, team_id: stri
   return update_room_team_score.update_contest_room_team.affected_rows;
 }
 
+
+/**
+ * update room_team player roles
+ * @param {string} room_id
+ * @param {string[]} team_ids
+ * @param {string[][]} player_roles
+ */
+export const update_room_team_player_roles: any = async (room_id: string, team_ids: string[], player_roles: string[][]) => {
+  let totalAffectedRows = 0;
+
+  for (let i = 0; i < team_ids.length; i++) {
+    const mutation = gql`
+      mutation update_team_player_roles($room_id: uuid!, $team_id: uuid!, $player_roles: String!) {
+        update_contest_room_team(
+          where: { _and: { room_id: { _eq: $room_id }, team_id: { _eq: $team_id } } },
+          _set: { player_roles: $player_roles }
+        ) {
+          affected_rows
+        }
+      }
+    `;
+
+    const variables = {
+      room_id,
+      team_id: team_ids[i],
+      player_roles: JSON.stringify(player_roles[i]),
+    };
+
+    const result: any = await client.request(mutation, variables);
+    totalAffectedRows += result.update_contest_room_team.affected_rows;
+  }
+
+  return totalAffectedRows;
+};
 
 /**
  * update room created_at time
