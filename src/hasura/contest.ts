@@ -1246,6 +1246,40 @@ export const update_room_team_score: any = async (room_id: string, team_id: stri
 
 
 /**
+ * update room_team player roles
+ * @param {string} room_id
+ * @param {string[]} team_ids
+ * @param {string[][]} player_roles
+ */
+export const update_room_team_player_roles: any = async (room_id: string, team_ids: string[], player_roles: string[][]) => {
+  let totalAffectedRows = 0;
+
+  for (let i = 0; i < team_ids.length; i++) {
+    const mutation = gql`
+      mutation update_team_player_roles($room_id: uuid!, $team_id: uuid!, $player_roles: String!) {
+        update_contest_room_team(
+          where: { _and: { room_id: { _eq: $room_id }, team_id: { _eq: $team_id } } },
+          _set: { player_roles: $player_roles }
+        ) {
+          affected_rows
+        }
+      }
+    `;
+
+    const variables = {
+      room_id,
+      team_id: team_ids[i],
+      player_roles: JSON.stringify(player_roles[i]),
+    };
+
+    const result: any = await client.request(mutation, variables);
+    totalAffectedRows += result.update_contest_room_team.affected_rows;
+  }
+
+  return totalAffectedRows;
+};
+
+/**
  * update room created_at time
  * @param {string} room_id
  * @param {string} created_at
