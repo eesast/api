@@ -779,7 +779,7 @@ router.post("/finish-one", async (req, res) => {
       } else if (game_status === 'Crashed') {
         await ContHasFunc.update_room_status(room_id, "Crashed");
 
-        if (player_roles && player_roles.length >= 0){
+        if (player_roles && player_roles.length > 0){
           await ContHasFunc.update_room_team_player_roles(room_id, team_ids, player_roles);
           console.log("Update room team player roles!")
         }
