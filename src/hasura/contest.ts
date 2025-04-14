@@ -363,7 +363,7 @@ export const count_room_team: any = async (contest_id: string, team_id: string) 
   const count_room_from_team: any = await client.request(
     gql`
       query count_room($contest_id: uuid!, $team_id: uuid!) {
-        _aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, status: {_in: [ "Waiting", "Running" ]}}}}}) {
+        contest_room_team_aggregate(where: {_and: {team_id: {_eq: $team_id}, contest_room: {_and: {contest_id: {_eq: $contest_id}, status: {_in: [ "Waiting", "Running" ]}}}}}) {
           aggregate {
             count
           }
