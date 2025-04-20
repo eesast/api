@@ -219,8 +219,12 @@ router.post("/register-new", async(req, res) => {
     if (!RI.role || !RI.name || !RI.password) {
       return res.status(422).send("422 Unprocessable Entity");
     }
-    // 所有角色均需同时验证邮箱和手机
-    if (!RI.verificationEmailCode || !RI.verificationEmailToken || !RI.verificationPhoneCode || !RI.verificationPhoneToken) {
+    // // 所有角色均需同时验证邮箱和手机
+    // 手机短信服务 G 了
+    // if (!RI.verificationEmailCode || !RI.verificationEmailToken || !RI.verificationPhoneCode || !RI.verificationPhoneToken) {
+    //   return res.status(422).send("422 Unprocessable Entity");
+    // }
+    if (!RI.verificationEmailCode || !RI.verificationEmailToken) {
       return res.status(422).send("422 Unprocessable Entity");
     }
     // 角色只能是 student, teacher, guest
@@ -248,15 +252,17 @@ router.post("/register-new", async(req, res) => {
     if (!validEmail) {
       return res.status(401).send("401 Unauthorized: Verification code does not match");
     }
-    // 检查手机验证码并获取手机号
-     const phoneDecoded: JwtVerifyPayload = jwt.verify(RI.verificationPhoneToken, process.env.SECRET!) as JwtVerifyPayload;
-      if (!phoneDecoded.phone) {
-        return res.status(422).send("422 Unprocessable Entity");
-      }
-      const validPhone = await bcrypt.compare(RI.verificationPhoneCode, phoneDecoded.code);
-      if (!validPhone) {
-        return res.status(401).send("401 Unauthorized: Verification code does not match");
-      }
+    // // 检查手机验证码并获取手机号
+    // 手机号 G 了
+    // const phoneDecoded: JwtVerifyPayload = jwt.verify(RI.verificationPhoneToken, process.env.SECRET!) as JwtVerifyPayload;
+    // if (!phoneDecoded.phone) {
+    //   return res.status(422).send("422 Unprocessable Entity");
+    // }
+    // const validPhone = await bcrypt.compare(RI.verificationPhoneCode, phoneDecoded.code);
+    // if (!validPhone) {
+    //   return res.status(401).send("401 Unauthorized: Verification code does not match");
+    // }
+
     // 检查数据是否符合规范
     if (RI.role === "student") {
       if (!validator.__ValidateStudentEmail(emailDecoded.email)) {
@@ -277,9 +283,9 @@ router.post("/register-new", async(req, res) => {
         return res.status(400).send("400 Bad Request: Invalid email format");
       }
     }
-    if (!validator.__ValidatePhone(phoneDecoded.phone)) {
-      return res.status(400).send("400 Bad Request: Invalid phone format");
-    }
+    // if (!validator.__ValidatePhone(phoneDecoded.phone)) {
+    //   return res.status(400).send("400 Bad Request: Invalid phone format");
+    // }
     if (!validator.__ValidateName(RI.name)) {
       return res.status(400).send("400 Bad Request: Invalid name format");
     }
@@ -289,10 +295,10 @@ router.post("/register-new", async(req, res) => {
     if (emailExist) {
       return res.status(409).send("409 Conflict: Email already exists");
     }
-    const phoneExist = await validator.__ValidatePhoneRegistered(phoneDecoded.phone);
-    if (phoneExist) {
-      return res.status(409).send("409 Conflict: Phone already exists");
-    }
+    // const phoneExist = await validator.__ValidatePhoneRegistered(phoneDecoded.phone);
+    // if (phoneExist) {
+    //   return res.status(409).send("409 Conflict: Phone already exists");
+    // }
     if (RI.role === "student") {
       const studentIDExist = await validator.__ValidateStudentIDRegistered(RI.studentID as string);
       if (studentIDExist) {
@@ -340,7 +346,8 @@ router.post("/register-new", async(req, res) => {
           department: RI.depart,
           email: emailDecoded.email,
           password: password_hash,
-          phone: phoneDecoded.phone,
+          // phone: phoneDecoded.phone,
+          phone: undefined,
           realname: RI.name,
           role: "student",
           student_no: RI.studentID,
@@ -376,7 +383,8 @@ router.post("/register-new", async(req, res) => {
           department: RI.depart,
           email: emailDecoded.email,
           password: password_hash,
-          phone: phoneDecoded.phone,
+          // phone: phoneDecoded.phone,
+          phone: undefined,
           realname: RI.name,
           role: "user",
           tsinghua_email: emailDecoded.email
@@ -406,7 +414,8 @@ router.post("/register-new", async(req, res) => {
         {
           email: emailDecoded.email,
           password: password_hash,
-          phone: phoneDecoded.phone,
+          // phone: phoneDecoded.phone,
+          phone: undefined,
           realname: RI.name,
           role: "user"
         }
