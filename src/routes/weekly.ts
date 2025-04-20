@@ -191,15 +191,28 @@ router.post("/renew", authenticate(["counselor"]), async (req, res) => {
   //    return res.status(500).send("500 Internal Server Error: " + err);
   //}
 })
-
 router.get("/cover", async (req, res) => {
   try {
     if (!req.query.url) return res.status(400).send("400 Bad Request: no url provided!");
     const url: any = req.query.url;
+    const useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3";
+    const headers : HeadersInit = [
+      ["User-Agent", useragent],
+      ["Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"],
+      ["Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"],
+      ["Accept-Encoding", "gzip, deflate, br"],
+      ["Connection", "keep-alive"],
+      ["Upgrade-Insecure-Requests", "1"],
+      ["Cache-Control", "max-age=0"]
+    ]
     const response = await fetch(
       url,
-      { method: "GET" }
+      {
+        method: "GET",
+        headers: headers,
+      },
     );
+    console.log(response);
     if (response.ok) {
       const text: string = await response.text();
       const match = text.match(/var msg_cdn_url = "(.*?)";/);
