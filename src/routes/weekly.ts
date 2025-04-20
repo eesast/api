@@ -8,7 +8,6 @@ import * as uuid from "../helpers/uuid";
 import { get_newest_weekly, get_newest_weekly_id, add_weekly_list, WeeklyPost } from "../hasura/share"
 import authenticate from "../middlewares/authenticate";
 import { Agent } from "https";
-import { Headers } from "cos-nodejs-sdk-v5";
 const router = express.Router();
 const weixinSpider = async (headers: any, params: any, filename: string) => {
   const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
