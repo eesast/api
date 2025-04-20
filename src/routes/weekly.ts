@@ -200,6 +200,7 @@ router.get("/cover", async (req, res) => {
       url,
       { method: "GET" }
     );
+    console.log(response);
     if (response.ok) {
       const text: string = await response.text();
       const match = text.match(/var msg_cdn_url = "(.*?)";/);
