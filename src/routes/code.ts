@@ -303,8 +303,10 @@ router.post("/compile-finish", async (req, res) => {
           }
           await COS.uploadObject(localFilePath, key, cos, config);
           try {
-            await fs.rename(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`);
-            await fs.chmod(`${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`, 0o755);
+            const destinationDir = `${base_directory}/${contest_name}/code/${team_id}/source`;
+            await fs.mkdir(destinationDir, { recursive: true });
+            await fs.rename(localFilePath, `${destinationDir}/${code_id}`);
+            await fs.chmod(`${destinationDir}/${code_id}`, 0o755);
           } catch (err) {
             console.log("Move file failed: ", err);
           }
