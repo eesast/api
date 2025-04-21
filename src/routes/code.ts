@@ -10,6 +10,23 @@ import * as ContHasFunc from "../hasura/contest";
 
 const router = express.Router();
 
+const waitForFile = async (
+  filePath: string,
+  interval: number = 1000,
+  timeout: number = 10000
+) => {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch (err) {
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  }
+  return false;
+}
+
 
 /**
  * PUT upload code, for test only
@@ -257,23 +274,39 @@ router.post("/compile-finish", async (req, res) => {
         const cos = await COS.initCOS();
         const config = await COS.getConfig();
 
-        let key = `${cosPath}/${code_id}.log`;
-        let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
-        await COS.uploadObject(localFilePath, key, cos, config);
+        {
+          const key = `${cosPath}/${code_id}.log`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
+          const found = await waitForFile(localFilePath);
+          if (!found) {
+            throw new Error(`File not found: ${localFilePath}`);
+          }
+          await COS.uploadObject(localFilePath, key, cos, config);
+        }
 
-        key = `${cosPath}/${code_id}.curl.log`;
-        localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
-        await COS.uploadObject(localFilePath, key, cos, config);
+        {
+          const key = `${cosPath}/${code_id}.curl.log`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
+          const found = await waitForFile(localFilePath);
+          if (!found) {
+            throw new Error(`File not found: ${localFilePath}`);
+          }
+          await COS.uploadObject(localFilePath, key, cos, config);
+        }
 
         if (compile_status === "Completed") {
-          key = `${cosPath}/${code_id}`;
-          localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
+          const key = `${cosPath}/${code_id}`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
+          const found = await waitForFile(localFilePath);
+          if (!found) {
+            throw new Error(`File not found: ${localFilePath}`);
+          }
           await COS.uploadObject(localFilePath, key, cos, config);
           try {
-            await fs.copyFile(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`);
+            await fs.rename(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`);
             await fs.chmod(`${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`, 0o755);
           } catch (err) {
-            console.log("copy file failed: ", err);
+            console.log("Move file failed: ", err);
           }
         }
 
