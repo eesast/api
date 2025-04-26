@@ -580,17 +580,24 @@ export const get_newest_weekly = async(): Promise<Date> => {
     const date = get_newest_weekly_query?.weekly_aggregate?.aggregate?.max?.date + "T00:00:00.000+08:00";
     return new Date(date);
 }
-/**
- * 
- * mutation MyMutation($date: date = "", $title: String = "", $url: String = "") {
-  insert_weekly(objects: {date: $date, title: $title, url: $url}) {
-    returning {
-      id
-    }
-  }
+
+export const check_weekly_exist = async(date: Date): Promise<boolean> => {
+    const check_weekly_exist_query: any = await client.request(
+        gql`
+        query MyQuery($targetDate: date!) {
+          weekly(where: {date: {_eq: $targetDate}}) {
+            date
+          }
+        }
+        `
+        ,
+        {
+            targetDate: date
+        }
+    );
+    return check_weekly_exist_query?.weekly?.length > 0;
 }
 
- */
 export const add_weekly_list = async(weekly_list: WeeklyPost[]): Promise<string | undefined> => {
     const add_weekly_list_query: any = await client.request(
         gql`

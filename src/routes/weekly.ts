@@ -5,7 +5,7 @@ import axios from "axios";
 import * as utils from "../helpers/utils";
 import * as fs from "fs/promises";
 import * as uuid from "../helpers/uuid";
-import { get_newest_weekly, get_newest_weekly_id, add_weekly_list, WeeklyPost } from "../hasura/share"
+import { get_newest_weekly, get_newest_weekly_id, add_weekly_list, WeeklyPost, check_weekly_exist } from "../hasura/share"
 import authenticate from "../middlewares/authenticate";
 import { Agent } from "https";
 const router = express.Router();
@@ -42,6 +42,10 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
       for (const item of data.app_msg_list) {
         if (new Date(item.create_time * 1000) < newest_weekly_date) break outerloop;
         if (item.title.includes("SAST Weekly")) {
+          const exist : boolean = await check_weekly_exist(new Date(item.create_time * 1000));
+          if (exist) {
+            continue;
+          }
           const new_item: WeeklyPost = {
             title: item.title,
             url: item.link,
@@ -52,7 +56,6 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
         }
       }
     }
-    //sort new_weekly_list by date
     new_weekly_list.sort((a, b) => {
       return a.date.getTime() - b.date.getTime();
     });
@@ -245,7 +248,7 @@ const getTitle = async (url: string) => {
   }
 }
 
-router.post("/insert", async (req, res) => {
+router.post("/insert",authenticate(["counselor"]), async (req, res) => {
   try {
     if (!req.body.id || !req.body.url) return res.status(400).send("400 Bad Request: not enough params!");
     const title: string = await getTitle(req.body.url);
@@ -293,7 +296,7 @@ router.post("/insert", async (req, res) => {
   }
 })
 
-router.post("/delete", async (req, res) => {
+router.post("/delete",authenticate(["counselor"]), async (req, res) => {
   try {
     if (!req.body.id) return res.status(400).send("400 Bad Request: not enough params!");
     const QueryGreaterIds: any = await client.request(
@@ -338,7 +341,7 @@ router.post("/delete", async (req, res) => {
   }
 })
 
-router.post("/init", async (req, res) => {
+router.post("/init",authenticate(["counselor"]), async (req, res) => {
   try {
     if (!req.body.data) return res.status(400).send("400 Bad Request: no data provided!");
     await client.request(
