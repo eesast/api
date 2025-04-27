@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "preinstall": "npm config set registry https://registry.npmjs.org && yarn config set registry https://registry.yarnpkg.com",
+    "postinstall": "husky",
     "start": "nodemon src/index.ts",
     "debug": "nodemon src/index.ts --debug",
     "build": "tsc",
@@ -60,11 +61,6 @@
     "prettier": "3.5.3",
     "ts-node": "10.9.2",
     "typescript": "5.8.3"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged && yarn lint && yarn typecheck"
-    }
   },
   "lint-staged": {
     "{src/**/*,test/**/*}.{js,jsx,ts,tsx,json,css,scss,md}": [
