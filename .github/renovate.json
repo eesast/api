@@ -1,5 +1,6 @@
 {
   "extends": ["config:base"],
+  "ignorePaths": ["**/Dockerfile"],
   "automerge": true,
   "timezone": "Asia/Shanghai",
   "schedule": "after 4am and before 8am every saturday",
@@ -12,6 +13,5 @@
   "rangeStrategy": "pin",
   "separateMajorMinor": true,
   "separateMinorPatch": true,
-  "separateMultipleMajor": true,
-  "enabled": false
+  "separateMultipleMajor": true
 }
