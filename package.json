@@ -62,7 +62,10 @@
     "typescript-eslint": "8.31.0"
   },
   "lint-staged": {
-    "{src/**/*,test/**/*}.{js,jsx,ts,tsx,json,css,scss,md}": [
+    "src/**/*.ts": [
+      "eslint"
+    ],
+    "*.{js,mjs,cjs,ts,json,yml,md}": [
       "prettier --write"
     ]
   },
