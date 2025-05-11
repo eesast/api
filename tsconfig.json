@@ -6,11 +6,12 @@
     "lib": ["esnext"],
     "module": "CommonJS",
     "moduleResolution": "node",
-    "noEmit": true,
+    "outDir": "./build",
     "resolveJsonModule": true,
     "strict": true,
     "skipLibCheck": true,
-    "target": "esnext"
+    "target": "esnext",
+    "typeRoots": ["src/@types"] // for ts-node
   },
   "include": ["src/**/*"]
 }
