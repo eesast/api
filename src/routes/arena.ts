@@ -543,8 +543,6 @@ router.post("/finish", async (req, res) => {
 
       console.log("result: ", game_scores);
       if (game_status === "Finished") {
-        //const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
-
         console.debug("room_id: ", room_id);
         console.debug("contest_id: ", contest_id);
         console.debug("team_ids: ", team_ids);
@@ -572,21 +570,6 @@ router.post("/finish", async (req, res) => {
           player_roles,
         );
         console.log("Update room team player roles!");
-        // const origin_result: utils.TeamResult[] = await ContHasFunc.get_teams_score(team_ids);
-        // console.debug("origin_result: ", origin_result);
-        // const new_resullt: utils.TeamResult[] = origin_result.map(origin => {
-        //   const update_index = team_ids.indexOf(origin.team_id);
-        //   return {
-        //     team_id: origin.team_id,
-        //     score: update_scores[update_index] + origin.score
-        //   };
-        // });
-        // console.debug("new_result: ", new_resullt);
-        // const update_team_score_promises = new_resullt.map(result => {
-        //   return ContHasFunc.update_team_score(result.team_id, result.score);
-        // });
-        // await Promise.all(update_team_score_promises);
-        // console.log("Update team score!")
       } else if (game_status === "Crashed") {
         await ContHasFunc.update_room_status(room_id, "Crashed");
         if (player_roles && player_roles.length > 0) {
@@ -598,6 +581,8 @@ router.post("/finish", async (req, res) => {
           console.log("Update room team player roles!");
         }
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const base_directory = await utils.get_base_directory();
       const contest_name = await ContHasFunc.get_contest_name(contest_id);
@@ -632,11 +617,10 @@ router.post("/finish", async (req, res) => {
           }
           console.log("Files uploaded!");
 
-          // extra file upload to COS
           if (
             extra &&
             ((typeof extra === "string" && extra.trim() !== "") ||
-              (Array.isArray(extra) && extra.length > 0)) //check whether it is empty and type
+              (Array.isArray(extra) && extra.length > 0))
           ) {
             const extraArray = Array.isArray(extra) ? extra : [extra];
             const extraUploadPromises = extraArray.map((content, index) => {
@@ -671,7 +655,6 @@ router.post("/finish", async (req, res) => {
       } catch (err) {
         console.log("No output files found!");
       } finally {
-        // if dir exists, delete it
         const dir_to_remove = `${base_directory}/${contest_name}/arena/${room_id}`;
         console.log("Trying to remove dir: ", dir_to_remove);
         if (await utils.checkPathExists(dir_to_remove)) {
