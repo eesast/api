@@ -51,7 +51,7 @@
     "@types/nodemailer": "6.4.17",
     "@types/web-push": "3.6.4",
     "cross-env": "7.0.3",
-    "eslint": "9.26.0",
+    "eslint": "9.27.0",
     "eslint-config-prettier": "10.1.5",
     "husky": "9.1.7",
     "lint-staged": "16.0.0",
