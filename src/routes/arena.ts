@@ -582,7 +582,7 @@ router.post("/finish", async (req, res) => {
         }
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 30000));
 
       const base_directory = await utils.get_base_directory();
       const contest_name = await ContHasFunc.get_contest_name(contest_id);
