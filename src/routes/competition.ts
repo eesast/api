@@ -974,8 +974,6 @@ router.post("/finish-one", async (req, res) => {
 
       console.log("result: ", game_scores);
       if (game_status === "Finished") {
-        //const team_ids = team_label_binds.map(team_label_bind => team_label_bind.team_id);
-
         console.debug("room_id: ", room_id);
         console.debug("contest_id: ", contest_id);
         console.debug("team_ids: ", team_ids);
@@ -1003,22 +1001,6 @@ router.post("/finish-one", async (req, res) => {
           player_roles,
         );
         console.log("Update room team player roles!");
-
-        // const origin_result: utils.TeamResult[] = await ContHasFunc.get_teams_contest_score(team_ids);
-        // console.debug("origin_result: ", origin_result);
-        // const new_resullt: utils.TeamResult[] = origin_result.map(origin => {
-        //   const update_index = team_ids.indexOf(origin.team_id);
-        //   return {
-        //     team_id: origin.team_id,
-        //     score: update_scores[update_index] + origin.score
-        //   };
-        // });
-        // console.debug("new_result: ", new_resullt);
-        // const update_team_score_promises = new_resullt.map(result => {
-        //   return ContHasFunc.update_team_contest_score(result.team_id, result.score);
-        // });
-        // await Promise.all(update_team_score_promises);
-        // console.log("Update team score!")
       } else if (game_status === "Crashed") {
         await ContHasFunc.update_room_status(room_id, "Crashed");
         if (player_roles && player_roles.length > 0) {
@@ -1030,6 +1012,8 @@ router.post("/finish-one", async (req, res) => {
           console.log("Update room team player roles!");
         }
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const base_directory = await utils.get_base_directory();
       const contest_name = await ContHasFunc.get_contest_name(contest_id);
