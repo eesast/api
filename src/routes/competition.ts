@@ -973,6 +973,7 @@ router.post("/finish-one", async (req, res) => {
       );
 
       console.log("result: ", game_scores);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       if (game_status === "Finished") {
         console.debug("room_id: ", room_id);
         console.debug("contest_id: ", contest_id);
@@ -1012,8 +1013,6 @@ router.post("/finish-one", async (req, res) => {
           console.log("Update room team player roles!");
         }
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const base_directory = await utils.get_base_directory();
       const contest_name = await ContHasFunc.get_contest_name(contest_id);
