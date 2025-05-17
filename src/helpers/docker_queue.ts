@@ -254,6 +254,7 @@ const docker_cron = async () => {
                 [`${tcp_port1}/tcp`]: {},
                 [`${tcp_port2}/tcp`]: {},
               },
+              Env: ["ENVOY_UID=0"],
               AttachStdin: false,
               AttachStdout: false,
               AttachStderr: false,
