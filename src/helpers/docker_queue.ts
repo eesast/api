@@ -242,6 +242,7 @@ const docker_cron = async () => {
               HostConfig: {
                 Binds: [
                   `${sub_base_dir}/${queue_front.room_id}/envoy:/etc/envoy`,
+                  `/etc/letsencrypt:/etc/letsencrypt`,
                 ],
                 PortBindings: {
                   [`${tcp_port1}/tcp`]: [{ HostPort: `${tcp_port1}` }],
