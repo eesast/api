@@ -654,16 +654,16 @@ router.post("/finish", async (req, res) => {
       } catch (err) {
         console.log("No output files found!");
       } finally {
-        // const dir_to_remove = `${base_directory}/${contest_name}/arena/${room_id}`;
-        // console.log("Trying to remove dir: ", dir_to_remove);
-        // if (await utils.checkPathExists(dir_to_remove)) {
-        //   await utils.deleteAllFilesInDir(dir_to_remove);
-        //   console.log(`Directory deleted: ${dir_to_remove}`);
-        // } else {
-        //   console.log(
-        //     `Directory not found, skipped deletion: ${dir_to_remove}`,
-        //   );
-        // }
+        const dir_to_remove = `${base_directory}/${contest_name}/arena/${room_id}`;
+        console.log("Trying to remove dir: ", dir_to_remove);
+        if (await utils.checkPathExists(dir_to_remove)) {
+          await utils.deleteAllFilesInDir(dir_to_remove);
+          console.log(`Directory deleted: ${dir_to_remove}`);
+        } else {
+          console.log(
+            `Directory not found, skipped deletion: ${dir_to_remove}`,
+          );
+        }
       }
 
       return res.status(200).send("200 OK: Update OK!");
