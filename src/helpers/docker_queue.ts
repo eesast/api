@@ -426,19 +426,21 @@ const docker_cron = async () => {
                 `Port ${port} Released! room id: ${queue_front.room_id}`,
               );
 
-              if (error)
-                console.error(
-                  "An error occurred in waiting for server container:",
-                  error,
+              if (error || time_out) {
+                if (error)
+                  console.error(
+                    "An error occurred in waiting for server container:",
+                    error,
+                  );
+                if (time_out) {
+                  console.log("Time Out! room id: " + queue_front.room_id);
+                }
+                ContHasFunc.update_room_status(
+                  queue_front.room_id,
+                  time_out ? "Timeout" : "Crashed",
                 );
-              if (time_out) {
-                console.log("Time Out! room id: " + queue_front.room_id);
+                upload_contest_files(sub_base_dir, queue_front);
               }
-              ContHasFunc.update_room_status(
-                queue_front.room_id,
-                time_out ? "Timeout" : "Crashed",
-              );
-              upload_contest_files(sub_base_dir, queue_front);
             } catch (err) {
               console.error(
                 "An error occurred in waiting for server container:",
