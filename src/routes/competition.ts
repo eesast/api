@@ -530,7 +530,11 @@ router.post("/start-one", authenticate(), async (req, res) => {
       const monsterIndex = team_label_binds.findIndex(
         (bind) => bind.label === "Monster",
       );
-      if (buddhistIndex !== -1 && monsterIndex !== -1) {
+      if (
+        buddhistIndex !== -1 &&
+        monsterIndex !== -1 &&
+        buddhistIndex > monsterIndex
+      ) {
         const temp = team_label_binds[buddhistIndex];
         team_label_binds[buddhistIndex] = team_label_binds[monsterIndex];
         team_label_binds[monsterIndex] = temp;

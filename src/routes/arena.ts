@@ -43,6 +43,7 @@ router.post("/create", authenticate(), async (req, res) => {
     }
 
     // 临时代码，处理 THUAI8 由于 hardcode 导致的 Buddhist 必须在 Monster 前面的 BUG
+    const active_team_id = team_label_binds[0].team_id;
     if (contest_name === "THUAI8") {
       const buddhistIndex = team_label_binds.findIndex(
         (bind) => bind.label === "Buddhist",
@@ -50,7 +51,11 @@ router.post("/create", authenticate(), async (req, res) => {
       const monsterIndex = team_label_binds.findIndex(
         (bind) => bind.label === "Monster",
       );
-      if (buddhistIndex !== -1 && monsterIndex !== -1) {
+      if (
+        buddhistIndex !== -1 &&
+        monsterIndex !== -1 &&
+        buddhistIndex > monsterIndex
+      ) {
         const temp = team_label_binds[buddhistIndex];
         team_label_binds[buddhistIndex] = team_label_binds[monsterIndex];
         team_label_binds[monsterIndex] = temp;
@@ -94,14 +99,14 @@ router.post("/create", authenticate(), async (req, res) => {
       console.debug("user_team_id: ", user_team_id);
       if (!user_team_id) {
         return res.status(403).send("403 Forbidden: User not in team");
-      } else if (user_team_id !== team_ids[0]) {
+      } else if (user_team_id !== active_team_id) {
         return res.status(403).send("403 Forbidden: User not in team");
       }
     }
 
     const active_rooms = await ContHasFunc.count_room_team(
       contest_id,
-      team_ids[0],
+      active_team_id,
     );
     console.debug("active_rooms: ", active_rooms);
     if (active_rooms > 6) {
