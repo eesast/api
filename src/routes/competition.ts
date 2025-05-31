@@ -336,10 +336,23 @@ router.post("/start-all", authenticate(), async (req, res) => {
     }
 
     const start_competition_promises = pairs_unfold.map((pair) => {
-      const team1_label = pair[0];
-      const team2_label = pair[1];
-      const team1_id = pair[2];
-      const team2_id = pair[3];
+      let team1_label = pair[0];
+      let team2_label = pair[1];
+      let team1_id = pair[2];
+      let team2_id = pair[3];
+
+      // 临时代码，处理 THUAI8 由于 hardcode 导致的 Buddhist 必须在 Monster 前面的 BUG
+      if (
+        contest_name === "THUAI8" &&
+        team1_label === "Monster" &&
+        team2_label === "Buddhist"
+      ) {
+        team1_label = "Buddhist";
+        team2_label = "Monster";
+        const temp = team1_id;
+        team1_id = team2_id;
+        team2_id = temp;
+      }
 
       const details_list_filtered_1 = details_list_available.filter(
         (player) =>
@@ -507,6 +520,21 @@ router.post("/start-one", authenticate(), async (req, res) => {
     console.debug("contest_name: ", contest_name);
     if (!contest_id || !map_id || !contest_name) {
       return res.status(400).send("400 Bad Request: Contest not found");
+    }
+
+    // 临时代码，处理 THUAI8 由于 hardcode 导致的 Buddhist 必须在 Monster 前面的 BUG
+    if (contest_name === "THUAI8") {
+      const buddhistIndex = team_label_binds.findIndex(
+        (bind) => bind.label === "Buddhist",
+      );
+      const monsterIndex = team_label_binds.findIndex(
+        (bind) => bind.label === "Monster",
+      );
+      if (buddhistIndex !== -1 && monsterIndex !== -1) {
+        const temp = team_label_binds[buddhistIndex];
+        team_label_binds[buddhistIndex] = team_label_binds[monsterIndex];
+        team_label_binds[monsterIndex] = temp;
+      }
     }
 
     const { team_ids, team_labels } = team_label_binds.reduce(

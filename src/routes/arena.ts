@@ -42,6 +42,21 @@ router.post("/create", authenticate(), async (req, res) => {
         .send("422 Unprocessable Entity: Missing credentials");
     }
 
+    // 临时代码，处理 THUAI8 由于 hardcode 导致的 Buddhist 必须在 Monster 前面的 BUG
+    if (contest_name === "THUAI8") {
+      const buddhistIndex = team_label_binds.findIndex(
+        (bind) => bind.label === "Buddhist",
+      );
+      const monsterIndex = team_label_binds.findIndex(
+        (bind) => bind.label === "Monster",
+      );
+      if (buddhistIndex !== -1 && monsterIndex !== -1) {
+        const temp = team_label_binds[buddhistIndex];
+        team_label_binds[buddhistIndex] = team_label_binds[monsterIndex];
+        team_label_binds[monsterIndex] = temp;
+      }
+    }
+
     const { team_ids, team_labels } = team_label_binds.reduce(
       (acc, team_label_bind) => {
         acc.team_ids.push(team_label_bind.team_id);
