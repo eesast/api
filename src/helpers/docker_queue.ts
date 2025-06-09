@@ -268,19 +268,15 @@ const docker_cron = async () => {
             await new Promise((resolve) => setTimeout(resolve, 2000));
           }
 
-          const server_token = jwt.sign(
-            {
-              contest_id: queue_front.contest_id,
-              round_id: queue_front.round_id,
-              room_id: queue_front.room_id,
-              team_label_binds: queue_front.team_label_binds,
-            } as ContConf.JwtServerPayload,
-            process.env.SECRET! as string,
-            {
-              expiresIn:
-                ContConf.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT,
-            },
-          );
+          const payload: ContConf.JwtServerPayload = {
+            contest_id: queue_front.contest_id,
+            round_id: queue_front.round_id,
+            room_id: queue_front.room_id,
+            team_label_binds: queue_front.team_label_binds,
+          }
+          const server_token = jwt.sign(payload, process.env.SECRET!, {
+            expiresIn: ContConf.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT,
+          });
           const container_server = await docker.createContainer({
             Image: ContConf.contest_image_map[contest_name].SERVER_IMAGE,
             Env: [

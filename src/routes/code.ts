@@ -209,18 +209,15 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         process.env.NODE_ENV === "production"
           ? "https://api.eesast.com/code/compile-finish"
           : "http://128.0.0.1:28888/code/compile-finish";
-      const compiler_token = jwt.sign(
-        {
-          code_id: code_id,
-          team_id: team_id,
-          contest_name: contest_name,
-          cos_path: cosPath,
-        } as ContConf.JwtCompilerPayload,
-        process.env.SECRET! as string,
-        {
-          expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT,
-        },
-      );
+      const payload: ContConf.JwtCompilerPayload = {
+        code_id: code_id,
+        team_id: team_id,
+        contest_name: contest_name,
+        cos_path: cosPath,
+      }
+      const compiler_token = jwt.sign(payload, process.env.SECRET!, {
+        expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT,
+      });
 
       const container = await docker.createContainer({
         Image: ContConf.contest_image_map[contest_name].COMPILER_IMAGE,
