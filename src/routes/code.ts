@@ -216,7 +216,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
           contest_name: contest_name,
           cos_path: cosPath,
         } as ContConf.JwtCompilerPayload,
-        process.env.SECRET!,
+        process.env.SECRET! as string,
         {
           expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT,
         },

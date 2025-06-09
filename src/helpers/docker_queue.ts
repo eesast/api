@@ -275,7 +275,7 @@ const docker_cron = async () => {
               room_id: queue_front.room_id,
               team_label_binds: queue_front.team_label_binds,
             } as ContConf.JwtServerPayload,
-            process.env.SECRET!,
+            process.env.SECRET! as string,
             {
               expiresIn:
                 ContConf.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT,

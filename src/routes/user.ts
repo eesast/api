@@ -157,7 +157,7 @@ router.post("/send-code", async(req, res) => {
       phone,
       code
     } as JwtVerifyPayload,
-    process.env.SECRET!,
+    process.env.SECRET! as string,
     {
       expiresIn: ttl.toString()+"m",
     }
