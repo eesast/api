@@ -1,7 +1,6 @@
 import cron from "node-cron";
 import Docker from "dockerode";
 import jwt from "jsonwebtoken";
-import ms from "ms";
 import yaml from "js-yaml";
 import { Mutex } from "async-mutex";
 import fs from "fs";
@@ -276,7 +275,7 @@ const docker_cron = async () => {
             team_label_binds: queue_front.team_label_binds,
           }
           const server_token = jwt.sign(payload, process.env.SECRET!, {
-            expiresIn: ContConf.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT as ms.StringValue,
+            expiresIn: ContConf.contest_image_map[contest_name].RUNNER_TOKEN_TIMEOUT,
           });
           const container_server = await docker.createContainer({
             Image: ContConf.contest_image_map[contest_name].SERVER_IMAGE,
