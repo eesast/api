@@ -1,7 +1,7 @@
 import express from "express";
 import fs from "fs/promises";
 import jwt from "jsonwebtoken";
-import type { StringValue } from "ms";
+import ms from "ms";
 import authenticate from "../middlewares/authenticate";
 import * as utils from "../helpers/utils";
 import * as COS from "../helpers/cos";
@@ -217,7 +217,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         cos_path: cosPath,
       }
       const compiler_token = jwt.sign(payload, process.env.SECRET!, {
-        expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT as StringValue,
+        expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT as ms.StringValue,
       });
 
       const container = await docker.createContainer({

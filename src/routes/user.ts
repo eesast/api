@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import express from "express";
 import jwt from "jsonwebtoken";
-import type { StringValue } from "ms";
+import ms from "ms";
 import { gql } from "graphql-request";
 import { sendEmail } from "../helpers/email";
 import { verifyEmailTemplate } from "../helpers/htmlTemplates";
@@ -158,7 +158,7 @@ router.post("/send-code", async(req, res) => {
     code: code,
   };
   const token = jwt.sign(payload, process.env.SECRET!, {
-    expiresIn: ttl.toString()+"m" as StringValue,
+    expiresIn: ttl.toString()+"m" as ms.StringValue,
   });
   if (email) {
     try{
