@@ -1139,11 +1139,6 @@ export class TeamPlayerLimitError extends Error {
 }
 
 export const add_team_player: any = async (team_id: string, player: string) => {
-  const limit = get_team_member_limit(team_id);
-  const member_count = await get_team_membercount(team_id);
-  if (member_count >= limit && limit > 0) {
-    throw new TeamPlayerLimitError(`Team member limit reached: ${limit}`);
-  }
   const add_team_player: any = await client.request(
     gql`
       mutation AddTeamPlayer($team_id: uuid!, $player: String!) {
@@ -1222,7 +1217,12 @@ export const add_team_member: any = async (
   team_id: string,
   user_uuid: string,
 ) => {
-  const add_team_member: any = await client.request(
+  const limit = await get_team_member_limit(team_id);
+  const member_count = await get_team_membercount(team_id);
+  if (member_count >= limit && limit > 0) {
+    return false;
+  }
+  await client.request(
     gql`
       mutation AddTeamMember($team_id: uuid!, $user_uuid: uuid!) {
         insert_contest_team_member_one(
@@ -1237,7 +1237,7 @@ export const add_team_member: any = async (
       user_uuid: user_uuid,
     },
   );
-  return add_team_member.insert_contest_team_member_one?.team_id ?? undefined;
+  return true;
 };
 
 /**

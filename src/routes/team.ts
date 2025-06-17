@@ -85,9 +85,6 @@ router.post("/add_team_player", authenticate(["student"]), async (req, res) => {
       message: "Team Player Added Successfully",
     });
   } catch (err: any) {
-    if (err.name === "TeamPlayerLimitError") {
-      return res.status(551).json({ error: "551 Exceeded Limit" });
-    }
     res.status(500).json({
       error: "500 Internal Server Error",
       message: err.message,
@@ -137,23 +134,23 @@ router.post("/add_team", authenticate(["student"]), async (req, res) => {
 
 router.post("/add_team_member", authenticate(["student"]), async (req, res) => {
   try {
-    const { team_id, user_uuid } = req.body;
+    const team_id = req.body.team_id;
+    const user_uuid = req.body.user_uuid;
     if (!team_id || !user_uuid) {
       return res
         .status(400)
         .json({ error: "400 Bad Request: Missing required parameters" });
     }
-    const team_id_result = await ContHasFunc.add_team_member(
-      team_id,
-      user_uuid,
-    );
-    res.status(200).json({
+    const result = await ContHasFunc.add_team_member(team_id, user_uuid);
+    if (!result) {
+      return res.status(551).json({ error: "551: Team member limit reached" });
+    }
+    return res.status(200).json({
       message: "Team Member Added Successfully",
-      team_id: team_id_result,
     });
   } catch (err: any) {
     if (err.name === "TeamPlayerLimitError") {
-      return res.status(650).json({ error: "65: Team member limit reached" });
+      return res.status(551).json({ error: "551: Team member limit reached" });
     }
     res.status(500).json({
       error: "500 Internal Server Error",
