@@ -151,17 +151,14 @@ router.post("/send-code", async(req, res) => {
   console.log("verficationCode = " + verificationCode);
   const code = await bcrypt.hash(String(verificationCode), 10);
   const ttl = 10; // 有效期为10分钟
-  const token = jwt.sign(
-    {
-      email,
-      phone,
-      code
-    } as JwtVerifyPayload,
-    process.env.SECRET!,
-    {
-      expiresIn: ttl.toString()+"m",
-    }
-  );
+  const payload: JwtVerifyPayload = {
+    email: email,
+    phone: phone,
+    code: code,
+  };
+  const token = jwt.sign(payload, process.env.SECRET!, {
+    expiresIn: ttl.toString()+"m",
+  });
   if (email) {
     try{
       await sendEmail(
