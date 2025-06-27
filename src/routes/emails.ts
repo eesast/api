@@ -7,25 +7,26 @@ import {
   newMentorApplicationTalkTemplate,
   updateMentorApplicationTalkTemplate,
 } from "../helpers/htmlTemplates";
-import hasura from "../middlewares/hasura";
+import authenticate from "../middlewares/authenticate";
 import { client } from "..";
 
 const router = express.Router();
 
-router.post("/events", hasura, async (req, res) => {
-  const data = req.body?.event?.data?.new;
-  const table = req.body?.table?.name;
-  const op = req.body?.event?.op;
+router.post("/events", authenticate(), async (req, res) => {
+  const data = req.body.data;
+  const table = req.body.table;
+  const op = req.body.op;
+  const uuid = req.auth.user.uuid;
 
   if (!data) {
-    return res.status(500).end();
+    return res.status(400).send("400 Bad Request: Missing data").end();
   }
 
   switch (table) {
     case "mentor_application": {
       try {
-        const studentId = data.student_uuid;
-        const mentorId = data.mentor_uuid;
+        const studentId: string = data.student_uuid;
+        const mentorId: string = data.mentor_uuid;
         let response: any = await client.request(
           gql`
             query GetUserNameEmail($uuid: String!) {
@@ -71,6 +72,11 @@ router.post("/events", hasura, async (req, res) => {
                 .status(422)
                 .send("422 Unprocessable Entity: Missing teacher email");
             }
+            if (uuid !== studentId) {
+              return res
+                .status(403)
+                .send("403 Forbidden: You can only send email to your mentor");
+            }
             sendEmail(
               mentorEmail,
               `来自${studentName}同学的新生导师申请`,
@@ -87,6 +93,11 @@ router.post("/events", hasura, async (req, res) => {
               return res
                 .status(422)
                 .send("422 Unprocessable Entity: Missing teacher email");
+            }
+            if (uuid !== mentorId) {
+              return res
+                .status(403)
+                .send("403 Forbidden: You can only send email to your mentee");
             }
             sendEmail(
               studentEmail,
@@ -105,6 +116,11 @@ router.post("/events", hasura, async (req, res) => {
                 .status(422)
                 .send("422 Unprocessable Entity: Missing teacher email");
             }
+            if (uuid !== studentId) {
+              return res
+                .status(403)
+                .send("403 Forbidden: You can only send email to your mentor");
+            }
             sendEmail(
               mentorEmail,
               `来自${studentName}同学的新生导师谈话记录`,
@@ -121,6 +137,11 @@ router.post("/events", hasura, async (req, res) => {
               return res
                 .status(422)
                 .send("422 Unprocessable Entity: Missing teacher email");
+            }
+            if (uuid !== mentorId) {
+              return res
+                .status(403)
+                .send("403 Forbidden: You can only send email to your mentee");
             }
             sendEmail(
               studentEmail,
