@@ -1672,6 +1672,8 @@ router.put(
       const statement: string = req.body.statement;
       const is_member: boolean = req.body.is_member;
       const user_uuid: string = req.auth.user.uuid;
+      const student_no: string = req.auth.user.student_no;
+      const realname: string = req.auth.user.realname;
 
       if (statement.length === 0) {
         return res.status(400).send("Error: Invalid statement");
@@ -1707,9 +1709,17 @@ router.put(
 
       const freshman_query: any = await client.request(
         gql`
-          query MyQuery($uuid: uuid!, $year: Int!) {
+          query MyQuery($realname: String!, $student_no: String!, $year: Int!) {
             freshman(
-              where: { _and: { uuid: { _eq: $uuid }, year: { _eq: $year } } }
+              where: {
+                _and: {
+                  _and: {
+                    realname: { _eq: $realname }
+                    student_no: { _eq: $student_no }
+                  }
+                  year: { _eq: $year }
+                }
+              }
             ) {
               uuid
               is_member
@@ -1717,7 +1727,8 @@ router.put(
           }
         `,
         {
-          uuid: user_uuid,
+          realname: realname,
+          student_no: student_no,
           year: new Date().getFullYear(),
         },
       );
