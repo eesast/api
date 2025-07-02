@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import express from "express";
 import { gql } from "graphql-request";
 import { client } from "..";
@@ -10,6 +11,7 @@ import {
   newMentorApplicationTalkTemplate,
   updateMentorApplicationTalkTemplate,
 } from "../helpers/htmlTemplates";
+import * as validator from "../helpers/validate";
 
 const router = express.Router();
 
@@ -1655,6 +1657,72 @@ router.put(
         return res.status(500).send("Error: Add mentor failed");
       }
       return res.status(200).send(add_mentor_mutation.insert_mentor_info_one);
+    } catch (err) {
+      console.log(err);
+      return res.status(500);
+    }
+  },
+);
+
+// 修改导师密码
+router.post(
+  "/info/mentor/password",
+  authenticate(["counselor"]),
+  async (req, res) => {
+    try {
+      const mentor_uuid: string = req.body.mentor_uuid;
+      const password: string = req.body.password;
+
+      if (!mentor_uuid || !password) {
+        return res.status(400).send("Error: Invalid mentor_uuid or password");
+      }
+      if (!validator.validatePassword(password)) {
+        return res.status(400).send("400 Bad Request: Invalid password format");
+      }
+
+      const saltRounds = 10;
+      const password_hash = await bcrypt.hash(password, saltRounds);
+
+      const user_query: any = await client.request(
+        gql`
+          query MyQuery($mentor_uuid: uuid!) {
+            users_by_pk(uuid: $mentor_uuid) {
+              role
+            }
+          }
+        `,
+        {
+          mentor_uuid: mentor_uuid,
+        },
+      );
+      if (!user_query.users_by_pk) {
+        return res.status(400).send("Error: Mentor not found");
+      }
+      if (user_query.users_by_pk.role !== "teacher") {
+        return res.status(400).send("Error: Mentor is not a teacher");
+      }
+
+      const update_password_mutation: any = await client.request(
+        gql`
+          mutation MyMutation($mentor_uuid: uuid!, $password: String!) {
+            update_users_by_pk(
+              pk_columns: { uuid: $mentor_uuid }
+              _set: { password: $password }
+            ) {
+              uuid
+            }
+          }
+        `,
+        {
+          mentor_uuid: mentor_uuid,
+          password: password_hash,
+        },
+      );
+
+      if (!update_password_mutation.update_users_by_pk) {
+        return res.status(500).send("Error: Update password failed");
+      }
+      return res.status(200).send(update_password_mutation.update_users_by_pk);
     } catch (err) {
       console.log(err);
       return res.status(500);
