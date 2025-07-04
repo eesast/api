@@ -620,6 +620,20 @@ export const newMentorApplicationTalkTemplate = (
   );
 };
 
+export const newMentorApplicationMemberTalkTemplate = (
+  mentorName: string,
+  studentName: string,
+  url: string,
+) => {
+  return baseMentorAppllicationTemplate(
+    `尊敬的${mentorName}老师：`,
+    `${studentName}同学提交了积极分子谈话记录，请您尽早查看并确认。`,
+    url,
+    "您可以点击以下按钮查看申请：",
+    "查看申请",
+  );
+};
+
 export const updateMentorApplicationTemplate = (
   mentorName: string,
   studentName: string,
@@ -642,6 +656,20 @@ export const updateMentorApplicationTalkTemplate = (
   return baseMentorAppllicationTemplate(
     `亲爱的${studentName}：`,
     `您提交的新生导师谈话记录（${mentorName}老师）已得到确认。`,
+    url,
+    "您可以点击以下按钮查看申请：",
+    "查看申请",
+  );
+};
+
+export const updateMentorApplicationMemberTalkTemplate = (
+  mentorName: string,
+  studentName: string,
+  url: string,
+) => {
+  return baseMentorAppllicationTemplate(
+    `亲爱的${studentName}：`,
+    `您提交的积极分子谈话记录（${mentorName}老师）已得到确认。`,
     url,
     "您可以点击以下按钮查看申请：",
     "查看申请",
