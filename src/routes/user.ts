@@ -4,12 +4,14 @@ import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { sendEmail } from "../helpers/email";
 import { verifyEmailTemplate } from "../helpers/htmlTemplates";
-import authenticate, { JwtUserPayload, JwtVerifyPayload, IRegister } from "../middlewares/authenticate";
+import authenticate, {
+  JwtUserPayload,
+  JwtVerifyPayload,
+  IRegister,
+} from "../middlewares/authenticate";
 import * as validator from "../helpers/validate";
 import { client } from "..";
 import { sendMessageVerifyCode } from "../helpers/short_message";
-
-
 
 const router = express.Router();
 
@@ -36,7 +38,6 @@ router.get("/anonymous", (req, res) => {
   return res.status(200).json({ token });
 });
 
-
 router.post("/login", async (req, res) => {
   /**
    * @route POST /user/login
@@ -53,11 +54,12 @@ router.post("/login", async (req, res) => {
   }
   try {
     let item: any = {};
-    if (user.includes("@")){ // login by email
+    if (user.includes("@")) {
+      // login by email
       item = await client.request(
         gql`
           query MyQuery($email: String) {
-            users(where: {email: {_eq: $email}}) {
+            users(where: { email: { _eq: $email } }) {
               password
               role
               uuid
@@ -65,15 +67,15 @@ router.post("/login", async (req, res) => {
           }
         `,
         {
-          email: user
-        }
+          email: user,
+        },
       );
-    }
-    else if(user.length === 11 && !isNaN(Number(user))){ // login by phone
+    } else if (user.length === 11 && !isNaN(Number(user))) {
+      // login by phone
       item = await client.request(
         gql`
           query MyQuery($phone: String) {
-            users(where: {phone: {_eq: $phone}}) {
+            users(where: { phone: { _eq: $phone } }) {
               password
               role
               uuid
@@ -81,15 +83,15 @@ router.post("/login", async (req, res) => {
           }
         `,
         {
-          phone: user
-        }
+          phone: user,
+        },
       );
-    }
-    else { // login by username
+    } else {
+      // login by username
       item = await client.request(
         gql`
           query MyQuery($username: String) {
-            users(where: {username: {_eq: $username}}) {
+            users(where: { username: { _eq: $username } }) {
               password
               role
               uuid
@@ -97,9 +99,9 @@ router.post("/login", async (req, res) => {
           }
         `,
         {
-          username: user
-        }
-      )
+          username: user,
+        },
+      );
     }
     if (!item?.users?.length) {
       return res.status(404).send("404 Not Found: User does not exist");
@@ -108,7 +110,7 @@ router.post("/login", async (req, res) => {
     // console.log(JSON.stringify(item));
     const valid = await bcrypt.compare(password, item.password);
     if (!valid) {
-      console.log("password wrong")
+      console.log("password wrong");
       return res.status(401).send("401 Unauthorized: Password does not match");
     }
     const payload: JwtUserPayload = {
@@ -123,17 +125,14 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(payload, process.env.SECRET!, {
       expiresIn: "24h",
     });
-    return res
-      .status(200)
-      .json({ token });
+    return res.status(200).json({ token });
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
   }
 });
 
-
-router.post("/send-code", async(req, res) => {
+router.post("/send-code", async (req, res) => {
   /**
    * @route POST /user/send-code
    * @description 发送验证码，向提供的`email/phone`发送验证码（不需要验证是否在`users`表中），同时返回一个包含`hash`之后的验证码的、生存时间更短的`token`
@@ -144,49 +143,50 @@ router.post("/send-code", async(req, res) => {
 
   const { email, phone } = req.body;
   if (!email && !phone) {
-    return res.status(422).send("422 Unprocessable Entity: Missing email or phone");
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Missing email or phone");
   }
   // 生成6位验证码
   const verificationCode = Math.floor(100000 + Math.random() * 900000);
   console.log("verficationCode = " + verificationCode);
   const code = await bcrypt.hash(String(verificationCode), 10);
   const ttl = 10; // 有效期为10分钟
-  const token = jwt.sign(
-    {
-      email,
-      phone,
-      code
-    } as JwtVerifyPayload,
-    process.env.SECRET!,
-    {
-      expiresIn: ttl.toString()+"m",
-    }
-  );
+  const payload: JwtVerifyPayload = {
+    email: email,
+    phone: phone,
+    code: code,
+  };
+  const token = jwt.sign(payload, process.env.SECRET!, {
+    expiresIn: ttl.toString() + "m",
+  });
   if (email) {
-    try{
+    try {
       await sendEmail(
         email,
         "验证您的邮箱",
-        verifyEmailTemplate(verificationCode.toString())
+        verifyEmailTemplate(verificationCode.toString()),
       );
     } catch (err) {
       console.error(err);
-      return res.status(500).send("500 Internal Server Error: Email failed to send");
+      return res
+        .status(500)
+        .send("500 Internal Server Error: Email failed to send");
     }
-  }
-  else if (phone) {
-    try{
+  } else if (phone) {
+    try {
       await sendMessageVerifyCode(phone, verificationCode.toString(), ttl);
     } catch (err) {
       console.error(err); // https://unisms.apistd.com/docs/api/error-codes
-      return res.status(501).send("501 Internal Server Error: Short message failed to send");
+      return res
+        .status(501)
+        .send("501 Internal Server Error: Short message failed to send");
     }
   }
-  res.status(200).json({token});
+  res.status(200).json({ token });
 });
 
-
-router.post("/verify",async(req,res) =>{
+router.post("/verify", async (req, res) => {
   /**
    * @route POST /user/verify
    * @description 前端输完验证码之后会发送请求检验验证码是否正确
@@ -196,22 +196,31 @@ router.post("/verify",async(req,res) =>{
 
   const { verificationCode, verificationToken } = req.body;
   if (!verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing verificationCode or verificationToken");
+    return res
+      .status(422)
+      .send(
+        "422 Unprocessable Entity: Missing verificationCode or verificationToken",
+      );
   }
   try {
-      const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
-      const valid = await bcrypt.compare(verificationCode, decoded.code);
-      if (!valid) {
-        return res.status(401).send("401 Unauthorized: Verification code does not match");
-      }
-      return res.status(200).end();
+    const decoded = jwt.verify(
+      verificationToken,
+      process.env.SECRET!,
+    ) as JwtVerifyPayload;
+    const valid = await bcrypt.compare(verificationCode, decoded.code);
+    if (!valid) {
+      return res
+        .status(401)
+        .send("401 Unauthorized: Verification code does not match");
+    }
+    return res.status(200).end();
   } catch (err) {
-      console.error(err);
-      return res.status(500).send(err);
+    console.error(err);
+    return res.status(500).send(err);
   }
 });
 
-router.post("/register-new", async(req, res) => {
+router.post("/register", async (req, res) => {
   try {
     const RI: IRegister = req.body;
     console.log(RI);
@@ -219,12 +228,16 @@ router.post("/register-new", async(req, res) => {
     if (!RI.role || !RI.name || !RI.password) {
       return res.status(422).send("422 Unprocessable Entity");
     }
-    // 所有角色均需同时验证邮箱和手机
-    if (!RI.verificationEmailCode || !RI.verificationEmailToken || !RI.verificationPhoneCode || !RI.verificationPhoneToken) {
+    // // 所有角色均需同时验证邮箱和手机
+    // 手机短信服务 G 了
+    // if (!RI.verificationEmailCode || !RI.verificationEmailToken || !RI.verificationPhoneCode || !RI.verificationPhoneToken) {
+    //   return res.status(422).send("422 Unprocessable Entity");
+    // }
+    if (!RI.verificationEmailCode || !RI.verificationEmailToken) {
       return res.status(422).send("422 Unprocessable Entity");
     }
     // 角色只能是 student, teacher, guest
-    if (!['student', 'teacher', 'guest'].includes(RI.role)) {
+    if (!["student", "teacher", "guest"].includes(RI.role)) {
       return res.status(422).send("422 Unprocessable Entity");
     }
     // 学生需要填写学号、院系、班级
@@ -240,64 +253,89 @@ router.post("/register-new", async(req, res) => {
       }
     }
     // 检查邮箱验证码并获取邮箱
-    const emailDecoded: JwtVerifyPayload = jwt.verify(RI.verificationEmailToken, process.env.SECRET!) as JwtVerifyPayload;
+    const emailDecoded: JwtVerifyPayload = jwt.verify(
+      RI.verificationEmailToken,
+      process.env.SECRET!,
+    ) as JwtVerifyPayload;
     if (!emailDecoded.email) {
       return res.status(422).send("422 Unprocessable Entity");
     }
-    const validEmail = await bcrypt.compare(RI.verificationEmailCode, emailDecoded.code);
+    const validEmail = await bcrypt.compare(
+      RI.verificationEmailCode,
+      emailDecoded.code,
+    );
     if (!validEmail) {
-      return res.status(401).send("401 Unauthorized: Verification code does not match");
+      return res
+        .status(401)
+        .send("401 Unauthorized: Verification code does not match");
     }
-    // 检查手机验证码并获取手机号
-     const phoneDecoded: JwtVerifyPayload = jwt.verify(RI.verificationPhoneToken, process.env.SECRET!) as JwtVerifyPayload;
-      if (!phoneDecoded.phone) {
-        return res.status(422).send("422 Unprocessable Entity");
-      }
-      const validPhone = await bcrypt.compare(RI.verificationPhoneCode, phoneDecoded.code);
-      if (!validPhone) {
-        return res.status(401).send("401 Unauthorized: Verification code does not match");
-      }
+    // // 检查手机验证码并获取手机号
+    // 手机号 G 了
+    // const phoneDecoded: JwtVerifyPayload = jwt.verify(RI.verificationPhoneToken, process.env.SECRET!) as JwtVerifyPayload;
+    // if (!phoneDecoded.phone) {
+    //   return res.status(422).send("422 Unprocessable Entity");
+    // }
+    // const validPhone = await bcrypt.compare(RI.verificationPhoneCode, phoneDecoded.code);
+    // if (!validPhone) {
+    //   return res.status(401).send("401 Unauthorized: Verification code does not match");
+    // }
+
     // 检查数据是否符合规范
     if (RI.role === "student") {
       if (!validator.__ValidateStudentEmail(emailDecoded.email)) {
-        return res.status(400).send("400 Bad Request: Invalid studentID format");
+        return res
+          .status(400)
+          .send("400 Bad Request: Invalid studentID format");
       }
       if (!validator.__ValidateStudentID(RI.studentID as string)) {
-        return res.status(400).send("400 Bad Request: Invalid studentID format");
+        return res
+          .status(400)
+          .send("400 Bad Request: Invalid studentID format");
       }
       if (!validator.__ValidateClass(RI.class_ as string)) {
         return res.status(400).send("400 Bad Request: Invalid class format");
       }
     } else if (RI.role == "teacher") {
       if (!validator.__ValidateTeacherEmail(emailDecoded.email)) {
-        return res.status(400).send("400 Bad Request: Invalid teacher email format");
+        return res
+          .status(400)
+          .send("400 Bad Request: Invalid teacher email format");
       }
     } else {
       if (!validator.__ValidateEmail(emailDecoded.email)) {
         return res.status(400).send("400 Bad Request: Invalid email format");
       }
     }
-    if (!validator.__ValidatePhone(phoneDecoded.phone)) {
-      return res.status(400).send("400 Bad Request: Invalid phone format");
-    }
+    // if (!validator.__ValidatePhone(phoneDecoded.phone)) {
+    //   return res.status(400).send("400 Bad Request: Invalid phone format");
+    // }
     if (!validator.__ValidateName(RI.name)) {
       return res.status(400).send("400 Bad Request: Invalid name format");
     }
 
     // 检查是否重复注册
-    const emailExist = await validator.__ValidateEmailRegistered(emailDecoded.email);
+    const emailExist = await validator.__ValidateEmailRegistered(
+      emailDecoded.email,
+    );
     if (emailExist) {
       return res.status(409).send("409 Conflict: Email already exists");
     }
-    const phoneExist = await validator.__ValidatePhoneRegistered(phoneDecoded.phone);
-    if (phoneExist) {
-      return res.status(409).send("409 Conflict: Phone already exists");
-    }
+    // const phoneExist = await validator.__ValidatePhoneRegistered(phoneDecoded.phone);
+    // if (phoneExist) {
+    //   return res.status(409).send("409 Conflict: Phone already exists");
+    // }
     if (RI.role === "student") {
-      const studentIDExist = await validator.__ValidateStudentIDRegistered(RI.studentID as string);
+      const studentIDExist = await validator.__ValidateStudentIDRegistered(
+        RI.studentID as string,
+      );
       if (studentIDExist) {
         return res.status(409).send("409 Conflict: StudentID already exists");
       }
+    }
+
+    // 检查密码格式
+    if (!validator.validatePassword(RI.password)) {
+      return res.status(400).send("400 Bad Request: Invalid password format");
     }
 
     // 加密密码
@@ -310,27 +348,29 @@ router.post("/register-new", async(req, res) => {
       userInsert = await client.request(
         gql`
           mutation MyMutation(
-            $class: String,
-            $department: String,
-            $email: String,
-            $password: String,
-            $phone: String,
-            $realname: String,
-            $role: String,
-            $student_no: String,
+            $class: String
+            $department: String
+            $email: String
+            $password: String
+            $phone: String
+            $realname: String
+            $role: String
+            $student_no: String
             $tsinghua_email: String
           ) {
-            insert_users_one(object: {
-              class: $class,
-              department: $department,
-              email: $email,
-              password: $password,
-              phone: $phone,
-              realname: $realname,
-              role: $role,
-              student_no: $student_no,
-              tsinghua_email: $tsinghua_email
-            }) {
+            insert_users_one(
+              object: {
+                class: $class
+                department: $department
+                email: $email
+                password: $password
+                phone: $phone
+                realname: $realname
+                role: $role
+                student_no: $student_no
+                tsinghua_email: $tsinghua_email
+              }
+            ) {
               uuid
             }
           }
@@ -340,34 +380,37 @@ router.post("/register-new", async(req, res) => {
           department: RI.depart,
           email: emailDecoded.email,
           password: password_hash,
-          phone: phoneDecoded.phone,
+          // phone: phoneDecoded.phone,
+          phone: undefined,
           realname: RI.name,
           role: "student",
           student_no: RI.studentID,
-          tsinghua_email: emailDecoded.email
-        }
+          tsinghua_email: emailDecoded.email,
+        },
       );
     } else if (RI.role === "teacher") {
       userInsert = await client.request(
         gql`
           mutation MyMutation(
-            $department: String,
-            $email: String,
-            $password: String,
-            $phone: String,
-            $realname: String,
-            $role: String,
+            $department: String
+            $email: String
+            $password: String
+            $phone: String
+            $realname: String
+            $role: String
             $tsinghua_email: String
           ) {
-            insert_users_one(object: {
-              department: $department,
-              email: $email,
-              password: $password,
-              phone: $phone,
-              realname: $realname,
-              role: $role,
-              tsinghua_email: $tsinghua_email
-            }) {
+            insert_users_one(
+              object: {
+                department: $department
+                email: $email
+                password: $password
+                phone: $phone
+                realname: $realname
+                role: $role
+                tsinghua_email: $tsinghua_email
+              }
+            ) {
               uuid
             }
           }
@@ -376,29 +419,32 @@ router.post("/register-new", async(req, res) => {
           department: RI.depart,
           email: emailDecoded.email,
           password: password_hash,
-          phone: phoneDecoded.phone,
+          // phone: phoneDecoded.phone,
+          phone: undefined,
           realname: RI.name,
           role: "user",
-          tsinghua_email: emailDecoded.email
-        }
+          tsinghua_email: emailDecoded.email,
+        },
       );
     } else {
       userInsert = await client.request(
         gql`
           mutation MyMutation(
-            $email: String,
-            $password: String,
-            $phone: String,
-            $realname: String,
+            $email: String
+            $password: String
+            $phone: String
+            $realname: String
             $role: String
           ) {
-            insert_users_one(object: {
-              email: $email,
-              password: $password,
-              phone: $phone,
-              realname: $realname,
-              role: $role
-            }) {
+            insert_users_one(
+              object: {
+                email: $email
+                password: $password
+                phone: $phone
+                realname: $realname
+                role: $role
+              }
+            ) {
               uuid
             }
           }
@@ -406,10 +452,11 @@ router.post("/register-new", async(req, res) => {
         {
           email: emailDecoded.email,
           password: password_hash,
-          phone: phoneDecoded.phone,
+          // phone: phoneDecoded.phone,
+          phone: undefined,
           realname: RI.name,
-          role: "user"
-        }
+          role: "user",
+        },
       );
     }
 
@@ -433,86 +480,7 @@ router.post("/register-new", async(req, res) => {
   }
 });
 
-
-router.post("/register", async(req, res) => {
-  /**
-   * @route POST /user/register
-   * @description 创建用户。先验证请求中的验证码与`verificationToken`中的是否一致，再根据`email/phone`和`password`在`hasura`的`users`表中插入新行，并返回`token`
-   * @body {password: string, verificationCode: string, verificationToken: string}，`password`是明文，`verificationCode`是6位明文验证码，`verificationToken`是`/user/verify`返回的
-   * @returns {token: string} 为`JwtUserPayload`形式，初始`role`应为`user`
-   */
-
-  const { password, verificationCode, verificationToken } = req.body;
-  if (!password || !verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing password or verificationCode or verificationToken");
-  }
-  try {
-    const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
-    if (!decoded.email && !decoded.phone) {
-      return res.status(422).send("422 Unprocessable Entity: Missing email or phone");
-    }
-
-    const valid = await bcrypt.compare(verificationCode, decoded.code);
-    if (!valid) {
-      return res.status(401).send("401 Unauthorized: Verification code does not match");
-    }
-
-    const userExist: any = await client.request(
-      gql`
-        query MyQuery($email: String, $phone: String) {
-          users(where: {_or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}]}) {
-            uuid
-          }
-        }
-      `,
-      {
-        email: decoded.email || "AvoidNull",
-        phone: decoded.phone || "AvoidNull"
-      }
-    );
-    if (userExist.users.length !== 0) {
-      return res.status(409).send("409 Conflict: User already exists");
-    }
-
-    const saltRounds = 10;
-    const password_hash = await bcrypt.hash(password, saltRounds);
-    // graphql mutation, set role to user, password to password_hash, email to decoded.email, phone to decoded.phone
-    const userInsert: any = await client.request(
-      gql`
-        mutation MyMutation($email: String, $phone: String, $password: String!) {
-          insert_users_one(object: {email: $email, phone: $phone, password: $password, role: "user"}) {
-            uuid
-          }
-        }
-      `,
-      {
-        email: decoded.email,
-        phone: decoded.phone,
-        password: password_hash
-      }
-    );
-    // sign JwtUserPayload token
-    const payload: JwtUserPayload = {
-      uuid: userInsert.insert_users_one.uuid,
-      role: "user",
-      "https://hasura.io/jwt/claims": {
-        "x-hasura-allowed-roles": ["user"],
-        "x-hasura-default-role": "user",
-        "x-hasura-user-id": userInsert.insert_users_one.uuid,
-      },
-    };
-    const token = jwt.sign(payload, process.env.SECRET!, {
-      expiresIn: "24h",
-    });
-    return res.status(200).json({ token });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send(err);
-  }
-});
-
-
-router.post("/change-password", async(req, res) => {
+router.post("/change-password", async (req, res) => {
   /**
    * @route POST /user/change-password
    * @description 修改密码。先验证请求中的验证码与`verificationToken`中的是否一致，再更新`hasura`中的密码
@@ -522,16 +490,23 @@ router.post("/change-password", async(req, res) => {
 
   const { password, verificationCode, verificationToken } = req.body;
   if (!password || !verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Missing credentials");
   }
   if (!validator.validatePassword(password)) {
     return res.status(400).send("400 Bad Request: Invalid password format");
   }
   try {
-    const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
+    const decoded = jwt.verify(
+      verificationToken,
+      process.env.SECRET!,
+    ) as JwtVerifyPayload;
     const valid = await bcrypt.compare(verificationCode, decoded.code);
     if (!valid) {
-      return res.status(401).send("401 Unauthorized: Verification code does not match");
+      return res
+        .status(401)
+        .send("401 Unauthorized: Verification code does not match");
     }
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
@@ -539,15 +514,19 @@ router.post("/change-password", async(req, res) => {
     const userExist: any = await client.request(
       gql`
         query MyQuery($email: String, $phone: String) {
-          users(where: {_or: [{email: {_eq: $email}}, {phone: {_eq: $phone}}]}) {
+          users(
+            where: {
+              _or: [{ email: { _eq: $email } }, { phone: { _eq: $phone } }]
+            }
+          ) {
             uuid
           }
         }
       `,
       {
         email: decoded.email || "AvoidNull",
-        phone: decoded.phone || "AvoidNull"
-      }
+        phone: decoded.phone || "AvoidNull",
+      },
     );
     console.log(decoded.email + " " + decoded.phone);
     if (userExist.users.length === 0) {
@@ -558,15 +537,18 @@ router.post("/change-password", async(req, res) => {
     await client.request(
       gql`
         mutation MyMutation($uuid: uuid!, $password: String!) {
-          update_users_by_pk(pk_columns: {uuid: $uuid}, _set: {password: $password}) {
+          update_users_by_pk(
+            pk_columns: { uuid: $uuid }
+            _set: { password: $password }
+          ) {
             uuid
           }
         }
       `,
       {
         uuid: user.uuid,
-        password: password_hash
-      }
+        password: password_hash,
+      },
     );
     return res.status(200).end();
   } catch (err) {
@@ -575,8 +557,7 @@ router.post("/change-password", async(req, res) => {
   }
 });
 
-
-router.post("/edit-profile", authenticate(), async(req, res) => {
+router.post("/edit-profile", authenticate(), async (req, res) => {
   /**
    * @route POST /user/edit-profile
    * @description 更改通过验证的`email/phone`。先验证请求中的验证码与`verificationToken`中的是否一致，再更新`hasura`中的`email/phone`，如果`isTsinghua=True`那么校验邮箱为清华邮箱后更新`role`并重新返回`token`
@@ -586,27 +567,43 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
 
   const { verificationCode, verificationToken, isTsinghua } = req.body;
   if (!verificationCode || !verificationToken || isTsinghua === undefined) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Missing credentials");
   }
   try {
-    const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
+    const decoded = jwt.verify(
+      verificationToken,
+      process.env.SECRET!,
+    ) as JwtVerifyPayload;
     const valid = await bcrypt.compare(verificationCode, decoded.code);
     if (!valid) {
-      return res.status(401).send("401 Unauthorized: Verification code does not match");
+      return res
+        .status(401)
+        .send("401 Unauthorized: Verification code does not match");
     }
     if (isTsinghua) {
-      if(!decoded.email) {
+      if (!decoded.email) {
         return res.status(422).send("422 Unprocessable Entity: Missing email");
       }
       // 验证邮箱为清华邮箱
       if (!validator.validateEmail(decoded.email, true)) {
-        return res.status(421).send("421 Authority Limited: Invalid Tsinghua email");
+        return res
+          .status(421)
+          .send("421 Authority Limited: Invalid Tsinghua email");
       }
       // 更新tsinghua_email和role
       await client.request(
         gql`
-          mutation MyMutation($uuid: uuid!, $tsinghua_email: String!, $role: String!) {
-            update_users_by_pk(pk_columns: {uuid: $uuid}, _set: {tsinghua_email: $tsinghua_email, role: $role}) {
+          mutation MyMutation(
+            $uuid: uuid!
+            $tsinghua_email: String!
+            $role: String!
+          ) {
+            update_users_by_pk(
+              pk_columns: { uuid: $uuid }
+              _set: { tsinghua_email: $tsinghua_email, role: $role }
+            ) {
               uuid
             }
           }
@@ -614,8 +611,8 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
         {
           uuid: req.auth.user.uuid,
           tsinghua_email: decoded.email,
-          role: "student"
-        }
+          role: "student",
+        },
       );
       // 重新返回token
       const payload: JwtUserPayload = {
@@ -631,52 +628,57 @@ router.post("/edit-profile", authenticate(), async(req, res) => {
         expiresIn: "24h",
       });
       return res.status(200).json({ token });
-    }
-    else {
+    } else {
       if (decoded.email) {
         // 更新email
         await client.request(
           gql`
             mutation MyMutation($uuid: uuid!, $email: String!) {
-              update_users_by_pk(pk_columns: {uuid: $uuid}, _set: {email: $email}) {
+              update_users_by_pk(
+                pk_columns: { uuid: $uuid }
+                _set: { email: $email }
+              ) {
                 uuid
               }
             }
           `,
           {
             uuid: req.auth.user.uuid,
-            email: decoded.email
-          }
+            email: decoded.email,
+          },
         );
         return res.status(200).end();
-      }
-      else if (decoded.phone) {
+      } else if (decoded.phone) {
         // 更新phone
         await client.request(
           gql`
             mutation MyMutation($uuid: uuid!, $phone: String!) {
-              update_users_by_pk(pk_columns: {uuid: $uuid}, _set: {phone: $phone}) {
+              update_users_by_pk(
+                pk_columns: { uuid: $uuid }
+                _set: { phone: $phone }
+              ) {
                 uuid
               }
             }
           `,
           {
             uuid: req.auth.user.uuid,
-            phone: decoded.phone
-          }
+            phone: decoded.phone,
+          },
         );
         return res.status(200).end();
       }
-      return res.status(422).send("422 Unprocessable Entity: Missing email or phone");
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing email or phone");
     }
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
-  };
+  }
 });
 
-
-router.post("/delete", authenticate(), async(req, res) => {
+router.post("/delete", authenticate(), async (req, res) => {
   /**
    * @route POST /user/delete
    * @description 删除用户。先验证请求中的验证码与`verificationToken`中的是否一致，再删除`hasura`中的数据列
@@ -686,13 +688,20 @@ router.post("/delete", authenticate(), async(req, res) => {
 
   const { verificationCode, verificationToken } = req.body;
   if (!verificationCode || !verificationToken) {
-    return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Missing credentials");
   }
   try {
-    const decoded = jwt.verify(verificationToken, process.env.SECRET!) as JwtVerifyPayload;
+    const decoded = jwt.verify(
+      verificationToken,
+      process.env.SECRET!,
+    ) as JwtVerifyPayload;
     const valid = await bcrypt.compare(verificationCode, decoded.code);
     if (!valid) {
-      return res.status(401).send("401 Unauthorized: Verification code does not match");
+      return res
+        .status(401)
+        .send("401 Unauthorized: Verification code does not match");
     }
     // 删除hasura中的数据列
     await client.request(
@@ -704,14 +713,14 @@ router.post("/delete", authenticate(), async(req, res) => {
         }
       `,
       {
-        uuid: req.auth.user.uuid
-      }
+        uuid: req.auth.user.uuid,
+      },
     );
     return res.status(200).end();
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
-  };
+  }
 });
 
 export default router;

@@ -1,4 +1,3 @@
-
 type ContestImages = {
   [key: string]: {
     COMPILER_IMAGE: string;
@@ -6,7 +5,7 @@ type ContestImages = {
     SERVER_IMAGE: string;
     CLIENT_IMAGE: string;
     ENVOY_IMAGE: string;
-    RUNNER_TOKEN_TIMEOUT: string
+    RUNNER_TOKEN_TIMEOUT: string;
   };
 };
 
@@ -15,15 +14,17 @@ export interface TeamLabelBind {
   label: string;
 }
 
-export interface ContestResult { // used by server docker.
+export interface ContestResult {
+  // used by server docker.
   status: string; // value: `Finished` or `Crashed`.
   scores: number[]; // order is the same as `team_label_binds`.
-};
+}
 
-export interface TeamResult { // used by backend.
+export interface TeamResult {
+  // used by backend.
   team_id: string;
   score: number;
-};
+}
 
 export interface JwtCompilerPayload {
   code_id: string;
@@ -40,20 +41,31 @@ export interface JwtServerPayload {
 }
 
 export const contest_image_map: ContestImages = {
-  "THUAI6": {
+  THUAI6: {
     SERVER_IMAGE: "eesast/thuai6_run",
     CLIENT_IMAGE: "eesast/thuai6_run",
     COMPILER_IMAGE: "eesast/thuai6_cpp",
-    ENVOY_IMAGE: "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
+    ENVOY_IMAGE:
+      "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
     COMPILER_TIMEOUT: "10m",
     RUNNER_TOKEN_TIMEOUT: "30m",
   },
-  "THUAI7": {
+  THUAI7: {
     SERVER_IMAGE: "eesast/thuai7_run_server",
     CLIENT_IMAGE: "eesast/thuai7_run_client",
     COMPILER_IMAGE: "eesast/thuai7_cpp",
-    ENVOY_IMAGE: "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
+    ENVOY_IMAGE:
+      "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
     COMPILER_TIMEOUT: "10m",
-    RUNNER_TOKEN_TIMEOUT: "30m"
-  }
-}
+    RUNNER_TOKEN_TIMEOUT: "30m",
+  },
+  THUAI8: {
+    SERVER_IMAGE: "eesast/thuai8_run_server",
+    CLIENT_IMAGE: "eesast/thuai8_run_client",
+    COMPILER_IMAGE: "eesast/thuai8_cpp",
+    ENVOY_IMAGE:
+      "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
+    COMPILER_TIMEOUT: "10m",
+    RUNNER_TOKEN_TIMEOUT: "30m",
+  },
+};

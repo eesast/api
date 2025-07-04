@@ -7,9 +7,28 @@ import * as COS from "../helpers/cos";
 import * as ContConf from "../configs/contest";
 import * as ContHasFunc from "../hasura/contest";
 
-
 const router = express.Router();
 
+const waitForFile = async (
+  filePath: string,
+  interval: number = 1000,
+  timeout: number = 10000,
+) => {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch (err) {
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+  }
+  return false;
+};
+
+const waitForTimeout = async (timeout: number) => {
+  return new Promise((resolve) => setTimeout(resolve, timeout));
+};
 
 /**
  * PUT upload code, for test only
@@ -18,11 +37,12 @@ const router = express.Router();
  * @param {uuid} team_id
  * @param {string} suffix
  * @param {string} path
-*/
+ */
 router.put("/upload", async (req, res) => {
   if (process.env.NODE_ENV === "production")
-    return res.status(403).send("403 Forbidden: This API is disabled in production environment.");
-
+    return res
+      .status(403)
+      .send("403 Forbidden: This API is disabled in production environment.");
 
   const contest_name = req.body.contest_name;
   const code_id = req.body.code_id;
@@ -36,7 +56,7 @@ router.put("/upload", async (req, res) => {
     if (!suffix) {
       const key = `${contest_name}/code/${team_id}/${code_id}`;
       const localFilePath = `${path}/${code_id}`;
-      console.log("no suffix")
+      console.log("no suffix");
       await COS.uploadObject(localFilePath, key, cos, config);
     } else {
       const key = `${contest_name}/code/${team_id}/${code_id}.${suffix}`;
@@ -49,8 +69,7 @@ router.put("/upload", async (req, res) => {
     console.log("error in upload code: ", err);
     return res.status(500).send(`500 Internal Server Error: ${err}`);
   }
-})
-
+});
 
 /**
  * GET download code, for test only
@@ -59,10 +78,12 @@ router.put("/upload", async (req, res) => {
  * @param {uuid} team_id
  * @param {string} suffix
  * @param {string} path
-*/
+ */
 router.get("/download", async (req, res) => {
   if (process.env.NODE_ENV === "production")
-    return res.status(403).send("403 Forbidden: This API is disabled in production environment.");
+    return res
+      .status(403)
+      .send("403 Forbidden: This API is disabled in production environment.");
 
   const contest_name = req.body.contest_name;
   const code_id = req.body.code_id;
@@ -83,8 +104,7 @@ router.get("/download", async (req, res) => {
     await COS.downloadObject(key, outputPath, cos, config);
   }
   return res.status(200).send("200 OK: Download success");
-})
-
+});
 
 /**
  * POST compile start
@@ -97,10 +117,13 @@ router.post("/compile-start", authenticate(), async (req, res) => {
     const code_id = req.body.code_id;
     const user_uuid = req.auth.user.uuid;
     if (!code_id || !user_uuid) {
-      return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing credentials");
     }
 
-    const { contest_id, contest_name, team_id, language, compile_status } = await ContHasFunc.query_code(code_id);
+    const { contest_id, contest_name, team_id, language, compile_status } =
+      await ContHasFunc.query_code(code_id);
     if (!contest_id || !team_id || !language) {
       return res.status(404).send("404 Not Found: Code unavailable");
     }
@@ -108,9 +131,15 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       return res.status(400).send("400 Bad Request: Code already compiled");
     }
 
-    const is_manager = await ContHasFunc.get_maneger_from_user(user_uuid, contest_id);
+    const is_manager = await ContHasFunc.get_maneger_from_user(
+      user_uuid,
+      contest_id,
+    );
     if (!is_manager) {
-      const user_team_id = await ContHasFunc.get_team_from_user(user_uuid, contest_id);
+      const user_team_id = await ContHasFunc.get_team_from_user(
+        user_uuid,
+        contest_id,
+      );
       if (!user_team_id) {
         return res.status(403).send("403 Forbidden: User not in team");
       } else if (user_team_id !== team_id) {
@@ -120,62 +149,75 @@ router.post("/compile-start", authenticate(), async (req, res) => {
 
     if (language !== "cpp") {
       if (language === "py") {
-        return res.status(400).send("400 Bad Request: Interpreted language do not require compilation.");
+        return res
+          .status(400)
+          .send(
+            "400 Bad Request: Interpreted language do not require compilation.",
+          );
       } else {
         return res.status(400).send("400 Bad Request: Unsupported language.");
       }
     }
 
-    console.log("start to get sts")
-    const cosPath = req.body.path ? req.body.path : `${contest_name}/code/${team_id}`;
+    console.log("start to get sts");
+    const cosPath = req.body.path
+      ? req.body.path
+      : `${contest_name}/code/${team_id}`;
     const base_directory = await utils.get_base_directory();
 
     try {
       const cos = await COS.initCOS();
       const config = await COS.getConfig();
-      console.log("start to download files")
+      console.log("start to download files");
 
       const key = `${cosPath}/${code_id}.${language}`;
-      console.log(base_directory)
+      console.log(base_directory);
       const outputPath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source/${code_id}.${language}`;
 
-      await fs.mkdir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}/source`, { recursive: true });
+      await fs.mkdir(
+        `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source`,
+        { recursive: true },
+      );
       await COS.downloadObject(key, outputPath, cos, config);
-
     } catch (err) {
-      return res.status(500).send("500 Internal Server Error: Download code failed. " + err);
+      return res
+        .status(500)
+        .send("500 Internal Server Error: Download code failed. " + err);
     }
+
+    await waitForTimeout(5000);
 
     try {
       const docker = await utils.initDocker();
       let containerRunning = false;
       const containerList = await docker.listContainers();
       containerList.forEach((containerInfo) => {
-        if (containerInfo.Names.includes(`${contest_name}_Compiler_${code_id}`)) {
+        if (
+          containerInfo.Names.includes(`${contest_name}_Compiler_${code_id}`)
+        ) {
           containerRunning = true;
         }
       });
       if (containerRunning) {
-        return res.status(409).send("409 Confilct: Code already in compilation");
+        return res
+          .status(409)
+          .send("409 Confilct: Code already in compilation");
       }
 
-      console.log("start to create container")
+      console.log("start to create container");
       const url =
         process.env.NODE_ENV === "production"
           ? "https://api.eesast.com/code/compile-finish"
           : "http://128.0.0.1:28888/code/compile-finish";
-      const compiler_token = jwt.sign(
-        {
-          code_id: code_id,
-          team_id: team_id,
-          contest_name: contest_name,
-          cos_path: cosPath,
-        } as ContConf.JwtCompilerPayload,
-        process.env.SECRET!,
-        {
-          expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT,
-        }
-      );
+      const payload: ContConf.JwtCompilerPayload = {
+        code_id: code_id,
+        team_id: team_id,
+        contest_name: contest_name,
+        cos_path: cosPath,
+      }
+      const compiler_token = jwt.sign(payload, process.env.SECRET!, {
+        expiresIn: ContConf.contest_image_map[contest_name].COMPILER_TIMEOUT,
+      });
 
       const container = await docker.createContainer({
         Image: ContConf.contest_image_map[contest_name].COMPILER_IMAGE,
@@ -183,50 +225,55 @@ router.post("/compile-start", authenticate(), async (req, res) => {
           `URL=${url}`,
           `TOKEN=${compiler_token}`,
           `CODE_ID=${code_id}`,
-          `LANG=${language}`
+          `LANG=${language}`,
         ],
         HostConfig: {
           Binds: [
             `${base_directory}/${contest_name}/code/${team_id}/${code_id}/source:/usr/local/code`,
-            `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output:/usr/local/output`
+            `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output:/usr/local/output`,
           ],
           AutoRemove: true,
-          NetworkMode: "host"
+          NetworkMode: "host",
         },
         AttachStdin: false,
         AttachStdout: false,
         AttachStderr: false,
         //StopTimeout: parseInt(process.env.MAX_COMPILER_TIMEOUT as string),
-        name: `${contest_name}_Compiler_${code_id}`
+        name: `${contest_name}_Compiler_${code_id}`,
       });
       await container.start();
-      console.log("container started")
+      console.log("container started");
 
       await ContHasFunc.update_compile_status(code_id, "Compiling");
-      console.log("update compile status success")
+      console.log("update compile status success");
 
       if (process.env.NODE_ENV !== "production") {
-        return res.status(200).send("200 OK: Create container success. Compiler token: " + compiler_token);
+        return res
+          .status(200)
+          .send(
+            "200 OK: Create container success. Compiler token: " +
+              compiler_token,
+          );
       } else {
         return res.status(200).send("200 OK: Create container success");
       }
-
     } catch (err) {
-      return res.status(500).send("500 Internal Server Error: Create container failed. " + err);
+      return res
+        .status(500)
+        .send("500 Internal Server Error: Create container failed. " + err);
     }
   } catch (err) {
-    return res.status(500).send("500 Internal Server Error: Unknown error. " + err);
+    return res
+      .status(500)
+      .send("500 Internal Server Error: Unknown error. " + err);
   }
 });
-
-
-
 
 /**
  * POST compile finish
  * @param {token}
  * @param {string} compile_status
-*/
+ */
 router.post("/compile-finish", async (req, res) => {
   try {
     const authHeader = req.get("Authorization");
@@ -236,7 +283,9 @@ router.post("/compile-finish", async (req, res) => {
     const token = authHeader.substring(7);
     return jwt.verify(token, process.env.SECRET!, async (err, decoded) => {
       if (err || !decoded) {
-        return res.status(401).send("401 Unauthorized: Token expired or invalid");
+        return res
+          .status(401)
+          .send("401 Unauthorized: Token expired or invalid");
       }
       const payload = decoded as ContConf.JwtCompilerPayload;
       const code_id = payload.code_id;
@@ -246,60 +295,89 @@ router.post("/compile-finish", async (req, res) => {
       const cosPath = payload.cos_path;
       const base_directory = await utils.get_base_directory();
       if (!compile_status || !team_id || !code_id || !contest_name) {
-        return res.status(422).send("422 Unprocessable Entity: Missing credentials");
+        return res
+          .status(422)
+          .send("422 Unprocessable Entity: Missing credentials");
       }
       console.log(`${team_id}:${code_id}:compile:${compile_status}`);
       if (compile_status !== "Completed" && compile_status !== "Failed")
         return res.status(400).send("400 Bad Request: Invalid compile status");
 
-
       try {
         const cos = await COS.initCOS();
         const config = await COS.getConfig();
 
-        let key = `${cosPath}/${code_id}.log`;
-        let localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
-        await COS.uploadObject(localFilePath, key, cos, config);
-
-        key = `${cosPath}/${code_id}.curl.log`;
-        localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
-        await COS.uploadObject(localFilePath, key, cos, config);
-
-        if (compile_status === "Completed") {
-          key = `${cosPath}/${code_id}`;
-          localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
-          await COS.uploadObject(localFilePath, key, cos, config);
-          try {
-            await fs.copyFile(localFilePath, `${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`);
-            await fs.chmod(`${base_directory}/${contest_name}/code/${team_id}/source/${code_id}`, 0o755);
-          } catch (err) {
-            console.log("copy file failed: ", err);
+        {
+          const key = `${cosPath}/${code_id}.log`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.log`;
+          const found = await waitForFile(localFilePath);
+          if (!found) {
+            throw new Error(`File not found: ${localFilePath}`);
           }
+          await COS.uploadObject(localFilePath, key, cos, config);
         }
 
+        {
+          const key = `${cosPath}/${code_id}.curl.log`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}.curl.log`;
+          const found = await waitForFile(localFilePath);
+          if (!found) {
+            throw new Error(`File not found: ${localFilePath}`);
+          }
+          await COS.uploadObject(localFilePath, key, cos, config);
+        }
+
+        if (compile_status === "Completed") {
+          const key = `${cosPath}/${code_id}`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
+          const found = await waitForFile(localFilePath);
+          if (!found) {
+            throw new Error(`File not found: ${localFilePath}`);
+          }
+          await COS.uploadObject(localFilePath, key, cos, config);
+          try {
+            const destinationDir = `${base_directory}/${contest_name}/code/${team_id}/source`;
+            await fs.mkdir(destinationDir, { recursive: true });
+            await fs.rename(localFilePath, `${destinationDir}/${code_id}`);
+            await fs.chmod(`${destinationDir}/${code_id}`, 0o755);
+          } catch (err) {
+            console.log("Move file failed: ", err);
+          }
+        }
       } catch (err) {
-        return res.status(500).send("500 Internal Server Error: Upload files failed. " + err);
+        return res
+          .status(500)
+          .send("500 Internal Server Error: Upload files failed. " + err);
       }
 
       try {
         await ContHasFunc.update_compile_status(code_id, compile_status);
       } catch (err) {
-        return res.status(500).send("500 Internal Server Error: Update compile status failed. " + err);
+        return res
+          .status(500)
+          .send(
+            "500 Internal Server Error: Update compile status failed. " + err,
+          );
       }
 
       try {
-        await utils.deleteAllFilesInDir(`${base_directory}/${contest_name}/code/${team_id}/${code_id}`);
+        await utils.deleteAllFilesInDir(
+          `${base_directory}/${contest_name}/code/${team_id}/${code_id}`,
+        );
       } catch (err) {
-        return res.status(500).send("500 Internal Server Error: Delete files failed. " + err);
+        return res
+          .status(500)
+          .send("500 Internal Server Error: Delete files failed. " + err);
       }
 
       return res.status(200).send("200 OK: Update compile status success");
     });
   } catch (err) {
-    return res.status(500).send("500 Internal Server Error: Unknown error. " + err);
+    return res
+      .status(500)
+      .send("500 Internal Server Error: Unknown error. " + err);
   }
 });
-
 
 // router.post("/sync-map", authenticate(), async (req, res) => {
 //   const user_uuid = req.auth.user.uuid;
@@ -327,7 +405,6 @@ router.post("/compile-finish", async (req, res) => {
 //       }
 //     })
 // });
-
 
 // /**
 //  * GET compile logs

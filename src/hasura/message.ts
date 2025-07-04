@@ -23,7 +23,7 @@ export const add_message = async (from_uuid: string, to_uuid: string, payload: s
   return query.insert_mentor_message ?? null;
 }
 
-export const subsribe_to_messages = async (from_uuid: string, to_uuid: string) => {
+export const subscribe_to_messages = async (from_uuid: string, to_uuid: string) => {
   const query: any = await client.request(
     gql`
       subscription SubscribeToMessages($from_uuid: uuid!, $to_uuid: uuid!) {
