@@ -55,6 +55,9 @@ interface IApplication {
   chat: boolean; // 申请聊天状态，由学生发起
   chat2: boolean; // 申请聊天状态，由导师确认
   chat_t?: string; // 申请聊天时间
+  mem_chat: boolean; // 积极分子谈话状态，由学生发起
+  mem_chat2: boolean; // 积极分子谈话状态，由导师确认
+  mem_chat_t?: string; // 积极分子谈话时间
   men?: IMentor; // 申请导师
   stu?: IStudent; // 申请学生
 }
@@ -495,6 +498,9 @@ router.get(
                 chat_status
                 chat_confirm
                 chat_time
+                member_chat_status
+                member_chat_confirm
+                member_chat_time
                 created_at
                 id
                 mentor_uuid
@@ -532,6 +538,9 @@ router.get(
               chat: app.chat_status,
               chat2: app.chat_confirm,
               chat_t: app.chat_time,
+              mem_chat: app.member_chat_status,
+              mem_chat2: app.member_chat_confirm,
+              mem_chat_t: app.member_chat_time,
               men: mentor,
             };
             return application;
@@ -547,6 +556,9 @@ router.get(
                 chat_status
                 chat_confirm
                 chat_time
+                member_chat_status
+                member_chat_confirm
+                member_chat_time
                 created_at
                 id
                 statement
@@ -590,6 +602,9 @@ router.get(
               chat: app.chat_status,
               chat2: app.chat_confirm,
               chat_t: app.chat_time,
+              mem_chat: app.member_chat_status,
+              mem_chat2: app.member_chat_confirm,
+              mem_chat_t: app.member_chat_time,
               stu: student,
             };
             return application;
@@ -602,6 +617,9 @@ router.get(
               chat_status
               chat_confirm
               chat_time
+              member_chat_status
+              member_chat_confirm
+              member_chat_time
               created_at
               id
               mentor_uuid
@@ -655,6 +673,9 @@ router.get(
               chat: app.chat_status,
               chat2: app.chat_confirm,
               chat_t: app.chat_time,
+              mem_chat: app.member_chat_status,
+              mem_chat2: app.member_chat_confirm,
+              mem_chat_t: app.member_chat_time,
               men: mentor,
               stu: student,
             };
