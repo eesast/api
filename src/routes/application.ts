@@ -10,6 +10,8 @@ import {
   updateMentorApplicationTemplate,
   newMentorApplicationTalkTemplate,
   updateMentorApplicationTalkTemplate,
+  newMentorApplicationMemberTalkTemplate,
+  updateMentorApplicationMemberTalkTemplate,
 } from "../helpers/htmlTemplates";
 import * as validator from "../helpers/validate";
 
@@ -1082,7 +1084,8 @@ router.post(
 // 更新导师是否参与党员谈话
 router.post(
   "/info/mentor/member",
-  authenticate(["teacher", "counselor"]),
+  // authenticate(["teacher", "counselor"]),
+  authenticate(["counselor"]), // 仅限辅导员更新
   async (req, res) => {
     try {
       const is_member: boolean = req.body.is_member;
@@ -1501,14 +1504,117 @@ router.post(
   },
 );
 
-// 更新谈话确认状态
+// 更新积极分子谈话状态
 router.post(
-  "/info/mentor/confirm",
-  authenticate(["teacher"]),
+  "/info/mentor/member_chat",
+  authenticate(["student", "counselor"]),
   async (req, res) => {
     try {
       const id: string = req.body.id;
       const user_uuid: string = req.auth.user.uuid;
+      const role: string = req.auth.user.role;
+
+      const application_query: any = await client.request(
+        gql`
+          query MyQuery($id: uuid!) {
+            mentor_application_by_pk(id: $id) {
+              student_uuid
+              is_member
+              member_chat_confirm
+              status
+              mentor {
+                realname
+                email
+              }
+            }
+          }
+        `,
+        {
+          id: id,
+        },
+      );
+
+      if (!application_query.mentor_application_by_pk) {
+        return res.status(400).send("Error: Application not found");
+      }
+      if (
+        role !== "counselor" &&
+        user_uuid !== application_query.mentor_application_by_pk.student_uuid
+      ) {
+        return res.status(400).send("Error: Unauthorized");
+      }
+      if (application_query.mentor_application_by_pk.status !== "approved") {
+        return res.status(400).send("Error: Application not approved");
+      }
+      if (application_query.mentor_application_by_pk.member_chat_confirm) {
+        return res.status(400).send("Error: Chat confirmed");
+      }
+      if (!application_query.mentor_application_by_pk.is_member) {
+        return res.status(400).send("Error: Not a member");
+      }
+
+      const update_application_mutation: any = await client.request(
+        gql`
+          mutation MyMutation(
+            $id: uuid!
+            $member_chat_status: Boolean!
+            $member_chat_time: timestamptz!
+          ) {
+            update_mentor_application_by_pk(
+              pk_columns: { id: $id }
+              _set: {
+                member_chat_status: $member_chat_status
+                member_chat_time: $member_chat_time
+              }
+            ) {
+              member_chat_status
+              member_chat_time
+            }
+          }
+        `,
+        {
+          id: id,
+          member_chat_status: true,
+          member_chat_time: new Date().toISOString(),
+        },
+      );
+
+      if (!update_application_mutation.update_mentor_application_by_pk) {
+        return res.status(500).send("Error: Update member_chat_status failed");
+      }
+      res
+        .status(200)
+        .send(update_application_mutation.update_mentor_application_by_pk);
+      if (
+        application_query.mentor_application_by_pk.mentor.realname &&
+        application_query.mentor_application_by_pk.mentor.email
+      ) {
+        await sendEmail(
+          application_query.mentor_application_by_pk.mentor.email,
+          `来自${req.auth.user.realname}同学的积极分子谈话记录`,
+          newMentorApplicationMemberTalkTemplate(
+            application_query.mentor_application_by_pk.mentor.realname,
+            req.auth.user.realname,
+            "https://eesast.com/#/info/mentor-applications",
+          ),
+        );
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(500);
+    }
+  },
+);
+
+// 更新谈话确认状态
+router.post(
+  "/info/mentor/confirm",
+  authenticate(["teacher", "counselor"]),
+  async (req, res) => {
+    try {
+      const id: string = req.body.id;
+      const user_uuid: string = req.auth.user.uuid;
+      const role: string = req.auth.user.role;
 
       const application_query: any = await client.request(
         gql`
@@ -1533,6 +1639,7 @@ router.post(
         return res.status(400).send("Error: Application not found");
       }
       if (
+        role !== "counselor" &&
         user_uuid !== application_query.mentor_application_by_pk.mentor_uuid
       ) {
         return res.status(400).send("Error: Unauthorized");
@@ -1576,6 +1683,100 @@ router.post(
           application_query.mentor_application_by_pk.student.email,
           `来自${req.auth.user.realname}老师的新生导师谈话记录确认`,
           updateMentorApplicationTalkTemplate(
+            req.auth.user.realname,
+            application_query.mentor_application_by_pk.student.realname,
+            "https://eesast.com/#/info/mentor-applications",
+          ),
+        );
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(500);
+    }
+  },
+);
+
+// 更新积极分子谈话确认状态
+router.post(
+  "/info/mentor/member_confirm",
+  authenticate(["teacher", "counselor"]),
+  async (req, res) => {
+    try {
+      const id: string = req.body.id;
+      const user_uuid: string = req.auth.user.uuid;
+      const role: string = req.auth.user.role;
+
+      const application_query: any = await client.request(
+        gql`
+          query MyQuery($id: uuid!) {
+            mentor_application_by_pk(id: $id) {
+              mentor_uuid
+              is_member
+              member_chat_status
+              status
+              student {
+                realname
+                email
+              }
+            }
+          }
+        `,
+        {
+          id: id,
+        },
+      );
+
+      if (!application_query.mentor_application_by_pk) {
+        return res.status(400).send("Error: Application not found");
+      }
+      if (
+        role !== "counselor" &&
+        user_uuid !== application_query.mentor_application_by_pk.mentor_uuid
+      ) {
+        return res.status(400).send("Error: Unauthorized");
+      }
+      if (application_query.mentor_application_by_pk.status !== "approved") {
+        return res.status(400).send("Error: Application not approved");
+      }
+      if (!application_query.mentor_application_by_pk.is_member) {
+        return res.status(400).send("Error: Not a member");
+      }
+      if (!application_query.mentor_application_by_pk.member_chat_status) {
+        return res.status(400).send("Error: Chat not started");
+      }
+
+      const update_application_mutation: any = await client.request(
+        gql`
+          mutation MyMutation($id: uuid!, $member_chat_confirm: Boolean!) {
+            update_mentor_application_by_pk(
+              pk_columns: { id: $id }
+              _set: { member_chat_confirm: $member_chat_confirm }
+            ) {
+              member_chat_confirm
+            }
+          }
+        `,
+        {
+          id: id,
+          member_chat_confirm: true,
+        },
+      );
+
+      if (!update_application_mutation.update_mentor_application_by_pk) {
+        return res.status(500).send("Error: Update member_chat_confirm failed");
+      }
+      res
+        .status(200)
+        .send(update_application_mutation.update_mentor_application_by_pk);
+
+      if (
+        application_query.mentor_application_by_pk.student.realname &&
+        application_query.mentor_application_by_pk.student.email
+      ) {
+        await sendEmail(
+          application_query.mentor_application_by_pk.student.email,
+          `来自${req.auth.user.realname}老师的积极分子谈话记录确认`,
+          updateMentorApplicationMemberTalkTemplate(
             req.auth.user.realname,
             application_query.mentor_application_by_pk.student.realname,
             "https://eesast.com/#/info/mentor-applications",
