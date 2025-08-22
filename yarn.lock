@@ -1263,10 +1263,10 @@
   dependencies:
     undici-types "~5.26.4"
 
-"@types/nodemailer@7.0.0":
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/@types/nodemailer/-/nodemailer-7.0.0.tgz#26da4e9763a344259e9dd6b29c0535f1465afd52"
-  integrity sha512-APKHivjoJ1OyLrlhdJ/QJpnj78OaGSHQ18J12CeOVbffvBgUjqBiIzCW2lnRuwQiLxCpahgMf+T7G2dZBvgeYw==
+"@types/nodemailer@7.0.1":
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/@types/nodemailer/-/nodemailer-7.0.1.tgz#d52f769bb09745cc67e09bf3935531b992d22857"
+  integrity sha512-UfHAghPmGZVzaL8x9y+mKZMWyHC399+iq0MOmya5tIyenWX3lcdSb60vOmp0DocR6gCDTYTozv/ULQnREyyjkg==
   dependencies:
     "@aws-sdk/client-sesv2" "^3.839.0"
     "@types/node" "*"
