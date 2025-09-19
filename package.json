@@ -20,7 +20,7 @@
     "cors": "2.8.5",
     "cos-nodejs-sdk-v5": "2.15.4",
     "debug": "4.4.3",
-    "dockerode": "4.0.7",
+    "dockerode": "4.0.8",
     "dotenv": "17.2.1",
     "express": "4.21.2",
     "graphql": "16.11.0",
