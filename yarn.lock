@@ -1270,10 +1270,10 @@
   dependencies:
     undici-types "~5.26.4"
 
-"@types/nodemailer@7.0.1":
-  version "7.0.1"
-  resolved "https://registry.yarnpkg.com/@types/nodemailer/-/nodemailer-7.0.1.tgz#d52f769bb09745cc67e09bf3935531b992d22857"
-  integrity sha512-UfHAghPmGZVzaL8x9y+mKZMWyHC399+iq0MOmya5tIyenWX3lcdSb60vOmp0DocR6gCDTYTozv/ULQnREyyjkg==
+"@types/nodemailer@7.0.2":
+  version "7.0.2"
+  resolved "https://registry.yarnpkg.com/@types/nodemailer/-/nodemailer-7.0.2.tgz#4d5607f26a3dd45ae7078ff62fc945b87070ed30"
+  integrity sha512-Zo6uOA9157WRgBk/ZhMpTQ/iCWLMk7OIs/Q9jvHarMvrzUUP/MDdPHL2U1zpf57HrrWGv4nYQn5uIxna0xY3xw==
   dependencies:
     "@aws-sdk/client-sesv2" "^3.839.0"
     "@types/node" "*"
