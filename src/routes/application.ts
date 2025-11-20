@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { gql } from "graphql-request";
 import { client } from "..";
 import * as HnrHasFunc from "../hasura/honor";
@@ -16,6 +17,71 @@ import {
 import * as validator from "../helpers/validate";
 
 const router = express.Router();
+
+const queryLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1分钟
+  max: 40, // 每分钟最多20次查询
+  message: { error: "查询过于频繁，请1分钟后再试" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as any).auth?.user?.uuid as string,
+  skip: (req) => {
+    const role = (req as any).auth?.user?.role;
+    return role === "counselor" || role === "teacher";
+  },
+});
+
+// const submitLimiter = rateLimit({
+//   windowMs: 10 * 60 * 1000,
+//   max: 3,
+//   message: { error: "提交尝试过多，请10分钟后再试" },
+//   keyGenerator: (req) => (req as any).auth?.user?.uuid as string,
+//   skip: (req) => {
+//     const role = (req as any).auth?.user?.role;
+//     return role === "counselor" || role === "teacher";
+//   },
+// });
+
+const requestCounts = new Map();
+
+function checkRateLimit(
+  user_uuid: string,
+  role: string,
+  windowMs: number,
+  maxRequests: number,
+): { allowed: boolean; message?: string; currentCount?: number } {
+  // 跳过辅导员和老师
+  if (role === "counselor" || role === "teacher") {
+    return { allowed: true };
+  }
+
+  const now = Date.now();
+
+  if (!requestCounts.has(user_uuid)) {
+    requestCounts.set(user_uuid, { count: 0, lastReset: now });
+  }
+
+  const userStats = requestCounts.get(user_uuid)!;
+
+  // 检查是否需要重置
+  if (now - userStats.lastReset > windowMs) {
+    userStats.count = 0;
+    userStats.lastReset = now;
+  }
+
+  userStats.count++;
+  console.log(`用户 ${user_uuid} 在本分钟内已进行 ${userStats.count} 次查询`);
+
+  if (userStats.count >= maxRequests) {
+    return {
+      allowed: false,
+      message: "查询过于频繁，请1分钟后再试",
+      currentCount: userStats.count,
+    };
+  }
+
+  return { allowed: true };
+}
 
 interface IMentor {
   uuid: string; // 导师uuid
@@ -489,6 +555,15 @@ router.get(
       const role: string = req.auth.user.role;
 
       if (role === "student") {
+        const limitResult = checkRateLimit(user_uuid, role, 1 * 60 * 1000, 20);
+        if (!limitResult.allowed) {
+          return res.status(429).json({
+            error: limitResult.message,
+            currentCount: limitResult.currentCount,
+            limit: 20,
+          });
+        }
+
         const application_query: any = await client.request(
           gql`
             query MyQuery($student_uuid: uuid!) {
@@ -844,6 +919,7 @@ router.get(
 // 获取新生信息
 router.get(
   "/info/mentor/freshmen",
+  queryLimiter,
   authenticate(["student", "counselor"]),
   async (req, res) => {
     try {
@@ -853,6 +929,7 @@ router.get(
       if (role === "student") {
         const student_no: string = req.auth.user.student_no;
         const realname: string = req.auth.user.realname;
+        console.log(student_no);
         const freshman_query: any = await client.request(
           gql`
             query MyQuery(
@@ -1333,6 +1410,16 @@ router.post(
       const id: string = req.body.id;
       const statement: string = req.body.statement;
       const user_uuid: string = req.auth.user.uuid;
+      const role: string = req.auth.user.role;
+
+      const limitResult = checkRateLimit(user_uuid, role, 1 * 60 * 1000, 20);
+      if (!limitResult.allowed) {
+        return res.status(429).json({
+          error: limitResult.message,
+          currentCount: limitResult.currentCount,
+          limit: 20,
+        });
+      }
 
       if (statement.length === 0) {
         return res.status(400).send("Error: Invalid statement");
@@ -1964,6 +2051,16 @@ router.put(
       const user_uuid: string = req.auth.user.uuid;
       const student_no: string = req.auth.user.student_no;
       const realname: string = req.auth.user.realname;
+      const role: string = req.auth.user.role;
+
+      const limitResult = checkRateLimit(user_uuid, role, 1 * 60 * 1000, 20);
+      if (!limitResult.allowed) {
+        return res.status(429).json({
+          error: limitResult.message,
+          currentCount: limitResult.currentCount,
+          limit: 20,
+        });
+      }
 
       if (statement.length === 0) {
         return res.status(400).send("Error: Invalid statement");
