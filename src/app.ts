@@ -20,6 +20,7 @@ import chatRoute from "./routes/chat";
 import mentorRoute from "./routes/mentor";
 import noticeRoute from "./routes/notice";
 import courseRouter from "./routes/course";
+import llmRouter from "./routes/llm";
 
 const app = express();
 
@@ -37,7 +38,7 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-  })
+  }),
 );
 
 app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -48,9 +49,10 @@ app.use("/static", staticRouter);
 app.use("/user", userRouter);
 app.use("/emails", emailRouter);
 app.use("/weekly", weeklyRouter);
+app.use("/llm", llmRouter);
 app.use("/docs", docsRouter);
 app.use("/application", applicationRouter);
-app.use("/files",fileRouter);
+app.use("/files", fileRouter);
 app.use("/code", codeRouter);
 // app.use("/contest", contestRouter);
 // app.use("/room", roomRouter);
