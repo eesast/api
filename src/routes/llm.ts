@@ -34,7 +34,7 @@ const getGlobalQuota = async () => {
 const getPublicKey = () => {
   try {
     if (process.env.LLM_PUBLIC_KEY) {
-      return process.env.LLM_PUBLIC_KEY;
+      return process.env.LLM_PUBLIC_KEY.replace(/\\n/g, "\n");
     }
     if (fs.existsSync(PUBLIC_KEY_PATH)) {
       return fs.readFileSync(PUBLIC_KEY_PATH, "utf8");
@@ -209,12 +209,10 @@ router.post("/chat", verifySession, async (req, res) => {
 
   if (activeCount > 1) {
     await redis.decr(activeKey);
-    return res
-      .status(429)
-      .json({
-        error:
-          "Too many concurrent requests. Please wait for the previous request to finish.",
-      });
+    return res.status(429).json({
+      error:
+        "Too many concurrent requests. Please wait for the previous request to finish.",
+    });
   }
 
   // Rate Limiting (e.g., 1 request per 3 seconds)
@@ -373,12 +371,10 @@ router.post("/chat", verifySession, async (req, res) => {
         );
         res.end();
       } else {
-        res
-          .status(500)
-          .json({
-            error: "Failed to fetch from LLM provider",
-            details: error.message,
-          });
+        res.status(500).json({
+          error: "Failed to fetch from LLM provider",
+          details: error.message,
+        });
       }
     }
   } finally {
