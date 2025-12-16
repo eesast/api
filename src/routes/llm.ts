@@ -27,7 +27,7 @@ const getGlobalQuota = async () => {
   } catch (e) {
     console.error("Failed to get global limit from Redis", e);
   }
-  return parseInt(process.env.LLM_DEFAULT_LIMIT || "500000");
+  return parseInt(process.env.LLM_DEFAULT_LIMIT || "5000000");
 };
 
 // Helper to read public key
@@ -138,7 +138,14 @@ router.post("/verify", async (req, res) => {
       // Create in DB if not exists
       // If Access Key has specific quota, use it. Otherwise use 0 (Global).
       const limit = quota || 0;
-      dbUser = await init_user_llm_usage(studentNo, limit);
+      dbUser = await init_user_llm_usage(studentNo, limit, email);
+    } else if (email && dbUser.email !== email) {
+      // Update email if it's different (and we have a new one)
+      // We can reuse init_user_llm_usage because of on_conflict update_columns: [email]
+      // But we should be careful not to reset token_limit if we don't want to.
+      // However, init_user_llm_usage currently takes token_limit.
+      // Let's just call it with the existing limit to update the email.
+      dbUser = await init_user_llm_usage(studentNo, dbUser.token_limit, email);
     }
 
     // Sync DB limit to Redis
@@ -258,8 +265,12 @@ router.post("/chat", verifySession, async (req, res) => {
     let apiKey = process.env.LLM_API_KEY;
     let baseURL = process.env.LLM_API_URL;
 
-    // Special configuration for Qwen3-Max
-    if (model === "Qwen3-Max") {
+    // Special configuration for Qwen models
+    if (
+      model &&
+      (model.toLowerCase().includes("qwen") ||
+        model.toLowerCase().includes("qwq"))
+    ) {
       if (process.env.QWEN_API_KEY) {
         apiKey = process.env.QWEN_API_KEY;
         if (process.env.QWEN_API_URL) {

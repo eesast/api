@@ -20,21 +20,34 @@ export const get_user_llm_usage = async (student_no: string) => {
 export const init_user_llm_usage = async (
   student_no: string,
   token_limit: number = 0,
+  email?: string,
 ) => {
   const query: any = await client.request(
     gql`
-      mutation InitUserLlmUsage($student_no: String!, $token_limit: bigint!) {
+      mutation InitUserLlmUsage(
+        $student_no: String!
+        $token_limit: bigint!
+        $email: String
+      ) {
         insert_user_llm_usage_one(
-          object: { student_no: $student_no, token_limit: $token_limit }
-          on_conflict: { constraint: user_llm_usage_pkey, update_columns: [] }
+          object: {
+            student_no: $student_no
+            token_limit: $token_limit
+            email: $email
+          }
+          on_conflict: {
+            constraint: user_llm_usage_pkey
+            update_columns: [email]
+          }
         ) {
           student_no
           token_limit
           total_tokens_used
+          email
         }
       }
     `,
-    { student_no, token_limit },
+    { student_no, token_limit, email },
   );
   return query.insert_user_llm_usage_one;
 };
