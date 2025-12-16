@@ -16,13 +16,13 @@ jobs:
       - name: Use Node.js ${{matrix.node-version}}
         uses: actions/setup-node@v6
         with:
-          node-version: "24.11.1"
+          node-version: "24.12.0"
 
       - name: get yarn cache path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         id: yarn-cache
         with:
           path: ${{steps.yarn-cache-dir-path.outputs.dir}}
