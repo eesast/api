@@ -8,6 +8,8 @@ import {
   get_user_llm_usage,
   init_user_llm_usage,
   get_llm_model_config,
+  log_access_key_usage,
+  check_access_key_usage,
 } from "../hasura/llm";
 
 const router = express.Router();
@@ -118,10 +120,31 @@ router.post("/verify", async (req, res) => {
         .json({ error: "Access Key has already been used" });
     }
 
+    // Check Replay Attack (DB - Persistence)
+    const isUsedDB = await check_access_key_usage(jti);
+    if (isUsedDB) {
+      // Restore Redis state for performance
+      const ttl = exp ? exp - Math.floor(Date.now() / 1000) : 3600 * 24 * 7;
+      if (ttl > 0) {
+        await redis.set(`used_key:${jti}`, "1", "EX", ttl);
+      }
+      return res
+        .status(403)
+        .json({ error: "Access Key has already been used" });
+    }
+
     // Mark Key as used (expire at key's expiration time)
     const ttl = exp ? exp - Math.floor(Date.now() / 1000) : 3600 * 24 * 7;
     if (ttl > 0) {
       await redis.set(`used_key:${jti}`, "1", "EX", ttl);
+    }
+
+    // Log Access Key usage to DB
+    try {
+      await log_access_key_usage(studentNo, jti, email);
+    } catch (e) {
+      console.error("Failed to log access key usage:", e);
+      // Don't block login if logging fails, but it's good to know
     }
 
     // Invalidate old sessions

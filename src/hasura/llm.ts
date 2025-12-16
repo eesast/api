@@ -129,3 +129,41 @@ export const get_llm_model_config = async (model_value: string) => {
   );
   return query.llm_list[0];
 };
+
+export const log_access_key_usage = async (
+  student_no: string,
+  jti: string,
+  email?: string,
+) => {
+  const query: any = await client.request(
+    gql`
+      mutation LogAccessKeyUsage(
+        $student_no: String!
+        $jti: String!
+        $email: String
+      ) {
+        insert_access_key_log_one(
+          object: { student_no: $student_no, jti: $jti, email: $email }
+        ) {
+          id
+        }
+      }
+    `,
+    { student_no, jti, email },
+  );
+  return query.insert_access_key_log_one;
+};
+
+export const check_access_key_usage = async (jti: string) => {
+  const query: any = await client.request(
+    gql`
+      query CheckAccessKeyUsage($jti: String!) {
+        access_key_log(where: { jti: { _eq: $jti } }) {
+          id
+        }
+      }
+    `,
+    { jti },
+  );
+  return query.access_key_log.length > 0;
+};
