@@ -1,12 +1,12 @@
+import "./env";
 import Debug from "debug";
-import dotenv from "dotenv";
 import http from "http";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
 import { queue_element } from "./helpers/docker_queue";
+import { llm_cron } from "./helpers/llm_cron";
 // import docker_cron from "./helpers/docker_queue";
 
-dotenv.config();
 const debug = Debug("eesast-api");
 
 const normalizePort: (val: string) => number | boolean = (val) => {
@@ -35,6 +35,8 @@ export const docker_queue: queue_element[] = [];
 
 // weekly_cron();
 // weekly_init();
+
+llm_cron();
 
 const port = normalizePort(process.env.PORT || "28888");
 app.set("port", port);
