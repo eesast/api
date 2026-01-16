@@ -26,7 +26,7 @@
     "graphql": "16.12.0",
     "graphql-request": "6.1.0",
     "html-to-text": "9.0.5",
-    "ioredis": "5.9.1",
+    "ioredis": "5.9.2",
     "isemail": "3.2.0",
     "js-yaml": "4.1.1",
     "jsonwebtoken": "9.0.2",
