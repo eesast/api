@@ -1169,4 +1169,231 @@ router.get("/playback/:room_id", async (req, res) => {
   }
 });
 
+/**
+ * Add team software code
+ * @param {string} contest_id - Contest ID
+ * @param {string} team_id - Team ID
+ * @param {string} code_url - Code URL
+ */
+router.post("/add_team_software_code", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const { contest_id, team_id, code_url } = req.body;
+
+    // Input validation
+    if (!contest_id || !team_id || !code_url) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
+    }
+
+    // Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(contest_id) || !uuidRegex.test(team_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    // Validate URL format
+    try {
+      new URL(code_url);
+    } catch {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid URL format" });
+    }
+
+    // Permission check: verify user is a member of the team
+    const userTeam = await ContHasFunc.check_user_team(user_uuid, team_id);
+    if (!userTeam) {
+      return res
+        .status(403)
+        .json({ error: "403 Forbidden: You are not a member of this team" });
+    }
+
+    // Add team software code
+    await ContHasFunc.add_team_software_code(contest_id, team_id, code_url);
+    res.status(200).json({ message: "Team software code added successfully" });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
+
+/**
+ * Update team software code
+ * @param {string} team_id - Team ID
+ * @param {string} code_url - Code URL
+ * @param {number} submission_count - Current submission count
+ */
+router.post("/update_team_software_code", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const { team_id, code_url } = req.body;
+
+    // Input validation
+    if (!team_id || !code_url) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
+    }
+
+    // Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(team_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    // Validate URL format
+    try {
+      new URL(code_url);
+    } catch {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid URL format" });
+    }
+
+    // Validate submission_count is a non-negative number
+
+    // Permission check: verify user is a member of the team
+    const is_member = await ContHasFunc.check_user_team(user_uuid, team_id);
+    if (!is_member) {
+      return res
+        .status(403)
+        .json({ error: "403 Forbidden: You are not a member of this team" });
+    }
+
+    const submission_count: number =
+      (await ContHasFunc.get_team_software_submission_count(team_id)) + 1;
+
+    // Update team software code
+    await ContHasFunc.update_team_software_code(
+      team_id,
+      code_url,
+      submission_count,
+    );
+    res
+      .status(200)
+      .json({ message: "Team software code updated successfully" });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
+
+/**
+ * Get team software code by team ID
+ * @param {string} team_id - Team ID
+ */
+router.post("/get_team_software_code_one", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const { team_id } = req.body;
+
+    // Input validation
+    if (!team_id) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing team_id" });
+    }
+
+    // Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(team_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    // Permission check: verify user is a member of the team or a manager
+    // For now, we'll allow team members to view their own code
+    //const teams = await ContHasFunc.get_team_from_user(user_uuid, team_id);
+    const isMember = await ContHasFunc.check_user_team(user_uuid, team_id);
+    if (!isMember) {
+      return res.status(403).json({
+        error: "403 Forbidden: You are not authorized to view this team's code",
+      });
+    }
+
+    // Get team software code
+    const code = await ContHasFunc.get_team_software_code_one(team_id);
+    res.status(200).json({ data: code });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
+
+/**
+ * Get all team software code by contest ID
+ * @param {string} contest_id - Contest ID
+ */
+router.post(
+  "/get_all_team_software_code_by_contest",
+  authenticate(),
+  async (req, res) => {
+    try {
+      const user_uuid = req.auth.user.uuid;
+      const { contest_id } = req.body;
+
+      // Input validation
+      if (!contest_id) {
+        return res
+          .status(400)
+          .json({ error: "400 Bad Request: Missing contest_id" });
+      }
+
+      // Validate UUID format
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(contest_id)) {
+        return res
+          .status(400)
+          .json({ error: "400 Bad Request: Invalid UUID format" });
+      }
+
+      // Permission check: verify user is a manager of the contest
+      const is_manager = await ContHasFunc.get_maneger_from_user(
+        user_uuid,
+        contest_id,
+      );
+      if (!is_manager) {
+        return res.status(403).json({
+          error: "403 Forbidden: Only contest managers can view all team codes",
+        });
+      }
+
+      // Get all team software codes
+      const codes =
+        await ContHasFunc.get_all_team_software_code_by_contest(contest_id);
+      res.status(200).json({ data: codes });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({
+        error: "500 Internal Server Error",
+        message: err.message,
+        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      });
+    }
+  },
+);
+
 export default router;
