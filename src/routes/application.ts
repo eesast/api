@@ -3,6 +3,13 @@ import express from "express";
 import { gql } from "graphql-request";
 import { client } from "..";
 import * as HnrHasFunc from "../hasura/honor";
+import {
+  get_current_semester,
+  set_current_semester,
+  get_semester_list,
+  add_semester,
+  delete_semester,
+} from "../hasura/mentor";
 import authenticate from "../middlewares/authenticate";
 import { sendEmail } from "../helpers/email";
 import {
@@ -2309,6 +2316,84 @@ router.post(
     } catch (err) {
       console.log(err);
       return res.status(500);
+    }
+  },
+);
+
+router.get("/semester", async (req, res) => {
+  try {
+    const curr_semester = await get_current_semester();
+    if (!curr_semester) {
+      return res.status(500).send("Error: No semester found");
+    }
+    return res.status(200).send(curr_semester);
+  } catch (err) {
+    console.log(err);
+    return res.status(500);
+  }
+});
+
+router.post("/set_semester", authenticate(["counselor"]), async (req, res) => {
+  try {
+    const semester: string = req.body.semester;
+    if (!semester) {
+      return res.status(400).send("Error: Invalid semester");
+    }
+    const result = await set_current_semester(semester);
+    if (!result) {
+      return res.status(500).send("Error: Set semester failed");
+    }
+    return res.status(200).json({ affected_rows: result });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("Internal server error");
+  }
+});
+
+router.get("/semester_list", authenticate(["counselor"]), async (req, res) => {
+  try {
+    const list = await get_semester_list();
+    return res.status(200).json(list);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("Internal server error");
+  }
+});
+
+router.post("/add_semester", authenticate(["counselor"]), async (req, res) => {
+  try {
+    const semester: string = req.body.semester;
+    if (!semester) {
+      return res.status(400).send("Error: Invalid semester");
+    }
+    const result = await add_semester(semester);
+    if (!result) {
+      return res.status(500).send("Error: Add semester failed");
+    }
+    return res.status(200).json({ semester: result });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("Internal server error");
+  }
+});
+
+router.delete(
+  "/delete_semester",
+  authenticate(["counselor"]),
+  async (req, res) => {
+    try {
+      const semester: string = req.body.semester;
+      if (!semester) {
+        return res.status(400).send("Error: Invalid semester");
+      }
+      const result = await delete_semester(semester);
+      if (!result) {
+        return res.status(500).send("Error: Delete semester failed");
+      }
+      return res.status(200).json({ semester: result });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send("Internal server error");
     }
   },
 );
