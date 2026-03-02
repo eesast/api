@@ -2398,4 +2398,421 @@ router.delete(
   },
 );
 
+// ==================== 积极分子谈话记录（新系统：基于 member_chat_record 表） ====================
+
+// 学生查询自己的所有积极分子谈话记录（同时返回 is_member 和当前学期）
+router.get(
+  "/info/mentor/my_member_chats",
+  authenticate(["student"]),
+  async (req, res) => {
+    try {
+      const user_uuid: string = req.auth.user.uuid;
+
+      // 通过已通过的申请查询其导师是否参与积极分子谈话
+      const appl_query: any = await client.request(
+        gql`
+          query GetApprovedMentorForStudent($student_uuid: uuid!) {
+            mentor_application(
+              where: {
+                student_uuid: { _eq: $student_uuid }
+                status: { _eq: "approved" }
+              }
+              limit: 1
+            ) {
+              mentor_uuid
+            }
+          }
+        `,
+        { student_uuid: user_uuid },
+      );
+      let is_member: boolean = false;
+      const approved_mentor_uuid =
+        appl_query.mentor_application?.[0]?.mentor_uuid;
+      if (approved_mentor_uuid) {
+        const mentor_check: any = await client.request(
+          gql`
+            query GetMentorIsMember($mentor_uuid: uuid!) {
+              mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
+                is_member
+              }
+            }
+          `,
+          { mentor_uuid: approved_mentor_uuid },
+        );
+        is_member = mentor_check.mentor_info_by_pk?.is_member ?? false;
+      }
+
+      // 获取当前学期
+      const current_semester = await get_current_semester();
+
+      // 查询该学生所有谈话记录，按时间倒序
+      const records_query: any = await client.request(
+        gql`
+          query GetMemberChatRecords($user_id: uuid!) {
+            member_chat_record(
+              where: { user_id: { _eq: $user_id } }
+              order_by: { updated_at: desc }
+            ) {
+              id
+              updated_at
+              user_id
+              semester
+              member_chat_confirm
+            }
+          }
+        `,
+        { user_id: user_uuid },
+      );
+
+      return res.status(200).json({
+        is_member,
+        current_semester,
+        records: records_query.member_chat_record ?? [],
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send("Internal server error");
+    }
+  },
+);
+
+// 学生提交积极分子谈话记录（对当前学期插入/更新记录，文件已由前端上传至 COS）
+router.post(
+  "/info/mentor/member_chat_submit",
+  authenticate(["student"]),
+  async (req, res) => {
+    try {
+      const user_uuid: string = req.auth.user.uuid;
+
+      // 权限：查询已通过申请的导师是否参与积极分子谈话
+      const appl_query: any = await client.request(
+        gql`
+          query GetApprovedMentorForStudent($student_uuid: uuid!) {
+            mentor_application(
+              where: {
+                student_uuid: { _eq: $student_uuid }
+                status: { _eq: "approved" }
+              }
+              limit: 1
+            ) {
+              mentor_uuid
+            }
+          }
+        `,
+        { student_uuid: user_uuid },
+      );
+      const approved_mentor_uuid =
+        appl_query.mentor_application?.[0]?.mentor_uuid;
+      let is_member: boolean = false;
+      if (approved_mentor_uuid) {
+        const mentor_check: any = await client.request(
+          gql`
+            query GetMentorIsMember($mentor_uuid: uuid!) {
+              mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
+                is_member
+              }
+            }
+          `,
+          { mentor_uuid: approved_mentor_uuid },
+        );
+        is_member = mentor_check.mentor_info_by_pk?.is_member ?? false;
+      }
+      if (!is_member) {
+        return res.status(403).send("Error: Not a member");
+      }
+
+      // 获取当前学期
+      const current_semester = await get_current_semester();
+      if (!current_semester) {
+        return res.status(400).send("Error: No current semester");
+      }
+      console.log(`Current semester: ${current_semester}`);
+      // 查询当前学期是否已有记录
+      const existing_query: any = await client.request(
+        gql`
+          query CheckExistingRecord($user_id: uuid!, $semester: String!) {
+            member_chat_record(
+              where: {
+                user_id: { _eq: $user_id }
+                semester: { _eq: $semester }
+              }
+            ) {
+              id
+              member_chat_confirm
+            }
+          }
+        `,
+        { user_id: user_uuid, semester: current_semester },
+      );
+      const existing = existing_query.member_chat_record?.[0];
+
+      if (existing?.member_chat_confirm) {
+        return res
+          .status(400)
+          .send("Error: Chat already confirmed for this semester");
+      }
+
+      let result: any;
+      if (existing) {
+        // 已有记录：更新 updated_at（触发器会自动更新，这里显式写入时间保证及时性）
+        const update_mut: any = await client.request(
+          gql`
+            mutation UpdateMemberChatRecord($id: uuid!, $now: timestamptz!) {
+              update_member_chat_record_by_pk(
+                pk_columns: { id: $id }
+                _set: { updated_at: $now }
+              ) {
+                id
+                updated_at
+                user_id
+                semester
+                member_chat_confirm
+              }
+            }
+          `,
+          { id: existing.id, now: new Date().toISOString() },
+        );
+        result = update_mut.update_member_chat_record_by_pk;
+      } else {
+        // 新增记录
+        const insert_mut: any = await client.request(
+          gql`
+            mutation InsertMemberChatRecord(
+              $user_id: uuid!
+              $semester: String!
+            ) {
+              insert_member_chat_record_one(
+                object: { user_id: $user_id, semester: $semester }
+              ) {
+                id
+                updated_at
+                user_id
+                semester
+                member_chat_confirm
+              }
+            }
+          `,
+          { user_id: user_uuid, semester: current_semester },
+        );
+        result = insert_mut.insert_member_chat_record_one;
+      }
+
+      if (!result) {
+        return res.status(500).send("Error: Submit failed");
+      }
+      return res.status(200).json(result);
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send("Internal server error");
+    }
+  },
+);
+
+// 导师/辅导员确认积极分子谈话记录
+router.post(
+  "/info/mentor/member_chat_confirm",
+  authenticate(["teacher", "counselor"]),
+  async (req, res) => {
+    try {
+      const record_id: string = req.body.record_id;
+      const operator_uuid: string = req.auth.user.uuid;
+      const operator_role: string = req.auth.user.role;
+      if (!record_id) {
+        return res.status(400).send("Error: Missing record_id");
+      }
+
+      // 查询记录是否存在
+      const record_query: any = await client.request(
+        gql`
+          query GetMemberChatRecord($id: uuid!) {
+            member_chat_record_by_pk(id: $id) {
+              id
+              user_id
+              semester
+              member_chat_confirm
+            }
+          }
+        `,
+        { id: record_id },
+      );
+      if (!record_query.member_chat_record_by_pk) {
+        return res.status(404).send("Error: Record not found");
+      }
+      if (record_query.member_chat_record_by_pk.member_chat_confirm) {
+        return res.status(400).send("Error: Already confirmed");
+      }
+
+      // 导师需额外验证该学生是自己已通过的学生
+      if (operator_role === "teacher") {
+        const student_uuid = record_query.member_chat_record_by_pk.user_id;
+        const appl_check: any = await client.request(
+          gql`
+            query CheckTeacherStudent(
+              $mentor_uuid: uuid!
+              $student_uuid: uuid!
+            ) {
+              mentor_application(
+                where: {
+                  mentor_uuid: { _eq: $mentor_uuid }
+                  student_uuid: { _eq: $student_uuid }
+                  status: { _eq: "approved" }
+                }
+              ) {
+                student_uuid
+              }
+            }
+          `,
+          { mentor_uuid: operator_uuid, student_uuid },
+        );
+        if (appl_check.mentor_application.length === 0) {
+          return res.status(403).send("Error: Not your student");
+        }
+      }
+
+      const update_mut: any = await client.request(
+        gql`
+          mutation ConfirmMemberChatRecord($id: uuid!) {
+            update_member_chat_record_by_pk(
+              pk_columns: { id: $id }
+              _set: { member_chat_confirm: true }
+            ) {
+              id
+              member_chat_confirm
+              semester
+              user_id
+            }
+          }
+        `,
+        { id: record_id },
+      );
+
+      if (!update_mut.update_member_chat_record_by_pk) {
+        return res.status(500).send("Error: Confirm failed");
+      }
+      return res.status(200).json(update_mut.update_member_chat_record_by_pk);
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send("Internal server error");
+    }
+  },
+);
+
+// 辅导员获取所有积极分子谈话记录
+router.get(
+  "/info/mentor/all_member_chats",
+  authenticate(["counselor"]),
+  async (req, res) => {
+    try {
+      const query: any = await client.request(gql`
+        query GetAllMemberChatRecords {
+          member_chat_record(order_by: { updated_at: desc }) {
+            id
+            updated_at
+            user_id
+            semester
+            member_chat_confirm
+            user {
+              realname
+              student_no
+              department
+              class
+            }
+          }
+        }
+      `);
+      return res.status(200).json(query.member_chat_record ?? []);
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send("Internal server error");
+    }
+  },
+);
+
+// 老师获取自己指导的学生的积极分子谈话记录（仅已通过申请的学生）
+router.get(
+  "/info/mentor/my_students_member_chats",
+  authenticate(["teacher"]),
+  async (req, res) => {
+    try {
+      const mentor_uuid: string = req.auth.user.uuid;
+
+      // 先检查该老师是否参与积极分子谈话
+      const mentor_check: any = await client.request(
+        gql`
+          query CheckTeacherIsMember($mentor_uuid: uuid!) {
+            mentor_info_by_pk(mentor_uuid: $mentor_uuid) {
+              is_member
+            }
+          }
+        `,
+        { mentor_uuid },
+      );
+      if (!mentor_check.mentor_info_by_pk?.is_member) {
+        return res.status(200).json([]);
+      }
+
+      // 再查该老师所有已通过申请的学生 uuid
+      const applications_query: any = await client.request(
+        gql`
+          query GetApprovedStudents($mentor_uuid: uuid!) {
+            mentor_application(
+              where: {
+                mentor_uuid: { _eq: $mentor_uuid }
+                status: { _eq: "approved" }
+              }
+            ) {
+              student_uuid
+              year
+              student {
+                realname
+                student_no
+                department
+                class
+              }
+            }
+          }
+        `,
+        { mentor_uuid },
+      );
+
+      const approved = applications_query?.mentor_application ?? [];
+      if (approved.length === 0) {
+        return res.status(200).json([]);
+      }
+
+      const student_uuids: string[] = approved.map((a: any) => a.student_uuid);
+
+      // 再查这些学生的积极分子谈话记录
+      const records_query: any = await client.request(
+        gql`
+          query GetStudentsMemberChatRecords($student_uuids: [uuid!]!) {
+            member_chat_record(
+              where: { user_id: { _in: $student_uuids } }
+              order_by: { updated_at: desc }
+            ) {
+              id
+              updated_at
+              user_id
+              semester
+              member_chat_confirm
+              user {
+                realname
+                student_no
+                department
+                class
+              }
+            }
+          }
+        `,
+        { student_uuids },
+      );
+
+      return res.status(200).json(records_query.member_chat_record ?? []);
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send("Internal server error");
+    }
+  },
+);
+
 export default router;
