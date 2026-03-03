@@ -2445,7 +2445,7 @@ router.get(
       // 获取当前学期
       const current_semester = await get_current_semester();
 
-      // 查询该学生所有谈话记录，按时间倒序
+      // 查询新系统数据（member_chat_record 表）
       const records_query: any = await client.request(
         gql`
           query GetMemberChatRecords($user_id: uuid!) {
@@ -2464,10 +2464,47 @@ router.get(
         { user_id: user_uuid },
       );
 
+      // 查询旧系统数据（mentor_application 表）
+      const old_records_query: any = await client.request(
+        gql`
+          query GetOldMemberChatRecords($student_uuid: uuid!) {
+            mentor_application(
+              where: {
+                student_uuid: { _eq: $student_uuid }
+                member_chat_status: { _eq: true }
+              }
+              order_by: { member_chat_time: desc }
+            ) {
+              id
+              member_chat_time
+              member_chat_confirm
+            }
+          }
+        `,
+        { student_uuid: user_uuid },
+      );
+
+      // 合并旧数据（学期为空字符串）
+      const legacy_records = (old_records_query.mentor_application ?? []).map(
+        (app: any) => ({
+          id: app.id,
+          updated_at: app.member_chat_time,
+          user_id: user_uuid,
+          semester: "", // 旧系统标记
+          member_chat_confirm: app.member_chat_confirm ?? false,
+          application_id: app.id, // 用于下载
+        }),
+      );
+
+      const all_records = [
+        ...legacy_records,
+        ...(records_query.member_chat_record ?? []),
+      ];
+
       return res.status(200).json({
         is_member,
         current_semester,
-        records: records_query.member_chat_record ?? [],
+        records: all_records,
       });
     } catch (err) {
       console.log(err);
@@ -2635,61 +2672,131 @@ router.post(
         `,
         { id: record_id },
       );
-      if (!record_query.member_chat_record_by_pk) {
-        return res.status(404).send("Error: Record not found");
-      }
-      if (record_query.member_chat_record_by_pk.member_chat_confirm) {
-        return res.status(400).send("Error: Already confirmed");
-      }
 
-      // 导师需额外验证该学生是自己已通过的学生
-      if (operator_role === "teacher") {
-        const student_uuid = record_query.member_chat_record_by_pk.user_id;
-        const appl_check: any = await client.request(
-          gql`
-            query CheckTeacherStudent(
-              $mentor_uuid: uuid!
-              $student_uuid: uuid!
-            ) {
-              mentor_application(
-                where: {
-                  mentor_uuid: { _eq: $mentor_uuid }
-                  student_uuid: { _eq: $student_uuid }
-                  status: { _eq: "approved" }
-                }
+      // 新系统数据处理
+      if (record_query.member_chat_record_by_pk) {
+        if (record_query.member_chat_record_by_pk.member_chat_confirm) {
+          return res.status(400).send("Error: Already confirmed");
+        }
+
+        // 导师需额外验证该学生是自己已通过的学生
+        if (operator_role === "teacher") {
+          const student_uuid = record_query.member_chat_record_by_pk.user_id;
+          const appl_check: any = await client.request(
+            gql`
+              query CheckTeacherStudent(
+                $mentor_uuid: uuid!
+                $student_uuid: uuid!
               ) {
-                student_uuid
+                mentor_application(
+                  where: {
+                    mentor_uuid: { _eq: $mentor_uuid }
+                    student_uuid: { _eq: $student_uuid }
+                    status: { _eq: "approved" }
+                  }
+                ) {
+                  student_uuid
+                }
+              }
+            `,
+            { mentor_uuid: operator_uuid, student_uuid },
+          );
+          if (appl_check.mentor_application.length === 0) {
+            return res.status(403).send("Error: Not your student");
+          }
+        }
+
+        const update_mut: any = await client.request(
+          gql`
+            mutation ConfirmMemberChatRecord($id: uuid!) {
+              update_member_chat_record_by_pk(
+                pk_columns: { id: $id }
+                _set: { member_chat_confirm: true }
+              ) {
+                id
+                member_chat_confirm
+                semester
+                user_id
               }
             }
           `,
-          { mentor_uuid: operator_uuid, student_uuid },
+          { id: record_id },
         );
-        if (appl_check.mentor_application.length === 0) {
-          return res.status(403).send("Error: Not your student");
+
+        if (!update_mut.update_member_chat_record_by_pk) {
+          return res.status(500).send("Error: Confirm failed");
         }
+        return res.status(200).json(update_mut.update_member_chat_record_by_pk);
       }
 
-      const update_mut: any = await client.request(
+      // 旧系统数据处理：尝试从 mentor_application 表查询
+      const old_record_query: any = await client.request(
         gql`
-          mutation ConfirmMemberChatRecord($id: uuid!) {
-            update_member_chat_record_by_pk(
-              pk_columns: { id: $id }
-              _set: { member_chat_confirm: true }
-            ) {
+          query GetOldMemberChatRecord($id: uuid!) {
+            mentor_application_by_pk(id: $id) {
               id
+              student_uuid
+              mentor_uuid
+              status
+              is_member
+              member_chat_status
               member_chat_confirm
-              semester
-              user_id
             }
           }
         `,
         { id: record_id },
       );
 
-      if (!update_mut.update_member_chat_record_by_pk) {
+      if (!old_record_query.mentor_application_by_pk) {
+        return res.status(404).send("Error: Record not found");
+      }
+
+      const old_app = old_record_query.mentor_application_by_pk;
+      if (
+        old_app.status !== "approved" ||
+        !old_app.is_member ||
+        !old_app.member_chat_status
+      ) {
+        return res.status(404).send("Error: Not a valid member chat record");
+      }
+      if (old_app.member_chat_confirm) {
+        return res.status(400).send("Error: Already confirmed");
+      }
+
+      // 导师需验证该学生是自己的
+      if (
+        operator_role === "teacher" &&
+        old_app.mentor_uuid !== operator_uuid
+      ) {
+        return res.status(403).send("Error: Not your student");
+      }
+
+      // 更新旧系统字段
+      const update_old_mut: any = await client.request(
+        gql`
+          mutation ConfirmOldMemberChatRecord($id: uuid!) {
+            update_mentor_application_by_pk(
+              pk_columns: { id: $id }
+              _set: { member_chat_confirm: true }
+            ) {
+              id
+              member_chat_confirm
+              student_uuid
+            }
+          }
+        `,
+        { id: record_id },
+      );
+
+      if (!update_old_mut.update_mentor_application_by_pk) {
         return res.status(500).send("Error: Confirm failed");
       }
-      return res.status(200).json(update_mut.update_member_chat_record_by_pk);
+      return res.status(200).json({
+        id: record_id,
+        member_chat_confirm: true,
+        semester: "",
+        user_id: old_app.student_uuid,
+      });
     } catch (err) {
       console.log(err);
       return res.status(500).send("Internal server error");
@@ -2703,6 +2810,7 @@ router.get(
   authenticate(["counselor"]),
   async (req, res) => {
     try {
+      // 查询新系统数据
       const query: any = await client.request(gql`
         query GetAllMemberChatRecords {
           member_chat_record(order_by: { updated_at: desc }) {
@@ -2720,7 +2828,47 @@ router.get(
           }
         }
       `);
-      return res.status(200).json(query.member_chat_record ?? []);
+
+      // 查询旧系统数据
+      const old_query: any = await client.request(gql`
+        query GetAllOldMemberChatRecords {
+          mentor_application(
+            where: { member_chat_status: { _eq: true } }
+            order_by: { member_chat_time: desc }
+          ) {
+            id
+            student_uuid
+            member_chat_time
+            member_chat_confirm
+            student {
+              realname
+              student_no
+              department
+              class
+            }
+          }
+        }
+      `);
+
+      // 转换旧数据格式
+      const legacy_records = (old_query.mentor_application ?? []).map(
+        (app: any) => ({
+          id: app.id,
+          updated_at: app.member_chat_time,
+          user_id: app.student_uuid,
+          semester: "",
+          member_chat_confirm: app.member_chat_confirm ?? false,
+          application_id: app.id,
+          user: app.student,
+        }),
+      );
+
+      const all_records = [
+        ...legacy_records,
+        ...(query.member_chat_record ?? []),
+      ];
+
+      return res.status(200).json(all_records);
     } catch (err) {
       console.log(err);
       return res.status(500).send("Internal server error");
@@ -2782,7 +2930,7 @@ router.get(
 
       const student_uuids: string[] = approved.map((a: any) => a.student_uuid);
 
-      // 再查这些学生的积极分子谈话记录
+      // 查询新系统数据（member_chat_record 表）
       const records_query: any = await client.request(
         gql`
           query GetStudentsMemberChatRecords($student_uuids: [uuid!]!) {
@@ -2807,7 +2955,53 @@ router.get(
         { student_uuids },
       );
 
-      return res.status(200).json(records_query.member_chat_record ?? []);
+      // 查询旧系统数据（mentor_application 表）
+      const old_applications_query: any = await client.request(
+        gql`
+          query GetOldMemberChatApplications($mentor_uuid: uuid!) {
+            mentor_application(
+              where: {
+                mentor_uuid: { _eq: $mentor_uuid }
+                status: { _eq: "approved" }
+                member_chat_status: { _eq: true }
+              }
+              order_by: { member_chat_time: desc }
+            ) {
+              id
+              student_uuid
+              member_chat_time
+              member_chat_confirm
+              student {
+                realname
+                student_no
+                department
+                class
+              }
+            }
+          }
+        `,
+        { mentor_uuid },
+      );
+
+      // 转换旧数据格式
+      const legacy_records = (
+        old_applications_query.mentor_application ?? []
+      ).map((app: any) => ({
+        id: app.id,
+        updated_at: app.member_chat_time,
+        user_id: app.student_uuid,
+        semester: "", // 旧系统标记
+        member_chat_confirm: app.member_chat_confirm ?? false,
+        application_id: app.id, // 用于下载
+        user: app.student,
+      }));
+
+      const all_records = [
+        ...legacy_records,
+        ...(records_query.member_chat_record ?? []),
+      ];
+
+      return res.status(200).json(all_records);
     } catch (err) {
       console.log(err);
       return res.status(500).send("Internal server error");
@@ -2841,6 +3035,7 @@ router.get(
 
       const current_semester = await get_current_semester();
 
+      // 查询新系统数据（mentor_talk_record 表）
       const records_query: any = await client.request(
         gql`
           query GetMentorTalkRecords($user_id: uuid!) {
@@ -2859,10 +3054,47 @@ router.get(
         { user_id: user_uuid },
       );
 
+      // 查询旧系统数据（mentor_application 表）
+      const old_records_query: any = await client.request(
+        gql`
+          query GetOldMentorTalkRecords($student_uuid: uuid!) {
+            mentor_application(
+              where: {
+                student_uuid: { _eq: $student_uuid }
+                chat_status: { _eq: true }
+              }
+              order_by: { chat_time: desc }
+            ) {
+              id
+              chat_time
+              chat_confirm
+            }
+          }
+        `,
+        { student_uuid: user_uuid },
+      );
+
+      // 合并旧数据（学期为空字符串）
+      const legacy_records = (old_records_query.mentor_application ?? []).map(
+        (app: any) => ({
+          id: app.id,
+          updated_at: app.chat_time,
+          user_id: user_uuid,
+          semester: "", // 旧系统标记
+          mentor_talk_confirm: app.chat_confirm ?? false,
+          application_id: app.id, // 用于下载
+        }),
+      );
+
+      const all_records = [
+        ...legacy_records,
+        ...(records_query.mentor_talk_record ?? []),
+      ];
+
       return res.status(200).json({
         in_freshman,
         current_semester,
-        records: records_query.mentor_talk_record ?? [],
+        records: all_records,
       });
     } catch (err) {
       console.log(err);
@@ -3004,61 +3236,126 @@ router.post(
         `,
         { id: record_id },
       );
-      if (!record_query.mentor_talk_record_by_pk) {
-        return res.status(404).send("Error: Record not found");
-      }
-      if (record_query.mentor_talk_record_by_pk.mentor_talk_confirm) {
-        return res.status(400).send("Error: Already confirmed");
-      }
 
-      // 导师需验证该学生是自己已通过的学生
-      if (operator_role === "teacher") {
-        const student_uuid = record_query.mentor_talk_record_by_pk.user_id;
-        const appl_check: any = await client.request(
-          gql`
-            query CheckTeacherStudent(
-              $mentor_uuid: uuid!
-              $student_uuid: uuid!
-            ) {
-              mentor_application(
-                where: {
-                  mentor_uuid: { _eq: $mentor_uuid }
-                  student_uuid: { _eq: $student_uuid }
-                  status: { _eq: "approved" }
-                }
+      // 新系统数据处理
+      if (record_query.mentor_talk_record_by_pk) {
+        if (record_query.mentor_talk_record_by_pk.mentor_talk_confirm) {
+          return res.status(400).send("Error: Already confirmed");
+        }
+
+        // 导师需验证该学生是自己已通过的学生
+        if (operator_role === "teacher") {
+          const student_uuid = record_query.mentor_talk_record_by_pk.user_id;
+          const appl_check: any = await client.request(
+            gql`
+              query CheckTeacherStudent(
+                $mentor_uuid: uuid!
+                $student_uuid: uuid!
               ) {
-                student_uuid
+                mentor_application(
+                  where: {
+                    mentor_uuid: { _eq: $mentor_uuid }
+                    student_uuid: { _eq: $student_uuid }
+                    status: { _eq: "approved" }
+                  }
+                ) {
+                  student_uuid
+                }
+              }
+            `,
+            { mentor_uuid: operator_uuid, student_uuid },
+          );
+          if (appl_check.mentor_application.length === 0) {
+            return res.status(403).send("Error: Not your student");
+          }
+        }
+
+        const update_mut: any = await client.request(
+          gql`
+            mutation ConfirmMentorTalkRecord($id: uuid!) {
+              update_mentor_talk_record_by_pk(
+                pk_columns: { id: $id }
+                _set: { mentor_talk_confirm: true }
+              ) {
+                id
+                mentor_talk_confirm
+                semester
+                user_id
               }
             }
           `,
-          { mentor_uuid: operator_uuid, student_uuid },
+          { id: record_id },
         );
-        if (appl_check.mentor_application.length === 0) {
-          return res.status(403).send("Error: Not your student");
+
+        if (!update_mut.update_mentor_talk_record_by_pk) {
+          return res.status(500).send("Error: Confirm failed");
         }
+        return res.status(200).json(update_mut.update_mentor_talk_record_by_pk);
       }
 
-      const update_mut: any = await client.request(
+      // 旧系统数据处理：尝试从 mentor_application 表查询
+      const old_record_query: any = await client.request(
         gql`
-          mutation ConfirmMentorTalkRecord($id: uuid!) {
-            update_mentor_talk_record_by_pk(
-              pk_columns: { id: $id }
-              _set: { mentor_talk_confirm: true }
-            ) {
+          query GetOldTalkRecord($id: uuid!) {
+            mentor_application_by_pk(id: $id) {
               id
-              mentor_talk_confirm
-              semester
-              user_id
+              student_uuid
+              mentor_uuid
+              status
+              chat_status
+              chat_confirm
             }
           }
         `,
         { id: record_id },
       );
 
-      if (!update_mut.update_mentor_talk_record_by_pk) {
+      if (!old_record_query.mentor_application_by_pk) {
+        return res.status(404).send("Error: Record not found");
+      }
+
+      const old_app = old_record_query.mentor_application_by_pk;
+      if (old_app.status !== "approved" || !old_app.chat_status) {
+        return res.status(404).send("Error: Not a valid talk record");
+      }
+      if (old_app.chat_confirm) {
+        return res.status(400).send("Error: Already confirmed");
+      }
+
+      // 导师需验证该学生是自己的
+      if (
+        operator_role === "teacher" &&
+        old_app.mentor_uuid !== operator_uuid
+      ) {
+        return res.status(403).send("Error: Not your student");
+      }
+
+      // 更新旧系统字段
+      const update_old_mut: any = await client.request(
+        gql`
+          mutation ConfirmOldTalkRecord($id: uuid!) {
+            update_mentor_application_by_pk(
+              pk_columns: { id: $id }
+              _set: { chat_confirm: true }
+            ) {
+              id
+              chat_confirm
+              student_uuid
+            }
+          }
+        `,
+        { id: record_id },
+      );
+
+      if (!update_old_mut.update_mentor_application_by_pk) {
         return res.status(500).send("Error: Confirm failed");
       }
-      return res.status(200).json(update_mut.update_mentor_talk_record_by_pk);
+      return res.status(200).json({
+        id: record_id,
+        mentor_talk_confirm: true,
+        semester: "",
+        user_id: old_app.student_uuid,
+      });
     } catch (err) {
       console.log(err);
       return res.status(500).send("Internal server error");
@@ -3072,6 +3369,7 @@ router.get(
   authenticate(["counselor"]),
   async (req, res) => {
     try {
+      // 查询新系统数据
       const query: any = await client.request(gql`
         query GetAllMentorTalkRecords {
           mentor_talk_record(order_by: { updated_at: desc }) {
@@ -3089,7 +3387,47 @@ router.get(
           }
         }
       `);
-      return res.status(200).json(query.mentor_talk_record ?? []);
+
+      // 查询旧系统数据
+      const old_query: any = await client.request(gql`
+        query GetAllOldTalkRecords {
+          mentor_application(
+            where: { chat_status: { _eq: true } }
+            order_by: { chat_time: desc }
+          ) {
+            id
+            student_uuid
+            chat_time
+            chat_confirm
+            student {
+              realname
+              student_no
+              department
+              class
+            }
+          }
+        }
+      `);
+
+      // 转换旧数据格式
+      const legacy_records = (old_query.mentor_application ?? []).map(
+        (app: any) => ({
+          id: app.id,
+          updated_at: app.chat_time,
+          user_id: app.student_uuid,
+          semester: "",
+          mentor_talk_confirm: app.chat_confirm ?? false,
+          application_id: app.id,
+          user: app.student,
+        }),
+      );
+
+      const all_records = [
+        ...legacy_records,
+        ...(query.mentor_talk_record ?? []),
+      ];
+
+      return res.status(200).json(all_records);
     } catch (err) {
       console.log(err);
       return res.status(500).send("Internal server error");
@@ -3128,6 +3466,7 @@ router.get(
 
       const student_uuids: string[] = approved.map((a: any) => a.student_uuid);
 
+      // 查询新系统数据（mentor_talk_record 表）
       const records_query: any = await client.request(
         gql`
           query GetStudentsTalkRecords($student_uuids: [uuid!]!) {
@@ -3152,7 +3491,53 @@ router.get(
         { student_uuids },
       );
 
-      return res.status(200).json(records_query.mentor_talk_record ?? []);
+      // 查询旧系统数据（mentor_application 表）
+      const old_applications_query: any = await client.request(
+        gql`
+          query GetOldTalkApplications($mentor_uuid: uuid!) {
+            mentor_application(
+              where: {
+                mentor_uuid: { _eq: $mentor_uuid }
+                status: { _eq: "approved" }
+                chat_status: { _eq: true }
+              }
+              order_by: { chat_time: desc }
+            ) {
+              id
+              student_uuid
+              chat_time
+              chat_confirm
+              student {
+                realname
+                student_no
+                department
+                class
+              }
+            }
+          }
+        `,
+        { mentor_uuid },
+      );
+
+      // 转换旧数据格式
+      const legacy_records = (
+        old_applications_query.mentor_application ?? []
+      ).map((app: any) => ({
+        id: app.id,
+        updated_at: app.chat_time,
+        user_id: app.student_uuid,
+        semester: "", // 旧系统标记
+        mentor_talk_confirm: app.chat_confirm ?? false,
+        application_id: app.id, // 用于下载
+        user: app.student,
+      }));
+
+      const all_records = [
+        ...legacy_records,
+        ...(records_query.mentor_talk_record ?? []),
+      ];
+
+      return res.status(200).json(all_records);
     } catch (err) {
       console.log(err);
       return res.status(500).send("Internal server error");
