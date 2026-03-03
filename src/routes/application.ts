@@ -2428,6 +2428,7 @@ router.get(
       let is_member: boolean = false;
       const approved_mentor_uuid =
         appl_query.mentor_application?.[0]?.mentor_uuid;
+      // 先判断导师是否参与积极分子谈话
       if (approved_mentor_uuid) {
         const mentor_check: any = await client.request(
           gql`
@@ -2441,6 +2442,7 @@ router.get(
         );
         is_member = mentor_check.mentor_info_by_pk?.is_member ?? false;
       }
+      //再判断学生是否是积极分子
       if (is_member) {
         const freshman_check: any = await client.request(
           gql`
@@ -2457,6 +2459,28 @@ router.get(
         } else {
           // 如果没有找到对应的 freshman 记录，默认不是成员（或根据实际需求调整）
           is_member = false;
+        }
+      }
+      //最后在旧系统（mentor_application）中查询是否是积极分子
+      if (!is_member) {
+        const old_member_check: any = await client.request(
+          gql`
+            query GetOldMemberStatus($student_uuid: uuid!) {
+              mentor_application(
+                where: {
+                  student_uuid: { _eq: $student_uuid }
+                  is_member: { _eq: true }
+                }
+                limit: 1
+              ) {
+                is_member
+              }
+            }
+          `,
+          { student_uuid: user_uuid },
+        );
+        if (old_member_check.mentor_application.length > 0) {
+          is_member = old_member_check.mentor_application[0].is_member ?? false;
         }
       }
 
@@ -2489,7 +2513,7 @@ router.get(
             mentor_application(
               where: {
                 student_uuid: { _eq: $student_uuid }
-                member_chat_status: { _eq: true }
+                is_member: { _eq: true }
               }
               order_by: { member_chat_time: desc }
             ) {
