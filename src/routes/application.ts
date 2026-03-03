@@ -2441,6 +2441,24 @@ router.get(
         );
         is_member = mentor_check.mentor_info_by_pk?.is_member ?? false;
       }
+      if (is_member) {
+        const freshman_check: any = await client.request(
+          gql`
+            query GetFreshmanIsMember($student_uuid: uuid!) {
+              freshman(where: { uuid: { _eq: $student_uuid } }) {
+                is_member
+              }
+            }
+          `,
+          { student_uuid: user_uuid },
+        );
+        if (freshman_check.freshman.length > 0) {
+          is_member = freshman_check.freshman[0].is_member ?? false;
+        } else {
+          // 如果没有找到对应的 freshman 记录，默认不是成员（或根据实际需求调整）
+          is_member = false;
+        }
+      }
 
       // 获取当前学期
       const current_semester = await get_current_semester();
