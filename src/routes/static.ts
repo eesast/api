@@ -114,6 +114,57 @@ router.get("/chat_record/:user_uuid/member/:semester/*", async (req, res) => {
   }
 });
 
+router.get("/chat_record/:user_uuid/talk/:semester/*", async (req, res) => {
+  try {
+    const { user_uuid: target_uuid, semester } = req.params;
+    if (role === "counselor") {
+      const sts = await getSTS(
+        generalActions,
+        `chat_record/${target_uuid}/talk/${semester}/*`,
+      );
+      return res.status(200).send(sts);
+    } else if (role === "student" && user_uuid === target_uuid) {
+      const sts = await getSTS(
+        generalActions,
+        `chat_record/${target_uuid}/talk/${semester}/*`,
+      );
+      return res.status(200).send(sts);
+    } else if (role === "teacher") {
+      const applications: any = await client.request(
+        gql`
+          query CheckTeacherStudentForTalk(
+            $mentor_uuid: uuid!
+            $student_uuid: uuid!
+          ) {
+            mentor_application(
+              where: {
+                mentor_uuid: { _eq: $mentor_uuid }
+                student_uuid: { _eq: $student_uuid }
+                status: { _eq: "approved" }
+              }
+            ) {
+              student_uuid
+            }
+          }
+        `,
+        { mentor_uuid: user_uuid, student_uuid: target_uuid },
+      );
+      if (applications.mentor_application.length === 0) {
+        return res.status(401).send("当前用户没有权限访问该谈话记录");
+      }
+      const sts = await getSTS(
+        generalActions,
+        `chat_record/${target_uuid}/talk/${semester}/*`,
+      );
+      return res.status(200).send(sts);
+    } else {
+      return res.status(401).send("当前用户没有权限访问该谈话记录");
+    }
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
 router.get("/chat_record/:application_id/*", async (req, res) => {
   try {
     if (role == "student" || role == "teacher") {
