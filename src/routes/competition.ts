@@ -1204,7 +1204,15 @@ router.post("/add_team_software_code", authenticate(), async (req, res) => {
         .status(400)
         .json({ error: "400 Bad Request: Invalid URL format" });
     }
-
+    // Deadline check: verify current time is before contest deadline
+    const deadline =
+      await ContHasFunc.get_software_contest_deadline(contest_id);
+    const isBeforeDeadline = deadline ? new Date() < new Date(deadline) : false;
+    if (!isBeforeDeadline) {
+      return res.status(403).json({
+        error: "403 Forbidden: Contest submission deadline has passed",
+      });
+    }
     // Permission check: verify user is a member of the team
     const userTeam = await ContHasFunc.check_user_team(user_uuid, team_id);
     if (!userTeam) {
@@ -1262,7 +1270,16 @@ router.post("/update_team_software_code", authenticate(), async (req, res) => {
         .json({ error: "400 Bad Request: Invalid URL format" });
     }
 
-    // Validate submission_count is a non-negative number
+    // Deadline check: verify current time is before contest deadline
+    const contest_id = await ContHasFunc.get_contest_id_from_team_id(team_id);
+    const deadline =
+      await ContHasFunc.get_software_contest_deadline(contest_id);
+    const isBeforeDeadline = deadline ? new Date() < new Date(deadline) : false;
+    if (!isBeforeDeadline) {
+      return res.status(403).json({
+        error: "403 Forbidden: Contest submission deadline has passed",
+      });
+    }
 
     // Permission check: verify user is a member of the team
     const is_member = await ContHasFunc.check_user_team(user_uuid, team_id);
@@ -1396,4 +1413,43 @@ router.post(
   },
 );
 
+router.post("/get_software_contest_ddl", authenticate(), async (req, res) => {
+  try {
+    // const user_uuid = req.auth.user.uuid;
+    const { contest_id } = req.body;
+
+    // Input validation
+    if (!contest_id) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing contest_id" });
+    }
+
+    // Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(contest_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    // Permission check: verify user is a manager of the contest
+    const result = await ContHasFunc.get_software_contest_deadline(contest_id);
+    if (result === null) {
+      return res
+        .status(404)
+        .json({ error: "404 Not Found: Contest not found" });
+    }
+    const { deadline, current_time } = result;
+    res.status(200).json({ data: { deadline, current_time } });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
 export default router;
