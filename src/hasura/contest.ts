@@ -2588,3 +2588,40 @@ export const delete_contest_time: any = async (
   );
   return delete_contest_time.delete_contest_time_by_pk?.event ?? undefined;
 };
+
+export const get_software_contest_deadline: any = async (
+  contest_id: string,
+) => {
+  const query_software_contest_deadline: any = await client.request(
+    gql`
+      query MyQuery($_eq: uuid = "") {
+        contest_soft_code_deadline(where: { contest_id: { _eq: $_eq } }) {
+          deadline
+        }
+      }
+    `,
+    {
+      _eq: contest_id,
+    },
+  );
+  return (
+    query_software_contest_deadline.contest_soft_code_deadline[0]?.deadline ??
+    undefined
+  );
+};
+
+export const get_contest_id_from_team_id: any = async (team_id: string) => {
+  const query_contest_id_from_team_id: any = await client.request(
+    gql`
+      query MyQuery($team: uuid = "") {
+        contest_team(where: { team_id: { _eq: $team } }) {
+          contest_id
+        }
+      }
+    `,
+    {
+      team: team_id,
+    },
+  );
+  return query_contest_id_from_team_id.contest_team[0]?.contest_id ?? undefined;
+};
