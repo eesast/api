@@ -386,10 +386,10 @@
   dependencies:
     undici-types "~7.18.0"
 
-"@types/node@24.10.4":
-  version "24.10.4"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-24.10.4.tgz#9d27c032a1b2c42a4eab8fb65c5856a8b8e098c4"
-  integrity sha512-vnDVpYPMzs4wunl27jHrfmwojOGKya0xyM3sH+UE5iv5uPS6vX7UIoh6m+vQc5LGBq52HBKPIn/zcSZVzeDEZg==
+"@types/node@24.10.15":
+  version "24.10.15"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-24.10.15.tgz#83e016a4c3dbf4e672dc257cf4c941527f1a3aa3"
+  integrity sha512-BgjLoRuSr0MTI5wA6gMw9Xy0sFudAaUuvrnjgGx9wZ522fYYLA5SYJ+1Y30vTcJEG+DRCyDHx/gzQVfofYzSdg==
   dependencies:
     undici-types "~7.16.0"
 
