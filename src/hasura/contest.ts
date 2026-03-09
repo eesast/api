@@ -123,7 +123,89 @@ export const get_team_from_user: any = async (
       contest_id: contest_id,
     },
   );
-  return query_team_id.contest_team_member[0]?.team_id ?? null;
+  if (query_team_id.contest_team_member.length !== 0) {
+    return query_team_id.contest_team_member[0]?.team_id ?? null;
+  }
+  const query_team_from_leader: any = await client.request(
+    gql`
+      query get_team_from_leader($user_uuid: uuid!, $contest_id: uuid!) {
+        contest_team(
+          where: {
+            team_leader_uuid: { _eq: $user_uuid }
+            contest_id: { _eq: $contest_id }
+          }
+        ) {
+          team_id
+        }
+      }
+    `,
+    {
+      user_uuid: user_uuid,
+      contest_id: contest_id,
+    },
+  );
+  if (query_team_from_leader.contest_team.length !== 0) {
+    return query_team_from_leader.contest_team[0]?.id ?? null;
+  }
+  return null;
+};
+
+/**
+ * Check if user is in a team
+ * @param {string} user_uuid
+ * @param {string} team_id
+ * @returns {boolean} true if user is in the team, false otherwise
+ */
+export const check_user_team: any = async (
+  user_uuid: string,
+  team_id: string,
+) => {
+  // Check if user is a team member
+  const query_member: any = await client.request(
+    gql`
+      query check_user_team_member($user_uuid: uuid!, $team_id: uuid!) {
+        contest_team_member(
+          where: {
+            _and: { user_uuid: { _eq: $user_uuid }, team_id: { _eq: $team_id } }
+          }
+        ) {
+          user_uuid
+        }
+      }
+    `,
+    {
+      user_uuid: user_uuid,
+      team_id: team_id,
+    },
+  );
+  if (query_member.contest_team_member.length !== 0) {
+    return true;
+  }
+  // Check if user is the team leader
+  const query_leader: any = await client.request(
+    gql`
+      query check_user_team_leader($user_uuid: uuid!, $team_id: uuid!) {
+        contest_team(
+          where: {
+            _and: {
+              team_leader_uuid: { _eq: $user_uuid }
+              team_id: { _eq: $team_id }
+            }
+          }
+        ) {
+          team_id
+        }
+      }
+    `,
+    {
+      user_uuid: user_uuid,
+      team_id: team_id,
+    },
+  );
+  if (query_leader.contest_team.length !== 0) {
+    return true;
+  }
+  return false;
 };
 
 /**
@@ -1240,6 +1322,163 @@ export const add_team_member: any = async (
   return true;
 };
 
+export const add_team_software_code: any = async (
+  contest_id: string,
+  team_id: string,
+  code_url: string,
+) => {
+  await client.request(
+    gql`
+      mutation add_team_software_code(
+        $url: String!
+        $team_id: uuid!
+        $contest_id: uuid!
+      ) {
+        insert_contest_team_software_code(
+          objects: { URL: $url, team_id: $team_id, contest_id: $contest_id }
+        ) {
+          returning {
+            created_at
+          }
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+      url: code_url,
+      contest_id: contest_id,
+    },
+  );
+};
+
+export const update_team_software_code: any = async (
+  team_id: string,
+  code_url: string,
+  submission_count: number,
+) => {
+  await client.request(
+    gql`
+      mutation change_team_software_code(
+        $url: String!
+        $teamId: uuid!
+        $count: Int!
+      ) {
+        update_contest_team_software_code(
+          where: { team_id: { _eq: $teamId } }
+          _set: { URL: $url, submission_count: $count, updated_at: "now()" }
+        ) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      teamId: team_id,
+      url: code_url,
+      count: submission_count,
+    },
+  );
+};
+
+export const get_team_software_code_one: any = async (team_id: string) => {
+  const query_team_software_code: any = await client.request(
+    gql`
+      query get_team_software_code($team_id: uuid!) {
+        contest_team_software_code(where: { team_id: { _eq: $team_id } }) {
+          URL
+          updated_at
+          submission_count
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+    },
+  );
+  return query_team_software_code.contest_team_software_code.map(
+    (code: any) => ({
+      URL: code.URL,
+      updated_at: code.updated_at,
+      submission_count: code.submission_count,
+    }),
+  )[0];
+};
+
+export const get_all_team_software_code_by_contest: any = async (
+  contest_id: string,
+) => {
+  const query_all_team_software_code_by_contest: any = await client.request(
+    gql`
+      query get_all_team_software_code_by_contest($contest_id: uuid!) {
+        contest_team_software_code(
+          where: { contest_team: { contest_id: { _eq: $contest_id } } }
+        ) {
+          URL
+          created_at
+          updated_at
+          submission_count
+          contest_team {
+            team_name
+            team_leader {
+              realname
+              student_no
+            }
+            contest_team_members {
+              user {
+                realname
+                student_no
+              }
+            }
+          }
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+    },
+  );
+  return query_all_team_software_code_by_contest.contest_team_software_code.map(
+    (code: any) => ({
+      URL: code.URL,
+      created_at: code.created_at,
+      updated_at: code.updated_at,
+      submission_count: code.submission_count,
+      team_name: code.contest_team.team_name,
+      team_leader: {
+        realname: code.contest_team.team_leader.realname,
+        student_no: code.contest_team.team_leader.student_no,
+      },
+      members: (code.contest_team.contest_team_members || []).map(
+        (member: any) => ({
+          realname: member.user.realname,
+          student_no: member.user.student_no,
+        }),
+      ),
+    }),
+  );
+};
+
+export const get_team_software_submission_count: any = async (
+  team_id: string,
+) => {
+  const query_team_software_submission_count: any = await client.request(
+    gql`
+      query team_software_submission_count($teamId: uuid!) {
+        contest_team_software_code(where: { team_id: { _eq: $teamId } }) {
+          submission_count
+        }
+      }
+    `,
+    {
+      teamId: team_id,
+    },
+  );
+  return (
+    query_team_software_submission_count.contest_team_software_code.map(
+      (code: any) => code.submission_count,
+    )[0] ?? 0
+  );
+};
+
 /**
  *
  * @param {uuid} contest_id         ID
@@ -2348,4 +2587,41 @@ export const delete_contest_time: any = async (
     },
   );
   return delete_contest_time.delete_contest_time_by_pk?.event ?? undefined;
+};
+
+export const get_software_contest_deadline: any = async (
+  contest_id: string,
+) => {
+  const query_software_contest_deadline: any = await client.request(
+    gql`
+      query MyQuery($_eq: uuid = "") {
+        contest_soft_code_deadline(where: { contest_id: { _eq: $_eq } }) {
+          deadline
+        }
+      }
+    `,
+    {
+      _eq: contest_id,
+    },
+  );
+  return (
+    query_software_contest_deadline.contest_soft_code_deadline[0]?.deadline ??
+    undefined
+  );
+};
+
+export const get_contest_id_from_team_id: any = async (team_id: string) => {
+  const query_contest_id_from_team_id: any = await client.request(
+    gql`
+      query MyQuery($team: uuid = "") {
+        contest_team(where: { team_id: { _eq: $team } }) {
+          contest_id
+        }
+      }
+    `,
+    {
+      team: team_id,
+    },
+  );
+  return query_contest_id_from_team_id.contest_team[0]?.contest_id ?? undefined;
 };

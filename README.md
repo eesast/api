@@ -8,8 +8,9 @@ EESAST 后端 API
 
 - 用户验证
 - 静态文件权限管理
+- 数据库访问
 
-**其余逻辑均使用 Hasura**
+**正在进行数据库逻辑向后端迁移工作**
 
 ## API 接口
 
@@ -22,16 +23,18 @@ EESAST 后端 API
 - node 16 / npm
 - yarn
 - TypeScript
-- MongoDB
+- Redis
+
+### Before Dev
+
+需要在测试端安装和启动Redis
+具体见[Redis安装文档](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/)
 
 ### 工具
 
 - VSCode 扩展
-
   - Prettier
   - ESLint
-
-- MongoDB Compass Community
 
 - Postman
 

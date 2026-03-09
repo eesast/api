@@ -24,7 +24,7 @@ router.post("/member_limit", authenticate(), async (req, res) => {
 });
 
 // used in codepage.tsx
-router.post("/add_team_code", authenticate(["student"]), async (req, res) => {
+router.post("/add_team_code", authenticate(), async (req, res) => {
   try {
     const {
       team_id,
@@ -71,7 +71,7 @@ router.post("/add_team_code", authenticate(["student"]), async (req, res) => {
 });
 
 // used in joinpage.tsx
-router.post("/add_team_player", authenticate(["student"]), async (req, res) => {
+router.post("/add_team_player", authenticate(), async (req, res) => {
   try {
     const { team_id, player } = req.body;
     if (!team_id || !player) {
@@ -132,7 +132,7 @@ router.post("/add_team", authenticate(["student"]), async (req, res) => {
   }
 });
 
-router.post("/add_team_member", authenticate(["student"]), async (req, res) => {
+router.post("/add_team_member", authenticate(), async (req, res) => {
   try {
     const team_id = req.body.team_id;
     const user_uuid = req.body.user_uuid;
@@ -161,69 +161,61 @@ router.post("/add_team_member", authenticate(["student"]), async (req, res) => {
 });
 
 // used in codepage.tsx
-router.post(
-  "/update_team_code_name",
-  authenticate(["student"]),
-  async (req, res) => {
-    try {
-      const { code_id, code_name } = req.body;
-      if (!code_id || !code_name) {
-        return res
-          .status(400)
-          .json({ error: "400 Bad Request: Missing required parameters" });
-      }
-      const update_team_code_name = await ContHasFunc.update_team_code_name(
-        code_id,
-        code_name,
-      );
-      res.status(200).json({
-        code_id: update_team_code_name.code_id,
-        message: "Code Name Updated Successfully",
-      });
-    } catch (err: any) {
-      res.status(500).json({
-        error: "500 Internal Server Error",
-        message: err.message,
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-      });
+router.post("/update_team_code_name", authenticate([]), async (req, res) => {
+  try {
+    const { code_id, code_name } = req.body;
+    if (!code_id || !code_name) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
     }
-  },
-);
+    const update_team_code_name = await ContHasFunc.update_team_code_name(
+      code_id,
+      code_name,
+    );
+    res.status(200).json({
+      code_id: update_team_code_name.code_id,
+      message: "Code Name Updated Successfully",
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
 
 // used in codepage.tsx
-router.post(
-  "/update_team_player",
-  authenticate(["student"]),
-  async (req, res) => {
-    try {
-      const { team_id, player, code_id, role } = req.body;
-      if (!team_id || !player || !code_id || !role) {
-        return res
-          .status(400)
-          .json({ error: "400 Bad Request: Missing required parameters" });
-      }
-      const update_team_player = await ContHasFunc.update_team_player(
-        team_id,
-        player,
-        code_id,
-        role,
-      );
-      res.status(200).json({
-        player: update_team_player.player,
-        message: "Player Updated Successfully",
-      });
-    } catch (err: any) {
-      res.status(500).json({
-        error: "500 Internal Server Error",
-        message: err.message,
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-      });
+router.post("/update_team_player", authenticate(), async (req, res) => {
+  try {
+    const { team_id, player, code_id, role } = req.body;
+    if (!team_id || !player || !code_id || !role) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
     }
-  },
-);
+    const update_team_player = await ContHasFunc.update_team_player(
+      team_id,
+      player,
+      code_id,
+      role,
+    );
+    res.status(200).json({
+      player: update_team_player.player,
+      message: "Player Updated Successfully",
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
 
 // used in managepage.tsx
-router.post("/update_team", authenticate(["student"]), async (req, res) => {
+router.post("/update_team", authenticate(), async (req, res) => {
   try {
     const { team_id, ...update_Fields } = req.body;
     if (!team_id) {
@@ -247,35 +239,31 @@ router.post("/update_team", authenticate(["student"]), async (req, res) => {
 
 //used in codepage.tsx
 
-router.post(
-  "/delete_team_code",
-  authenticate(["student"]),
-  async (req, res) => {
-    try {
-      const { code_id } = req.body;
-      if (!code_id) {
-        return res
-          .status(400)
-          .send("400 Bad Request: Missing required parameters");
-      }
-      const delete_team_code = await ContHasFunc.delete_team_code(code_id);
-      res.status(200).json({
-        code_id: delete_team_code,
-        message: "Code Deleted Successfully",
-      });
-    } catch (err: any) {
-      res.status(500).json({
-        error: "500 Internal Server Error",
-        message: err.message,
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-      });
+router.post("/delete_team_code", authenticate(), async (req, res) => {
+  try {
+    const { code_id } = req.body;
+    if (!code_id) {
+      return res
+        .status(400)
+        .send("400 Bad Request: Missing required parameters");
     }
-  },
-);
+    const delete_team_code = await ContHasFunc.delete_team_code(code_id);
+    res.status(200).json({
+      code_id: delete_team_code,
+      message: "Code Deleted Successfully",
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
 
 // used in managepage.tsx
 
-router.post("/delete_team", authenticate(["student"]), async (req, res) => {
+router.post("/delete_team", authenticate(), async (req, res) => {
   try {
     const { team_id } = req.body;
     if (!team_id) {
@@ -297,33 +285,29 @@ router.post("/delete_team", authenticate(["student"]), async (req, res) => {
 });
 
 // used in managepage.tsx
-router.post(
-  "/delete_team_member",
-  authenticate(["student"]),
-  async (req, res) => {
-    try {
-      const { user_uuid, team_id } = req.body;
-      if (!user_uuid || !team_id) {
-        return res
-          .status(400)
-          .send("400 Bad Request: Missing required parameters");
-      }
-      const delete_team_member = await ContHasFunc.delete_team_member(
-        user_uuid,
-        team_id,
-      );
-      res.status(200).json({
-        team_id: delete_team_member,
-        message: "Team Member Deleted Successfully",
-      });
-    } catch (err: any) {
-      res.status(500).json({
-        error: "500 Internal Server Error",
-        message: err.message,
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-      });
+router.post("/delete_team_member", authenticate(), async (req, res) => {
+  try {
+    const { user_uuid, team_id } = req.body;
+    if (!user_uuid || !team_id) {
+      return res
+        .status(400)
+        .send("400 Bad Request: Missing required parameters");
     }
-  },
-);
+    const delete_team_member = await ContHasFunc.delete_team_member(
+      user_uuid,
+      team_id,
+    );
+    res.status(200).json({
+      team_id: delete_team_member,
+      message: "Team Member Deleted Successfully",
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
 
 export default router;
