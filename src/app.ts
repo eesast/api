@@ -20,6 +20,7 @@ import chatRoute from "./routes/chat";
 import mentorRoute from "./routes/mentor";
 import noticeRoute from "./routes/notice";
 import courseRouter from "./routes/course";
+import shareRouter from "./routes/share";
 import llmRouter from "./routes/llm";
 
 const app = express();
@@ -65,4 +66,5 @@ app.use("/chat", chatRoute);
 app.use("/mentor", mentorRoute);
 app.use("/notice", noticeRoute);
 app.use("/course", courseRouter);
+app.use("/share", shareRouter);
 export default app;
