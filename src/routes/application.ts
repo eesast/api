@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import express from "express";
+import express, { Request } from "express";
 import rateLimit from "express-rate-limit";
 import { gql } from "graphql-request";
 import { client } from "..";
@@ -31,8 +31,8 @@ const queryLimiter = rateLimit({
   message: { error: "查询过于频繁，请1分钟后再试" },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req as any).auth?.user?.uuid as string,
-  skip: (req) => {
+  keyGenerator: (req: Request) => (req as any).auth?.user?.uuid as string,
+  skip: (req: Request) => {
     const role = (req as any).auth?.user?.role;
     return role === "counselor" || role === "teacher";
   },
