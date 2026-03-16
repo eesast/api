@@ -2,9 +2,9 @@ name: deploy
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   test:
@@ -16,7 +16,7 @@ jobs:
       - name: Use Node.js ${{matrix.node-version}}
         uses: actions/setup-node@v6
         with:
-          node-version: "24.13.1"
+          node-version: "24.14.0"
 
       - name: get yarn cache path
         id: yarn-cache-dir-path
