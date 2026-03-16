@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import { gql } from "graphql-request";
 import { client } from "..";
 
-
 export interface JwtUserPayload {
   uuid: string;
   role: string;
@@ -64,18 +63,21 @@ const anonymous_user: UserInfo = {
  * Middleware: validate user authorizations; reject if necessary
  */
 const authenticate: (
-  acceptableRoles?: string[]
+  acceptableRoles?: string[],
 ) => (req: Request, res: Response, next: NextFunction) => Response | void = (
-  acceptableRoles
+  acceptableRoles,
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.get("Authorization");
-    if(!authHeader) {
-      if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes("anonymous")) {
+    if (!authHeader) {
+      if (
+        !acceptableRoles ||
+        acceptableRoles.length === 0 ||
+        acceptableRoles.includes("anonymous")
+      ) {
         req.auth = { user: anonymous_user };
         return next();
-      }
-      else {
+      } else {
         return res.status(401).send("401 Unauthorized: Missing Token");
       }
     }
@@ -93,32 +95,40 @@ const authenticate: (
         const users: any = await client.request(
           gql`
             query MyQuery($uuid: uuid!) {
-              users(where: {uuid: {_eq: $uuid}}) {
-                uuid,
-                username,
-                password,
-                role,
-                realname,
-                email,
-                phone,
-                student_no,
-                department,
-                class,
-                tsinghua_email,
-                github_id,
+              users(where: { uuid: { _eq: $uuid } }) {
+                uuid
+                username
+                password
+                role
+                realname
+                email
+                phone
+                student_no
+                department
+                class
+                tsinghua_email
+                github_id
               }
             }
           `,
           {
-            uuid: payload.uuid
-          }
-        )
+            uuid: payload.uuid,
+          },
+        );
         const user = users.users[0];
         req.auth = { user: user ?? anonymous_user };
-        if (!acceptableRoles || acceptableRoles.length === 0 || acceptableRoles.includes(user.role)) {
+        // console.log(user);
+        // console.log(acceptableRoles);
+
+        if (user === undefined || user?.role === undefined) {
+          return res.status(401).send("401 Unauthorized: Permission denied");
+        } else if (
+          !acceptableRoles ||
+          acceptableRoles.length === 0 ||
+          acceptableRoles.includes(user.role)
+        ) {
           return next();
-        }
-        else {
+        } else {
           return res.status(401).send("401 Unauthorized: Permission denied");
         }
       } catch (err) {
