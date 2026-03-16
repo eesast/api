@@ -68,12 +68,10 @@ router.post(
       if (!course_info_id) {
         return res.status(404).json({ message: "Failed to add course info" });
       }
-      res
-        .status(200)
-        .json({
-          course_info_id: course_info_id,
-          message: "Course info added successfully",
-        });
+      res.status(200).json({
+        course_info_id: course_info_id,
+        message: "Course info added successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -119,12 +117,10 @@ router.post(
       if (!created_at) {
         return res.status(404).json({ message: "Failed to add course rating" });
       }
-      res
-        .status(200)
-        .json({
-          created_at: created_at,
-          message: "Course rating added successfully",
-        });
+      res.status(200).json({
+        created_at: created_at,
+        message: "Course rating added successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -157,12 +153,10 @@ router.post(
         // HasFunc return undefined/null
         return res.status(404).json({ message: "Course not found" });
       }
-      res
-        .status(200)
-        .json({
-          comment_uuid: comment_uuid,
-          message: "Comment added successfully",
-        });
+      res.status(200).json({
+        comment_uuid: comment_uuid,
+        message: "Comment added successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -192,12 +186,10 @@ router.post(
       if (!result) {
         return res.status(404).json({ message: "Comment not found" });
       }
-      res
-        .status(200)
-        .json({
-          comment_uuid: result,
-          message: "Comment star added successfully",
-        });
+      res.status(200).json({
+        comment_uuid: result,
+        message: "Comment star added successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -227,12 +219,10 @@ router.post(
       if (!result) {
         return res.status(404).json({ message: "Comment not found" });
       }
-      res
-        .status(200)
-        .json({
-          comment_uuid: result,
-          message: "Comment like added successfully",
-        });
+      res.status(200).json({
+        comment_uuid: result,
+        message: "Comment like added successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -374,12 +364,10 @@ router.post(
       if (!result) {
         return res.status(404).json({ message: "Course rating not found" });
       }
-      res
-        .status(200)
-        .json({
-          updated_at: result,
-          message: "Course rating updated successfully",
-        });
+      res.status(200).json({
+        updated_at: result,
+        message: "Course rating updated successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -464,13 +452,11 @@ router.post(
       if (!result) {
         return res.status(404).json({ message: "Course info not found" });
       }
-      res
-        .status(200)
-        .json({
-          course_id: result.course_id,
-          key: result.key,
-          message: "Course info deleted successfully",
-        });
+      res.status(200).json({
+        course_id: result.course_id,
+        key: result.key,
+        message: "Course info deleted successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -500,13 +486,11 @@ router.post(
       if (!result) {
         return res.status(404).json({ message: "Course rating not found" });
       }
-      res
-        .status(200)
-        .json({
-          course_id: result.course_id,
-          user_uuid: result.user_uuid,
-          message: "Course rating deleted successfully",
-        });
+      res.status(200).json({
+        course_id: result.course_id,
+        user_uuid: result.user_uuid,
+        message: "Course rating deleted successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -565,12 +549,10 @@ router.delete(
       if (!result) {
         res.status(404).json({ message: "Comment not found" });
       }
-      res
-        .status(200)
-        .json({
-          comment_uuid: result,
-          message: "Comment star deleted successfully",
-        });
+      res.status(200).json({
+        comment_uuid: result,
+        message: "Comment star deleted successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
@@ -600,12 +582,10 @@ router.delete(
       if (!result) {
         res.status(404).json({ message: "Comment not found" });
       }
-      res
-        .status(200)
-        .json({
-          comment_uuid: result,
-          message: "Comment like deleted successfully",
-        });
+      res.status(200).json({
+        comment_uuid: result,
+        message: "Comment like deleted successfully",
+      });
     } catch (err: any) {
       res.status(500).json({
         error: "500 Internal Server Error",
