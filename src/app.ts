@@ -21,6 +21,7 @@ import mentorRoute from "./routes/mentor";
 import noticeRoute from "./routes/notice";
 import courseRouter from "./routes/course";
 import llmRouter from "./routes/llm";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 
@@ -28,6 +29,14 @@ const whitelist =
   process.env.NODE_ENV === "production"
     ? ["https://eesast.com", "https://docs.eesast.com", "http://localhost:3000"]
     : ["http://localhost:3000"];
+
+const globalRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minutes
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: "Too many requests from this IP, please try again later.",
+});
 
 app.use(
   cors({
@@ -45,6 +54,7 @@ app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(globalRateLimiter);
 app.use("/static", staticRouter);
 app.use("/user", userRouter);
 app.use("/emails", emailRouter);
