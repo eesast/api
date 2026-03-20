@@ -23,8 +23,19 @@ import courseRouter from "./routes/course";
 import shareRouter from "./routes/share";
 import llmRouter from "./routes/llm";
 import rateLimit from "express-rate-limit";
+import promBundle from "express-prom-bundle";
+import client from "prom-client";
 
 const app = express();
+
+const metricsMiddleware = promBundle({
+  includeMethod: true,
+  includePath: true,
+  includeStatusCode: true,
+  includeUp: true,
+  customLabels: { project: "eesast-api" },
+  promClient: { collectDefaultMetrics: {} },
+});
 
 const whitelist =
   process.env.NODE_ENV === "production"
@@ -54,6 +65,19 @@ app.use(
 app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(metricsMiddleware as unknown as express.RequestHandler);
+app.get("/metrics", async (req, res) => {
+  const auth = req.headers["authorization"];
+  if (
+    !process.env.METRICS_TOKEN ||
+    auth !== `Bearer ${process.env.METRICS_TOKEN}`
+  ) {
+    return res.status(403).end();
+  }
+  res.set("Content-Type", client.register.contentType);
+  res.end(await client.register.metrics());
+});
 
 app.use(globalRateLimiter);
 app.use("/static", staticRouter);
