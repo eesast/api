@@ -1479,6 +1479,109 @@ export const get_team_software_submission_count: any = async (
   );
 };
 
+export const add_team_software_final: any = async (
+  contest_id: string,
+  team_id: string,
+  code_url: string,
+) => {
+  await client.request(
+    gql`
+      mutation add_team_software_final(
+        $url: String!
+        $team_id: uuid!
+        $contest_id: uuid!
+      ) {
+        insert_contest_team_software_final(
+          objects: { URL: $url, team_id: $team_id, contest_id: $contest_id }
+        ) {
+          returning {
+            created_at
+          }
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+      url: code_url,
+      contest_id: contest_id,
+    },
+  );
+};
+
+export const update_team_software_final: any = async (
+  team_id: string,
+  code_url: string,
+  submission_count: number,
+) => {
+  await client.request(
+    gql`
+      mutation change_team_software_final(
+        $url: String!
+        $teamId: uuid!
+        $count: Int!
+      ) {
+        update_contest_team_software_final(
+          where: { team_id: { _eq: $teamId } }
+          _set: { URL: $url, submission_count: $count, updated_at: "now()" }
+        ) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      teamId: team_id,
+      url: code_url,
+      count: submission_count,
+    },
+  );
+};
+
+export const get_team_software_final_one: any = async (team_id: string) => {
+  const query_team_software_final: any = await client.request(
+    gql`
+      query get_team_software_final($team_id: uuid!) {
+        contest_team_software_final(where: { team_id: { _eq: $team_id } }) {
+          URL
+          updated_at
+          submission_count
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+    },
+  );
+  return query_team_software_final.contest_team_software_final.map(
+    (code: any) => ({
+      URL: code.URL,
+      updated_at: code.updated_at,
+      submission_count: code.submission_count,
+    }),
+  )[0];
+};
+
+export const get_team_software_final_submission_count: any = async (
+  team_id: string,
+) => {
+  const query_team_software_final_submission_count: any = await client.request(
+    gql`
+      query team_software_final_submission_count($teamId: uuid!) {
+        contest_team_software_final(where: { team_id: { _eq: $teamId } }) {
+          submission_count
+        }
+      }
+    `,
+    {
+      teamId: team_id,
+    },
+  );
+  return (
+    query_team_software_final_submission_count.contest_team_software_final.map(
+      (code: any) => code.submission_count,
+    )[0] ?? 0
+  );
+};
+
 /**
  *
  * @param {uuid} contest_id         ID
