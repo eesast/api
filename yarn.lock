@@ -1203,10 +1203,10 @@ docker-modem@^5.0.7:
     split-ca "^1.0.1"
     ssh2 "^1.15.0"
 
-dockerode@4.0.10:
-  version "4.0.10"
-  resolved "https://registry.yarnpkg.com/dockerode/-/dockerode-4.0.10.tgz#d0fa159d87eace6f59aa1399517c3d07a7455f73"
-  integrity sha512-8L/P9JynLBiG7/coiA4FlQXegHltRqS0a+KqI44P1zgQh8QLHTg7FKOwhkBgSJwZTeHsq30WRoVFLuwkfK0YFg==
+dockerode@4.0.12:
+  version "4.0.12"
+  resolved "https://registry.yarnpkg.com/dockerode/-/dockerode-4.0.12.tgz#de286934fbcd801b5034d8169379033d6de14bf3"
+  integrity sha512-/bCZd6KlGcjZO8Buqmi/vXuqEGVEZ0PNjx/biBNqJD3MhK9DmdiAuKxqfNhflgDESDIiBz3qF+0e55+CpnrUcw==
   dependencies:
     "@balena/dockerignore" "^1.0.2"
     "@grpc/grpc-js" "^1.11.1"
