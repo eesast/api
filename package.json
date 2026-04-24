@@ -20,7 +20,7 @@
     "cors": "2.8.6",
     "cos-nodejs-sdk-v5": "2.15.4",
     "debug": "4.4.3",
-    "dockerode": "4.0.10",
+    "dockerode": "4.0.12",
     "dotenv": "17.4.2",
     "express": "4.22.1",
     "express-prom-bundle": "8.0.0",
