@@ -1,10 +1,10 @@
 import cron from "node-cron";
 import redis from "./redis";
-import { set_user_llm_usage } from "../hasura/llm";
+import { set_llm_usage_by_uuid } from "../hasura/llm";
 
 export const llm_cron = () => {
   // Run every 5 minutes
-  cron.schedule("*/5 * * * *", async () => {
+  cron.schedule("*/1 * * * *", async () => {
     console.log("Starting LLM usage sync...");
     let cursor = "0";
     do {
@@ -21,11 +21,11 @@ export const llm_cron = () => {
 
       for (const key of keys) {
         try {
-          const studentNo = key.split(":")[1];
+          const uuid = key.split(":")[1];
           const usageStr = await redis.get(key);
           if (usageStr) {
             const usage = parseInt(usageStr);
-            await set_user_llm_usage(studentNo, usage);
+            await set_llm_usage_by_uuid(uuid, usage);
           }
         } catch (e) {
           console.error(`Failed to sync usage for key ${key}:`, e);
