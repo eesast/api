@@ -5,7 +5,7 @@ type WeeklyPost = {
   id: number;
   title: string;
   url: string;
-  date: Date;
+  date: string;
 };
 export { WeeklyPost };
 /**

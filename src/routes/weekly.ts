@@ -6,7 +6,7 @@ import * as utils from "../helpers/utils";
 import * as fs from "fs/promises";
 import * as uuid from "../helpers/uuid";
 import {
-  get_newest_weekly,
+  // get_newest_weekly,
   get_newest_weekly_id,
   add_weekly_list,
   WeeklyPost,
