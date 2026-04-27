@@ -17,33 +17,45 @@ import { Agent } from "https";
 const router = express.Router();
 const weixinSpider = async (headers: any, params: any, filename: string) => {
   const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
-  let fcontrol: boolean = false;
+  const fcontrol: boolean = false;
   const base_directory = await utils.get_base_directory();
   try {
     console.log("Spider Start");
     const new_weekly_list: any[] = [];
     let i: number = 0;
-    const newest_weekly_date = await get_newest_weekly();
-    let newest_weekly_id = await get_newest_weekly_id();
+    // const newest_weekly_date = await get_newest_weekly();
+    let newest_weekly_id = (await get_newest_weekly_id()) || 0;
     outerloop: while (!fcontrol) {
       params["begin"] = (i * 5).toString();
       i++;
       await new Promise((resolve) =>
-        setTimeout(resolve, Math.random() * 9000 + 1000),
-      ); // 等待 1 到 10 秒之间的随机时间
+        setTimeout(resolve, Math.random() * 20000 + 15000),
+      ); // 等待 15 到 35 秒之间的随机时间
       const response = await axios.get(url, {
         headers,
         params,
         httpsAgent: new Agent({ rejectUnauthorized: false }),
       });
       const data = response.data;
-      if (data.base_resp.ret === 200013) {
-        console.log(`Frequency control, stop at ${params["begin"]}`);
-        fcontrol = true;
-        break;
+      if (data.base_resp && data.base_resp.ret === 200013) {
+        // console.log(`Frequency control, stop at ${params["begin"]}`);
+        // fcontrol = true;
+        // break;
+        console.error(
+          `触发微信反爬风控策略 (ret: 200013)，于 begin=${params["begin"]} 熔断`,
+        );
+        // 不再是简单的 fcontrol = true，而是直接抛出错误让下面 catch 捕获，写入 failed 标记
+        throw new Error("Frequency control triggered by WeChat (200013)");
       }
-      if (!data.app_msg_list || data.app_msg_list.length === 0) {
-        console.log("All article parsed");
+      if (!data.app_msg_list || !Array.isArray(data.app_msg_list)) {
+        console.error(
+          "响应缺少 app_msg_list，Cookie/Token可能已过期、权限不足或被滑块验证拦截:",
+          data,
+        );
+        throw new Error("Invalid response or Token expired.");
+      }
+      if (data.app_msg_list.length === 0) {
+        console.log("当前页文章列表为空，判断所有文章解析完毕。");
         break;
       }
       console.log(
@@ -53,8 +65,10 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
           new Date(data.app_msg_list[0].create_time * 1000).toLocaleString(),
       );
       for (const item of data.app_msg_list) {
-        if (new Date(item.create_time * 1000) <= newest_weekly_date)
-          break outerloop;
+        // [移除限制] 允许回补老文章，不再因为遇到旧时间点就停止整个爬虫，
+        // 而是全量扫描，完全依靠下面的 check_weekly_exist 判断去重。
+        // if (new Date(item.create_time * 1000) <= newest_weekly_date)
+        //   break outerloop;
         if (item.title.includes("SAST Weekly")) {
           const exist: boolean = await check_weekly_exist(
             new Date(item.create_time * 1000),
@@ -66,7 +80,7 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
           const new_item: WeeklyPost = {
             title: item.title,
             url: item.link,
-            date: new Date(item.create_time * 1000),
+            date: new Date(item.create_time * 1000).toISOString().split("T")[0],
             id: newest_weekly_id + 1,
           };
           new_weekly_list.push(new_item);
@@ -135,7 +149,7 @@ router.post("/renew", authenticate(["counselor"]), async (req, res) => {
       begin: "1",
       count: "5",
       query: "",
-      fakeid: "MzA5MjA5NjIxNg%3D%3D",
+      fakeid: "MzA5MjA5NjIxNg==",
       type: "9",
     };
     const filename = uuid.uuid();
@@ -257,16 +271,21 @@ router.get("/cover", async (req, res) => {
 
 const getTitle = async (url: string) => {
   try {
-    const response = await fetch(url, { method: "GET" });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
     if (response.ok) {
       const text: string = await response.text();
-      const match = text.match(/meta property="og:title" content=".*"/);
+      const match = text.match(/meta property="og:title" content="(.*?)"/);
       if (match == null) throw Error("capture failed!");
-      const title = match[0].slice(34, -1);
-      return title;
+      return match[1];
     } else throw Error("fetch failed!");
   } catch (err: any) {
-    return err;
+    throw err;
   }
 };
 
