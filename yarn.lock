@@ -1203,10 +1203,10 @@ docker-modem@^5.0.7:
     split-ca "^1.0.1"
     ssh2 "^1.15.0"
 
-dockerode@4.0.12:
-  version "4.0.12"
-  resolved "https://registry.yarnpkg.com/dockerode/-/dockerode-4.0.12.tgz#de286934fbcd801b5034d8169379033d6de14bf3"
-  integrity sha512-/bCZd6KlGcjZO8Buqmi/vXuqEGVEZ0PNjx/biBNqJD3MhK9DmdiAuKxqfNhflgDESDIiBz3qF+0e55+CpnrUcw==
+dockerode@5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/dockerode/-/dockerode-5.0.0.tgz#9def098b2f7d33c0a68d4aecd47587af7c3ce223"
+  integrity sha512-C52mvJ+7lcyhWNfrzVfFsbTrBfy/ezE9FGEYLpu17FUeBcCkxERk9nN7uDl/478ynDiQ4U+5DbQC2vENHkVEtQ==
   dependencies:
     "@balena/dockerignore" "^1.0.2"
     "@grpc/grpc-js" "^1.11.1"
@@ -1214,7 +1214,6 @@ dockerode@4.0.12:
     docker-modem "^5.0.7"
     protobufjs "^7.3.2"
     tar-fs "^2.1.4"
-    uuid "^10.0.0"
 
 dom-serializer@^2.0.0:
   version "2.0.0"
@@ -3327,11 +3326,6 @@ utils-merge@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/utils-merge/-/utils-merge-1.0.1.tgz#9f95710f50a267947b2ccc124741c1028427e713"
   integrity sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==
-
-uuid@^10.0.0:
-  version "10.0.0"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-10.0.0.tgz#5a95aa454e6e002725c79055fd42aaba30ca6294"
-  integrity sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==
 
 uuid@^3.3.2:
   version "3.4.0"
