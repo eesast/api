@@ -5,12 +5,14 @@ import fs from "fs";
 import path from "path";
 import redis from "../helpers/redis";
 import {
+  get_llm_usage_by_uuid,
   get_user_llm_usage,
   init_user_llm_usage,
   get_llm_model_config,
   log_access_key_usage,
   check_access_key_usage,
 } from "../hasura/llm";
+import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();
 
@@ -218,6 +220,75 @@ router.post("/verify", async (req, res) => {
   }
 });
 
+router.post("/verify_new", authenticate(), async (req, res) => {
+  try {
+    const uuid: string | undefined = req.auth.user.uuid;
+    const email: string | undefined = req.auth.user.email;
+    const role: string | undefined = req.auth.user.role;
+
+    if (!uuid) {
+      return res.status(400).json({ error: "Missing uuid in auth user" });
+    }
+
+    // Invalidate old sessions for this uuid
+    const now = Math.floor(Date.now() / 1000);
+    await redis.set(`llm_min_iat:${uuid}`, now);
+
+    // Check llm_usage row by authenticated uuid.
+    const dbUsage = await get_llm_usage_by_uuid(uuid);
+    if (!dbUsage) {
+      return res.status(401).json({
+        error: "No llm_usage record found for authenticated uuid",
+      });
+    }
+
+    // Sync limit to Redis by uuid.
+    const dbLimit = dbUsage.token_limit || 0;
+    if (dbLimit > 0) {
+      await redis.set(`llm_limit:${uuid}`, dbLimit);
+    } else {
+      await redis.del(`llm_limit:${uuid}`);
+    }
+
+    // Sync usage from DB to Redis if missing (e.g. Redis restart)
+    const currentUsage = await redis.get(`llm_usage:${uuid}`);
+    if (!currentUsage) {
+      await redis.set(`llm_usage:${uuid}`, dbUsage.total_tokens_used || 0);
+    }
+
+    // Issue LLM session token using authenticated identity
+    const sessionToken = jwt.sign(
+      {
+        sub: uuid,
+        email: email,
+        role: role,
+        type: "llm_session",
+      },
+      JWT_SECRET,
+      { expiresIn: SESSION_EXPIRY },
+    );
+
+    return res.json({
+      token: sessionToken,
+      user: {
+        uuid,
+        email,
+        role,
+      },
+      quota: {
+        tokenLimit: dbLimit,
+        totalTokensUsed: dbUsage.total_tokens_used || 0,
+      },
+    });
+  } catch (err: any) {
+    console.error("verify_new failed:", err);
+    return res.status(500).json({
+      error: "Failed to verify authenticated user for LLM",
+      details: err?.message,
+    });
+  }
+});
+
 // 2. Chat Endpoint
 router.post("/chat", verifySession, async (req, res) => {
   const { messages, model } = req.body;
@@ -343,7 +414,8 @@ router.post("/chat", verifySession, async (req, res) => {
     if (enableThinking) {
       requestOptions.enable_thinking = true;
     }
-
+    // console.log("LLM Request Options:", requestOptions);
+    // console.log(`Base URL: ${baseURL}`);
     const stream = (await client.chat.completions.create(requestOptions, {
       signal: controller.signal,
     })) as any;

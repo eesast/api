@@ -1,6 +1,56 @@
 import { gql } from "graphql-request";
 import { client } from "..";
 
+export const get_llm_usage_by_uuid = async (uuid: string) => {
+  const query: any = await client.request(
+    gql`
+      query GetLlmUsageByUuid($uuid: uuid!) {
+        llm_usage_by_pk(uuid: $uuid) {
+          uuid
+          total_tokens_used
+          token_limit
+        }
+      }
+    `,
+    { uuid },
+  );
+  return query.llm_usage_by_pk;
+};
+
+export const set_llm_usage_by_uuid = async (
+  uuid: string,
+  total_usage: number,
+) => {
+  const query: any = await client.request(
+    gql`
+      mutation SetLlmUsageByUuid(
+        $uuid: uuid!
+        $total_usage: bigint!
+        $updated_at: timestamptz!
+      ) {
+        update_llm_usage_by_pk(
+          pk_columns: { uuid: $uuid }
+          _set: {
+            total_tokens_used: $total_usage
+            last_updated_at: $updated_at
+          }
+        ) {
+          uuid
+          total_tokens_used
+          token_limit
+          last_updated_at
+        }
+      }
+    `,
+    {
+      uuid,
+      total_usage,
+      updated_at: new Date().toISOString(),
+    },
+  );
+  return query.update_llm_usage_by_pk;
+};
+
 export const get_user_llm_usage = async (student_no: string) => {
   const query: any = await client.request(
     gql`
