@@ -1360,6 +1360,197 @@ router.post("/get_team_software_code_one", authenticate(), async (req, res) => {
 });
 
 /**
+ * Update team software code
+ * @param {string} team_id - Team ID
+ * @param {string} code_url - Code URL
+ * @param {number} submission_count - Current submission count
+ */
+router.post("/update_team_software_final", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const { team_id, code_url } = req.body;
+
+    // Input validation
+    if (!team_id || !code_url) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
+    }
+
+    // Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(team_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    // Validate URL format
+    try {
+      new URL(code_url);
+    } catch {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid URL format" });
+    }
+
+    // Deadline check: verify current time is before contest deadline
+    const contest_id = await ContHasFunc.get_contest_id_from_team_id(team_id);
+    const deadline =
+      await ContHasFunc.get_software_contest_deadline(contest_id);
+    const isBeforeDeadline = deadline ? new Date() < new Date(deadline) : false;
+    if (!isBeforeDeadline) {
+      return res.status(403).json({
+        error: "403 Forbidden: Contest submission deadline has passed",
+      });
+    }
+
+    // Permission check: verify user is a member of the team
+    const is_member = await ContHasFunc.check_user_team(user_uuid, team_id);
+    if (!is_member) {
+      return res
+        .status(403)
+        .json({ error: "403 Forbidden: You are not a member of this team" });
+    }
+
+    const submission_count: number =
+      (await ContHasFunc.get_team_software_final_submission_count(team_id)) + 1;
+
+    // Update team software final code
+    await ContHasFunc.update_team_software_final(
+      team_id,
+      code_url,
+      submission_count,
+    );
+    res
+      .status(200)
+      .json({ message: "Team software final code updated successfully" });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
+
+/**
+ * Get team software code by team ID
+ * @param {string} team_id - Team ID
+ */
+router.post(
+  "/get_team_software_final_one",
+  authenticate(),
+  async (req, res) => {
+    try {
+      const user_uuid = req.auth.user.uuid;
+      const { team_id } = req.body;
+
+      // Input validation
+      if (!team_id) {
+        return res
+          .status(400)
+          .json({ error: "400 Bad Request: Missing team_id" });
+      }
+
+      // Validate UUID format
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(team_id)) {
+        return res
+          .status(400)
+          .json({ error: "400 Bad Request: Invalid UUID format" });
+      }
+
+      // Permission check: verify user is a member of the team or a manager
+      // For now, we'll allow team members to view their own code
+      //const teams = await ContHasFunc.get_team_from_user(user_uuid, team_id);
+      const isMember = await ContHasFunc.check_user_team(user_uuid, team_id);
+      if (!isMember) {
+        return res.status(403).json({
+          error:
+            "403 Forbidden: You are not authorized to view this team's code",
+        });
+      }
+
+      // Get team software final code
+      const code = await ContHasFunc.get_team_software_final_one(team_id);
+      res.status(200).json({ data: code });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({
+        error: "500 Internal Server Error",
+        message: err.message,
+        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      });
+    }
+  },
+);
+
+router.post("/add_team_software_final", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const { contest_id, team_id, code_url } = req.body;
+
+    // Input validation
+    if (!contest_id || !team_id || !code_url) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
+    }
+
+    // Validate UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(contest_id) || !uuidRegex.test(team_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    // Validate URL format
+    try {
+      new URL(code_url);
+    } catch {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid URL format" });
+    }
+    // Deadline check: verify current time is before contest deadline
+    const deadline =
+      await ContHasFunc.get_software_contest_deadline(contest_id);
+    const isBeforeDeadline = deadline ? new Date() < new Date(deadline) : false;
+    if (!isBeforeDeadline) {
+      return res.status(403).json({
+        error: "403 Forbidden: Contest submission deadline has passed",
+      });
+    }
+    // Permission check: verify user is a member of the team
+    const userTeam = await ContHasFunc.check_user_team(user_uuid, team_id);
+    if (!userTeam) {
+      return res
+        .status(403)
+        .json({ error: "403 Forbidden: You are not a member of this team" });
+    }
+
+    // Add team software final code
+    await ContHasFunc.add_team_software_final(contest_id, team_id, code_url);
+    res
+      .status(200)
+      .json({ message: "Team software final code added successfully" });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
+
+/**
  * Get all team software code by contest ID
  * @param {string} contest_id - Contest ID
  */
