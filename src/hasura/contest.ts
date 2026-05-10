@@ -1582,6 +1582,55 @@ export const get_team_software_final_submission_count: any = async (
   );
 };
 
+export const add_team_RL_code: any = async (
+  team_id: string,
+  code_url: string,
+) => {
+  const insert_team_RL_code: any = await client.request(
+    gql`
+      mutation add_team_RL_code($team_id: uuid!, $url: String!) {
+        insert_contest_team_RL_code_one(
+          object: { team_id: $team_id, url: $url }
+        ) {
+          submit_id
+          team_id
+          created_at
+          url
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+      url: code_url,
+    },
+  );
+
+  return insert_team_RL_code.insert_contest_team_RL_code_one;
+};
+
+export const get_team_RL_code_submissions: any = async (team_id: string) => {
+  const query_team_RL_code_submissions: any = await client.request(
+    gql`
+      query get_team_RL_code_submissions($team_id: uuid!) {
+        contest_team_RL_code(
+          where: { team_id: { _eq: $team_id } }
+          order_by: { created_at: asc }
+        ) {
+          submit_id
+          team_id
+          created_at
+          url
+        }
+      }
+    `,
+    {
+      team_id: team_id,
+    },
+  );
+
+  return query_team_RL_code_submissions.contest_team_RL_code;
+};
+
 /**
  *
  * @param {uuid} contest_id         ID
@@ -2713,6 +2762,37 @@ export const get_software_contest_deadline: any = async (
   );
 };
 
+export const set_software_contest_deadline: any = async (
+  contest_id: string,
+  deadline: string,
+) => {
+  const upsert_software_contest_deadline: any = await client.request(
+    gql`
+      mutation set_software_contest_deadline(
+        $contest_id: uuid!
+        $deadline: timestamptz!
+      ) {
+        insert_contest_soft_code_deadline_one(
+          object: { contest_id: $contest_id, deadline: $deadline }
+          on_conflict: {
+            constraint: contest_soft_code_deadline_pkey
+            update_columns: [deadline]
+          }
+        ) {
+          contest_id
+          deadline
+        }
+      }
+    `,
+    {
+      contest_id: contest_id,
+      deadline: deadline,
+    },
+  );
+
+  return upsert_software_contest_deadline.insert_contest_soft_code_deadline_one;
+};
+
 export const get_contest_id_from_team_id: any = async (team_id: string) => {
   const query_contest_id_from_team_id: any = await client.request(
     gql`
@@ -2727,4 +2807,59 @@ export const get_contest_id_from_team_id: any = async (team_id: string) => {
     },
   );
   return query_contest_id_from_team_id.contest_team[0]?.contest_id ?? undefined;
+};
+
+/**
+ * Get all RL scores for a contest, ordered by score descending.
+ * @param {string} contest_id
+ * @returns {Array<{team_id, score, team_name}>}
+ */
+export const get_all_RL_scores: any = async (contest_id: string) => {
+  const result: any = await client.request(
+    gql`
+      query GetAllRLScores($contest_id: uuid!) {
+        contest_team_RL_score(
+          where: { contest_team: { contest_id: { _eq: $contest_id } } }
+          order_by: { score: desc_nulls_last }
+        ) {
+          team_id
+          score
+          contest_team {
+            team_name
+          }
+        }
+      }
+    `,
+    { contest_id },
+  );
+  return result.contest_team_RL_score ?? [];
+};
+
+/**
+ * Upsert (insert or update) a team's RL score.
+ * @param {string} team_id
+ * @param {number} score
+ * @returns {string} team_id
+ */
+export const upsert_team_RL_score: any = async (
+  team_id: string,
+  score: number,
+) => {
+  const result: any = await client.request(
+    gql`
+      mutation UpsertTeamRLScore($team_id: uuid!, $score: Int!) {
+        insert_contest_team_RL_score_one(
+          object: { team_id: $team_id, score: $score }
+          on_conflict: {
+            constraint: contest_team_RL_score_pkey
+            update_columns: [score]
+          }
+        ) {
+          team_id
+        }
+      }
+    `,
+    { team_id, score },
+  );
+  return result.insert_contest_team_RL_score_one?.team_id ?? undefined;
 };
