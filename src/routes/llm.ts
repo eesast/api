@@ -1,36 +1,16 @@
 import express from "express";
 import OpenAI from "openai";
-import jwt from "jsonwebtoken";
-import fs from "fs";
-import path from "path";
 import {
   get_llm_usage_by_uuid,
-  get_user_llm_usage,
-  init_user_llm_usage,
   get_llm_model_config,
-  log_access_key_usage,
-  check_access_key_usage,
   update_llm_usage_by_uuid,
-  update_user_llm_usage,
 } from "../hasura/llm";
 import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();
 
-// Configuration
-const PUBLIC_KEY_PATH =
-  process.env.LLM_PUBLIC_KEY_PATH ||
-  path.join(__dirname, "../../public_key.pem");
-const JWT_SECRET = process.env.LLM_JWT_SECRET || "eesast_llm_session_secret";
-const SESSION_EXPIRY = "12h"; // Session token expiry
-
-type LlmUsageSource = "legacy_access_key" | "authenticated_user";
-
 interface LlmUserSession {
   subject: string;
-  email?: string;
-  role?: string;
-  usageSource: LlmUsageSource;
 }
 
 interface ActiveChatRequest {
@@ -38,12 +18,10 @@ interface ActiveChatRequest {
   expiresAt: number;
 }
 
-const ACCESS_KEY_DEFAULT_TTL_SECONDS = 3600 * 24 * 7;
 const ACTIVE_CHAT_TTL_MS = 5 * 60 * 1000;
 const RATE_LIMIT_MS = 3000;
+const LLM_ALLOWED_ROLES = ["student", "teacher", "counselor", "user", "root"];
 
-const usedAccessKeys = new Map<string, number>();
-const minSessionIatBySubject = new Map<string, number>();
 const activeChatBySubject = new Map<string, ActiveChatRequest>();
 const rateLimitedUntilBySubject = new Map<string, number>();
 
@@ -57,30 +35,6 @@ const cleanupExpiredNumberMap = (map: Map<string, number>, now = Date.now()) => 
       map.delete(key);
     }
   }
-};
-
-const getAccessKeyTtlSeconds = (exp?: number) => {
-  return exp ? exp - Math.floor(Date.now() / 1000) : ACCESS_KEY_DEFAULT_TTL_SECONDS;
-};
-
-const isAccessKeyMarkedUsed = (jti: string) => {
-  const now = Date.now();
-  cleanupExpiredNumberMap(usedAccessKeys, now);
-  const expiresAt = usedAccessKeys.get(jti);
-  return expiresAt !== undefined && expiresAt > now;
-};
-
-const markAccessKeyUsed = (jti: string, ttlSeconds: number) => {
-  if (ttlSeconds > 0) {
-    usedAccessKeys.set(jti, Date.now() + ttlSeconds * 1000);
-  }
-};
-
-const getUsageSourceFromToken = (decoded: any): LlmUsageSource => {
-  if (decoded.usageSource === "authenticated_user") {
-    return "authenticated_user";
-  }
-  return "legacy_access_key";
 };
 
 const acquireChatSlot = (subject: string) => {
@@ -119,27 +73,14 @@ const markRateLimited = (subject: string) => {
 };
 
 const getUsageAndLimit = async (user: LlmUserSession) => {
-  if (user.usageSource === "authenticated_user") {
-    const dbUsage = await get_llm_usage_by_uuid(user.subject);
-    if (!dbUsage) {
-      throw new Error("LLM_USAGE_NOT_FOUND");
-    }
-
-    const tokenLimit = dbUsage.token_limit || 0;
-    return {
-      totalTokensUsed: Number(dbUsage.total_tokens_used || 0),
-      tokenLimit: tokenLimit > 0 ? Number(tokenLimit) : getGlobalQuota(),
-    };
-  }
-
-  const dbUser = await get_user_llm_usage(user.subject);
-  if (!dbUser) {
+  const dbUsage = await get_llm_usage_by_uuid(user.subject);
+  if (!dbUsage) {
     throw new Error("LLM_USAGE_NOT_FOUND");
   }
 
-  const tokenLimit = dbUser.token_limit || 0;
+  const tokenLimit = dbUsage.token_limit || 0;
   return {
-    totalTokensUsed: Number(dbUser.total_tokens_used || 0),
+    totalTokensUsed: Number(dbUsage.total_tokens_used || 0),
     tokenLimit: tokenLimit > 0 ? Number(tokenLimit) : getGlobalQuota(),
   };
 };
@@ -147,243 +88,74 @@ const getUsageAndLimit = async (user: LlmUserSession) => {
 const updateUsage = async (user: LlmUserSession, tokensToAdd: number) => {
   if (tokensToAdd <= 0) return;
 
-  if (user.usageSource === "authenticated_user") {
-    await update_llm_usage_by_uuid(user.subject, tokensToAdd);
-    return;
-  }
-
-  await update_user_llm_usage(user.subject, tokensToAdd);
+  await update_llm_usage_by_uuid(user.subject, tokensToAdd);
 };
 
-// Helper to read public key
-const getPublicKey = () => {
+router.post("/status", authenticate(LLM_ALLOWED_ROLES), async (req, res) => {
   try {
-    if (process.env.LLM_PUBLIC_KEY) {
-      return process.env.LLM_PUBLIC_KEY.replace(/\\n/g, "\n");
-    }
-    if (fs.existsSync(PUBLIC_KEY_PATH)) {
-      return fs.readFileSync(PUBLIC_KEY_PATH, "utf8");
-    }
-    console.warn("LLM Public Key not found at " + PUBLIC_KEY_PATH);
-    return null;
-  } catch (e) {
-    console.error("Error reading public key:", e);
-    return null;
-  }
-};
-
-// Middleware to verify LLM Session Token
-const verifySession = async (
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction,
-) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res
-      .status(401)
-      .json({ error: "Missing or invalid Authorization header" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const subject = decoded.sub;
-    const iat = decoded.iat;
-
-    // Check if token is invalidated by a newer login
-    const minIat = minSessionIatBySubject.get(subject);
-    if (minIat && iat && iat < minIat) {
-      return res
-        .status(401)
-        .json({ error: "Session expired (logged in elsewhere)" });
-    }
-
-    // Attach user info to request
-    (req as any).llmUser = {
-      subject,
-      studentNo: subject,
-      email: decoded.email,
-      role: decoded.role,
-      usageSource: getUsageSourceFromToken(decoded),
-    };
-
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid session token" });
-  }
-};
-
-// 1. Verify Access Key and Exchange for Session Token
-router.post("/verify", async (req, res) => {
-  const { accessKey } = req.body;
-
-  if (!accessKey) {
-    return res.status(400).json({ error: "Access Key is required" });
-  }
-
-  const publicKey = getPublicKey();
-  if (!publicKey) {
-    return res
-      .status(500)
-      .json({ error: "Server configuration error (Public Key missing)" });
-  }
-
-  try {
-    // Verify RSA signature
-    const decoded = jwt.verify(accessKey, publicKey, {
-      algorithms: ["RS256"],
-    }) as any;
-    const { sub: studentNo, jti, exp, email, quota } = decoded;
-
-    const ttl = getAccessKeyTtlSeconds(exp);
-    if (isAccessKeyMarkedUsed(jti)) {
-      return res
-        .status(403)
-        .json({ error: "Access Key has already been used" });
-    }
-
-    // Check Replay Attack (DB - Persistence)
-    const isUsedDB = await check_access_key_usage(jti);
-    if (isUsedDB) {
-      markAccessKeyUsed(jti, ttl);
-      return res
-        .status(403)
-        .json({ error: "Access Key has already been used" });
-    }
-
-    markAccessKeyUsed(jti, ttl);
-
-    // Log Access Key usage to DB
-    try {
-      await log_access_key_usage(studentNo, jti, email);
-    } catch (e) {
-      console.error("Failed to log access key usage:", e);
-      // Don't block login if logging fails, but it's good to know
-    }
-
-    // Invalidate old sessions
-    const now = Math.floor(Date.now() / 1000);
-    minSessionIatBySubject.set(studentNo, now);
-
-    // Initialize Quota if not exists
-    // We use '0' in DB to indicate "Follow Global Limit"
-
-    // Try to get from DB first
-    let dbUser = await get_user_llm_usage(studentNo);
-
-    if (!dbUser) {
-      // Create in DB if not exists
-      // If Access Key has specific quota, use it. Otherwise use 0 (Global).
-      const limit = quota || 0;
-      dbUser = await init_user_llm_usage(studentNo, limit, email);
-    } else if (email && dbUser.email !== email) {
-      // Update email if it's different (and we have a new one)
-      // We can reuse init_user_llm_usage because of on_conflict update_columns: [email]
-      // But we should be careful not to reset token_limit if we don't want to.
-      // However, init_user_llm_usage currently takes token_limit.
-      // Let's just call it with the existing limit to update the email.
-      dbUser = await init_user_llm_usage(studentNo, dbUser.token_limit, email);
-    }
-
-    const dbLimit = dbUser?.token_limit || 0;
-
-    // Issue Session Token
-    const sessionToken = jwt.sign(
-      {
-        sub: studentNo,
-        email: email,
-        role: "student",
-        type: "llm_session",
-        usageSource: "legacy_access_key",
-      },
-      JWT_SECRET,
-      { expiresIn: SESSION_EXPIRY },
-    );
-
-    res.json({
-      token: sessionToken,
-      user: {
-        studentNo,
-        email,
-      },
-      quota: {
-        tokenLimit: dbLimit,
-        totalTokensUsed: dbUser?.total_tokens_used || 0,
-      },
-    });
-  } catch (err) {
-    console.error("Access Key Verification Failed:", err);
-    return res.status(403).json({ error: "Invalid or expired Access Key" });
-  }
-});
-
-router.post("/verify_new", authenticate(), async (req, res) => {
-  try {
-    const uuid: string | undefined = req.auth.user.uuid;
-    const email: string | undefined = req.auth.user.email;
-    const role: string | undefined = req.auth.user.role;
-
+    const uuid = req.auth.user.uuid;
     if (!uuid) {
       return res.status(400).json({ error: "Missing uuid in auth user" });
     }
 
-    // Invalidate old sessions for this uuid
-    const now = Math.floor(Date.now() / 1000);
-    minSessionIatBySubject.set(uuid, now);
-
-    // Check llm_usage row by authenticated uuid.
     const dbUsage = await get_llm_usage_by_uuid(uuid);
     if (!dbUsage) {
-      return res.status(401).json({
-        error: "No llm_usage record found for authenticated uuid",
+      return res.status(403).json({
+        error: "LLM access is not enabled for this user.",
       });
     }
 
-    const dbLimit = dbUsage.token_limit || 0;
-
-    // Issue LLM session token using authenticated identity
-    const sessionToken = jwt.sign(
-      {
-        sub: uuid,
-        email: email,
-        role: role,
-        type: "llm_session",
-        usageSource: "authenticated_user",
-      },
-      JWT_SECRET,
-      { expiresIn: SESSION_EXPIRY },
-    );
-
+    const tokenLimit = dbUsage.token_limit || 0;
     return res.json({
-      token: sessionToken,
       user: {
         uuid,
-        email,
-        role,
+        email: req.auth.user.email,
+        role: req.auth.user.role,
       },
       quota: {
-        tokenLimit: dbLimit,
+        tokenLimit,
         totalTokensUsed: dbUsage.total_tokens_used || 0,
       },
     });
   } catch (err: any) {
-    console.error("verify_new failed:", err);
+    console.error("llm status failed:", err);
     return res.status(500).json({
-      error: "Failed to verify authenticated user for LLM",
+      error: "Failed to get LLM status",
       details: err?.message,
     });
   }
 });
 
-// 2. Chat Endpoint
-router.post("/chat", verifySession, async (req, res) => {
+// Chat Endpoint
+router.post("/chat", authenticate(LLM_ALLOWED_ROLES), async (req, res) => {
   const { messages, model } = req.body;
-  const user = (req as any).llmUser as LlmUserSession;
+  const uuid = req.auth.user.uuid;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: "Messages array is required" });
+  }
+
+  if (!uuid) {
+    return res.status(400).json({ error: "Missing uuid in auth user" });
+  }
+
+  const user: LlmUserSession = { subject: uuid };
+  let quota: Awaited<ReturnType<typeof getUsageAndLimit>>;
+
+  try {
+    quota = await getUsageAndLimit(user);
+  } catch (error: any) {
+    if (error.message === "LLM_USAGE_NOT_FOUND") {
+      return res.status(403).json({
+        error: "LLM access is not enabled for this user.",
+      });
+    }
+
+    console.error("Failed to check LLM access:", error);
+    return res.status(500).json({
+      error: "Failed to check LLM access",
+      details: error.message,
+    });
   }
 
   // Concurrency Control
@@ -412,7 +184,7 @@ router.post("/chat", verifySession, async (req, res) => {
 
   try {
     // Quota Check
-    const { totalTokensUsed, tokenLimit } = await getUsageAndLimit(user);
+    const { totalTokensUsed, tokenLimit } = quota;
 
     if (totalTokensUsed >= tokenLimit) {
       throw new Error("QUOTA_EXCEEDED");
@@ -528,7 +300,7 @@ router.post("/chat", verifySession, async (req, res) => {
         .status(402)
         .json({ error: "Token quota exceeded. Please contact admin." });
     } else if (error.message === "LLM_USAGE_NOT_FOUND") {
-      res.status(401).json({ error: "LLM usage record not found." });
+      res.status(403).json({ error: "LLM access is not enabled for this user." });
     } else {
       console.error("LLM API Error:", error);
       // If headers sent, we can't send JSON error, just end stream
