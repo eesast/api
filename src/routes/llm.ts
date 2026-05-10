@@ -3,7 +3,6 @@ import OpenAI from "openai";
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
-import redis from "../helpers/redis";
 import {
   get_llm_usage_by_uuid,
   get_user_llm_usage,
@@ -11,6 +10,8 @@ import {
   get_llm_model_config,
   log_access_key_usage,
   check_access_key_usage,
+  update_llm_usage_by_uuid,
+  update_user_llm_usage,
 } from "../hasura/llm";
 import authenticate from "../middlewares/authenticate";
 
@@ -23,15 +24,135 @@ const PUBLIC_KEY_PATH =
 const JWT_SECRET = process.env.LLM_JWT_SECRET || "eesast_llm_session_secret";
 const SESSION_EXPIRY = "12h"; // Session token expiry
 
-// Helper to get global quota dynamically
-const getGlobalQuota = async () => {
-  try {
-    const redisDefault = await redis.get("llm_global_limit");
-    if (redisDefault) return parseInt(redisDefault);
-  } catch (e) {
-    console.error("Failed to get global limit from Redis", e);
+type LlmUsageSource = "legacy_access_key" | "authenticated_user";
+
+interface LlmUserSession {
+  subject: string;
+  email?: string;
+  role?: string;
+  usageSource: LlmUsageSource;
+}
+
+interface ActiveChatRequest {
+  requestId: symbol;
+  expiresAt: number;
+}
+
+const ACCESS_KEY_DEFAULT_TTL_SECONDS = 3600 * 24 * 7;
+const ACTIVE_CHAT_TTL_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MS = 3000;
+
+const usedAccessKeys = new Map<string, number>();
+const minSessionIatBySubject = new Map<string, number>();
+const activeChatBySubject = new Map<string, ActiveChatRequest>();
+const rateLimitedUntilBySubject = new Map<string, number>();
+
+const getGlobalQuota = () => {
+  return parseInt(process.env.LLM_DEFAULT_LIMIT || "5000000", 10);
+};
+
+const cleanupExpiredNumberMap = (map: Map<string, number>, now = Date.now()) => {
+  for (const [key, expiresAt] of map.entries()) {
+    if (expiresAt <= now) {
+      map.delete(key);
+    }
   }
-  return parseInt(process.env.LLM_DEFAULT_LIMIT || "5000000");
+};
+
+const getAccessKeyTtlSeconds = (exp?: number) => {
+  return exp ? exp - Math.floor(Date.now() / 1000) : ACCESS_KEY_DEFAULT_TTL_SECONDS;
+};
+
+const isAccessKeyMarkedUsed = (jti: string) => {
+  const now = Date.now();
+  cleanupExpiredNumberMap(usedAccessKeys, now);
+  const expiresAt = usedAccessKeys.get(jti);
+  return expiresAt !== undefined && expiresAt > now;
+};
+
+const markAccessKeyUsed = (jti: string, ttlSeconds: number) => {
+  if (ttlSeconds > 0) {
+    usedAccessKeys.set(jti, Date.now() + ttlSeconds * 1000);
+  }
+};
+
+const getUsageSourceFromToken = (decoded: any): LlmUsageSource => {
+  if (decoded.usageSource === "authenticated_user") {
+    return "authenticated_user";
+  }
+  return "legacy_access_key";
+};
+
+const acquireChatSlot = (subject: string) => {
+  const now = Date.now();
+  const activeRequest = activeChatBySubject.get(subject);
+  if (activeRequest && activeRequest.expiresAt > now) {
+    return null;
+  }
+
+  const requestId = Symbol(subject);
+  activeChatBySubject.set(subject, {
+    requestId,
+    expiresAt: now + ACTIVE_CHAT_TTL_MS,
+  });
+  return requestId;
+};
+
+const releaseChatSlot = (subject: string, requestId: symbol | null) => {
+  if (!requestId) return;
+
+  const activeRequest = activeChatBySubject.get(subject);
+  if (activeRequest?.requestId === requestId) {
+    activeChatBySubject.delete(subject);
+  }
+};
+
+const isRateLimited = (subject: string) => {
+  const now = Date.now();
+  cleanupExpiredNumberMap(rateLimitedUntilBySubject, now);
+  const limitedUntil = rateLimitedUntilBySubject.get(subject);
+  return limitedUntil !== undefined && limitedUntil > now;
+};
+
+const markRateLimited = (subject: string) => {
+  rateLimitedUntilBySubject.set(subject, Date.now() + RATE_LIMIT_MS);
+};
+
+const getUsageAndLimit = async (user: LlmUserSession) => {
+  if (user.usageSource === "authenticated_user") {
+    const dbUsage = await get_llm_usage_by_uuid(user.subject);
+    if (!dbUsage) {
+      throw new Error("LLM_USAGE_NOT_FOUND");
+    }
+
+    const tokenLimit = dbUsage.token_limit || 0;
+    return {
+      totalTokensUsed: Number(dbUsage.total_tokens_used || 0),
+      tokenLimit: tokenLimit > 0 ? Number(tokenLimit) : getGlobalQuota(),
+    };
+  }
+
+  const dbUser = await get_user_llm_usage(user.subject);
+  if (!dbUser) {
+    throw new Error("LLM_USAGE_NOT_FOUND");
+  }
+
+  const tokenLimit = dbUser.token_limit || 0;
+  return {
+    totalTokensUsed: Number(dbUser.total_tokens_used || 0),
+    tokenLimit: tokenLimit > 0 ? Number(tokenLimit) : getGlobalQuota(),
+  };
+};
+
+const updateUsage = async (user: LlmUserSession, tokensToAdd: number) => {
+  if (tokensToAdd <= 0) return;
+
+  if (user.usageSource === "authenticated_user") {
+    await update_llm_usage_by_uuid(user.subject, tokensToAdd);
+    return;
+  }
+
+  await update_user_llm_usage(user.subject, tokensToAdd);
 };
 
 // Helper to read public key
@@ -68,12 +189,12 @@ const verifySession = async (
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const studentNo = decoded.sub;
+    const subject = decoded.sub;
     const iat = decoded.iat;
 
     // Check if token is invalidated by a newer login
-    const minIat = await redis.get(`llm_min_iat:${studentNo}`);
-    if (minIat && iat && iat < parseInt(minIat)) {
+    const minIat = minSessionIatBySubject.get(subject);
+    if (minIat && iat && iat < minIat) {
       return res
         .status(401)
         .json({ error: "Session expired (logged in elsewhere)" });
@@ -81,9 +202,11 @@ const verifySession = async (
 
     // Attach user info to request
     (req as any).llmUser = {
-      studentNo: studentNo,
+      subject,
+      studentNo: subject,
       email: decoded.email,
       role: decoded.role,
+      usageSource: getUsageSourceFromToken(decoded),
     };
 
     next();
@@ -114,9 +237,8 @@ router.post("/verify", async (req, res) => {
     }) as any;
     const { sub: studentNo, jti, exp, email, quota } = decoded;
 
-    // Check Replay Attack (Redis)
-    const isUsed = await redis.get(`used_key:${jti}`);
-    if (isUsed) {
+    const ttl = getAccessKeyTtlSeconds(exp);
+    if (isAccessKeyMarkedUsed(jti)) {
       return res
         .status(403)
         .json({ error: "Access Key has already been used" });
@@ -125,21 +247,13 @@ router.post("/verify", async (req, res) => {
     // Check Replay Attack (DB - Persistence)
     const isUsedDB = await check_access_key_usage(jti);
     if (isUsedDB) {
-      // Restore Redis state for performance
-      const ttl = exp ? exp - Math.floor(Date.now() / 1000) : 3600 * 24 * 7;
-      if (ttl > 0) {
-        await redis.set(`used_key:${jti}`, "1", "EX", ttl);
-      }
+      markAccessKeyUsed(jti, ttl);
       return res
         .status(403)
         .json({ error: "Access Key has already been used" });
     }
 
-    // Mark Key as used (expire at key's expiration time)
-    const ttl = exp ? exp - Math.floor(Date.now() / 1000) : 3600 * 24 * 7;
-    if (ttl > 0) {
-      await redis.set(`used_key:${jti}`, "1", "EX", ttl);
-    }
+    markAccessKeyUsed(jti, ttl);
 
     // Log Access Key usage to DB
     try {
@@ -151,7 +265,7 @@ router.post("/verify", async (req, res) => {
 
     // Invalidate old sessions
     const now = Math.floor(Date.now() / 1000);
-    await redis.set(`llm_min_iat:${studentNo}`, now);
+    minSessionIatBySubject.set(studentNo, now);
 
     // Initialize Quota if not exists
     // We use '0' in DB to indicate "Follow Global Limit"
@@ -173,27 +287,7 @@ router.post("/verify", async (req, res) => {
       dbUser = await init_user_llm_usage(studentNo, dbUser.token_limit, email);
     }
 
-    // Sync DB limit to Redis
-    // If DB limit is > 0, it's a custom limit -> Set Redis key
-    // If DB limit is 0, it's global -> Delete Redis key (so /chat falls back to global)
     const dbLimit = dbUser?.token_limit || 0;
-
-    if (dbLimit > 0) {
-      await redis.set(`llm_limit:${studentNo}`, dbLimit);
-    } else {
-      // If quota was provided in Access Key but DB update failed/race condition, use quota
-      if (quota && quota > 0) {
-        await redis.set(`llm_limit:${studentNo}`, quota);
-      } else {
-        await redis.del(`llm_limit:${studentNo}`);
-      }
-    }
-
-    // Sync usage from DB to Redis if Redis is empty (e.g. after restart)
-    const currentUsage = await redis.get(`llm_usage:${studentNo}`);
-    if (!currentUsage && dbUser) {
-      await redis.set(`llm_usage:${studentNo}`, dbUser.total_tokens_used);
-    }
 
     // Issue Session Token
     const sessionToken = jwt.sign(
@@ -202,6 +296,7 @@ router.post("/verify", async (req, res) => {
         email: email,
         role: "student",
         type: "llm_session",
+        usageSource: "legacy_access_key",
       },
       JWT_SECRET,
       { expiresIn: SESSION_EXPIRY },
@@ -212,6 +307,10 @@ router.post("/verify", async (req, res) => {
       user: {
         studentNo,
         email,
+      },
+      quota: {
+        tokenLimit: dbLimit,
+        totalTokensUsed: dbUser?.total_tokens_used || 0,
       },
     });
   } catch (err) {
@@ -232,7 +331,7 @@ router.post("/verify_new", authenticate(), async (req, res) => {
 
     // Invalidate old sessions for this uuid
     const now = Math.floor(Date.now() / 1000);
-    await redis.set(`llm_min_iat:${uuid}`, now);
+    minSessionIatBySubject.set(uuid, now);
 
     // Check llm_usage row by authenticated uuid.
     const dbUsage = await get_llm_usage_by_uuid(uuid);
@@ -242,19 +341,7 @@ router.post("/verify_new", authenticate(), async (req, res) => {
       });
     }
 
-    // Sync limit to Redis by uuid.
     const dbLimit = dbUsage.token_limit || 0;
-    if (dbLimit > 0) {
-      await redis.set(`llm_limit:${uuid}`, dbLimit);
-    } else {
-      await redis.del(`llm_limit:${uuid}`);
-    }
-
-    // Sync usage from DB to Redis if missing (e.g. Redis restart)
-    const currentUsage = await redis.get(`llm_usage:${uuid}`);
-    if (!currentUsage) {
-      await redis.set(`llm_usage:${uuid}`, dbUsage.total_tokens_used || 0);
-    }
 
     // Issue LLM session token using authenticated identity
     const sessionToken = jwt.sign(
@@ -263,6 +350,7 @@ router.post("/verify_new", authenticate(), async (req, res) => {
         email: email,
         role: role,
         type: "llm_session",
+        usageSource: "authenticated_user",
       },
       JWT_SECRET,
       { expiresIn: SESSION_EXPIRY },
@@ -292,24 +380,15 @@ router.post("/verify_new", authenticate(), async (req, res) => {
 // 2. Chat Endpoint
 router.post("/chat", verifySession, async (req, res) => {
   const { messages, model } = req.body;
-  const user = (req as any).llmUser;
-  const studentNo = user.studentNo;
+  const user = (req as any).llmUser as LlmUserSession;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: "Messages array is required" });
   }
 
   // Concurrency Control
-  const activeKey = `llm_active:${studentNo}`;
-  const activeCount = await redis.incr(activeKey);
-
-  // Set TTL for safety (e.g., 5 mins)
-  if (activeCount === 1) {
-    await redis.expire(activeKey, 300);
-  }
-
-  if (activeCount > 1) {
-    await redis.decr(activeKey);
+  const activeRequestId = acquireChatSlot(user.subject);
+  if (!activeRequestId) {
     return res.status(429).json({
       error:
         "Too many concurrent requests. Please wait for the previous request to finish.",
@@ -317,16 +396,13 @@ router.post("/chat", verifySession, async (req, res) => {
   }
 
   // Rate Limiting (e.g., 1 request per 3 seconds)
-  const rateLimitKey = `llm_rate_limit:${studentNo}`;
-  const isRateLimited = await redis.get(rateLimitKey);
-  if (isRateLimited) {
-    await redis.decr(activeKey); // Release concurrency lock
+  if (isRateLimited(user.subject)) {
+    releaseChatSlot(user.subject, activeRequestId);
     return res
       .status(429)
       .json({ error: "Request too frequent. Please wait a few seconds." });
   }
-  // Set rate limit flag for 3 seconds
-  await redis.set(rateLimitKey, "1", "EX", 3);
+  markRateLimited(user.subject);
 
   // Setup AbortController for client disconnect
   const controller = new AbortController();
@@ -336,23 +412,9 @@ router.post("/chat", verifySession, async (req, res) => {
 
   try {
     // Quota Check
-    const usageKey = `llm_usage:${studentNo}`;
-    const limitKey = `llm_limit:${studentNo}`;
+    const { totalTokensUsed, tokenLimit } = await getUsageAndLimit(user);
 
-    const [usageStr, limitStr] = await Promise.all([
-      redis.get(usageKey),
-      redis.get(limitKey),
-    ]);
-
-    const usage = parseInt(usageStr || "0");
-    let limit = parseInt(limitStr || "0");
-
-    // If no custom limit in Redis, use Global Limit
-    if (!limitStr) {
-      limit = await getGlobalQuota();
-    }
-
-    if (usage >= limit) {
+    if (totalTokensUsed >= tokenLimit) {
       throw new Error("QUOTA_EXCEEDED");
     }
 
@@ -456,10 +518,7 @@ router.post("/chat", verifySession, async (req, res) => {
       totalTokens = Math.ceil(inputLen * 0.7);
     }
 
-    // Update Usage in Redis
-    if (totalTokens > 0) {
-      await redis.incrby(usageKey, totalTokens);
-    }
+    await updateUsage(user, totalTokens);
 
     res.write("data: [DONE]\n\n");
     res.end();
@@ -468,6 +527,8 @@ router.post("/chat", verifySession, async (req, res) => {
       res
         .status(402)
         .json({ error: "Token quota exceeded. Please contact admin." });
+    } else if (error.message === "LLM_USAGE_NOT_FOUND") {
+      res.status(401).json({ error: "LLM usage record not found." });
     } else {
       console.error("LLM API Error:", error);
       // If headers sent, we can't send JSON error, just end stream
@@ -485,7 +546,7 @@ router.post("/chat", verifySession, async (req, res) => {
     }
   } finally {
     // Release Concurrency Lock
-    await redis.decr(activeKey);
+    releaseChatSlot(user.subject, activeRequestId);
   }
 });
 

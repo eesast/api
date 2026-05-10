@@ -51,6 +51,38 @@ export const set_llm_usage_by_uuid = async (
   return query.update_llm_usage_by_pk;
 };
 
+export const update_llm_usage_by_uuid = async (
+  uuid: string,
+  tokens_to_add: number,
+) => {
+  const query: any = await client.request(
+    gql`
+      mutation UpdateLlmUsageByUuid(
+        $uuid: uuid!
+        $tokens_to_add: bigint!
+        $updated_at: timestamptz!
+      ) {
+        update_llm_usage_by_pk(
+          pk_columns: { uuid: $uuid }
+          _inc: { total_tokens_used: $tokens_to_add }
+          _set: { last_updated_at: $updated_at }
+        ) {
+          uuid
+          total_tokens_used
+          token_limit
+          last_updated_at
+        }
+      }
+    `,
+    {
+      uuid,
+      tokens_to_add,
+      updated_at: new Date().toISOString(),
+    },
+  );
+  return query.update_llm_usage_by_pk;
+};
+
 export const get_user_llm_usage = async (student_no: string) => {
   const query: any = await client.request(
     gql`
