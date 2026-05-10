@@ -1,8 +1,20 @@
 import express from "express";
 import authenticate from "../middlewares/authenticate";
 import * as ContHasFunc from "../hasura/contest";
+import * as LlmHasFunc from "../hasura/llm";
 
 const router = express.Router();
+
+const ensureRlUserLlmUsage = async (contest_id: string, user_uuid: string) => {
+  try {
+    const contestName = await ContHasFunc.get_contest_name(contest_id);
+    if (contestName?.trim().toUpperCase().startsWith("RL")) {
+      await LlmHasFunc.upsert_llm_usage_by_uuid(user_uuid);
+    }
+  } catch (err) {
+    console.error("Failed to add RL user to llm_usage:", err);
+  }
+};
 
 router.post("/member_limit", authenticate(), async (req, res) => {
   try {
@@ -120,6 +132,7 @@ router.post("/add_team", authenticate(["student"]), async (req, res) => {
       invited_code,
       contest_id,
     );
+    await ensureRlUserLlmUsage(contest_id, team_leader_uuid);
     res
       .status(200)
       .json({ team_id: team_id, message: "Team Added Successfully" });
@@ -144,6 +157,10 @@ router.post("/add_team_member", authenticate(), async (req, res) => {
     const result = await ContHasFunc.add_team_member(team_id, user_uuid);
     if (!result) {
       return res.status(551).json({ error: "551: Team member limit reached" });
+    }
+    const contest_id = await ContHasFunc.get_contest_id_from_team_id(team_id);
+    if (contest_id) {
+      await ensureRlUserLlmUsage(contest_id, user_uuid);
     }
     return res.status(200).json({
       message: "Team Member Added Successfully",

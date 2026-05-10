@@ -83,6 +83,71 @@ export const update_llm_usage_by_uuid = async (
   return query.update_llm_usage_by_pk;
 };
 
+export const upsert_llm_usage_by_uuids = async (
+  uuids: string[],
+  token_limit: number = 0,
+) => {
+  const uniqueUuids = Array.from(new Set(uuids)).filter(Boolean);
+  if (uniqueUuids.length === 0) {
+    return 0;
+  }
+
+  const query: any = await client.request(
+    gql`
+      mutation UpsertLlmUsage($objects: [llm_usage_insert_input!]!) {
+        insert_llm_usage(
+          objects: $objects
+          on_conflict: { constraint: llm_usage_pkey, update_columns: [] }
+        ) {
+          affected_rows
+        }
+      }
+    `,
+    {
+      objects: uniqueUuids.map((uuid) => ({
+        uuid,
+        token_limit,
+        total_tokens_used: 0,
+      })),
+    },
+  );
+
+  return query.insert_llm_usage?.affected_rows ?? 0;
+};
+
+export const upsert_llm_usage_by_uuid = async (
+  uuid: string,
+  token_limit: number = 0,
+) => {
+  return upsert_llm_usage_by_uuids([uuid], token_limit);
+};
+
+export const sync_rl_registered_users_to_llm_usage = async (
+  token_limit: number = 0,
+) => {
+  const query: any = await client.request(
+    gql`
+      query GetRLRegisteredUserUuids {
+        contest_team_member(
+          where: { contest_team: { contest: { name: { _ilike: "RL%" } } } }
+        ) {
+          user_uuid
+        }
+      }
+    `,
+  );
+
+  const uuids = (query.contest_team_member || []).map(
+    (member: any) => member.user_uuid,
+  );
+  const affectedRows = await upsert_llm_usage_by_uuids(uuids, token_limit);
+
+  return {
+    totalRegisteredUsers: Array.from(new Set(uuids)).length,
+    insertedUsers: affectedRows,
+  };
+};
+
 export const get_user_llm_usage = async (student_no: string) => {
   const query: any = await client.request(
     gql`

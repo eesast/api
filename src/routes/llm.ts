@@ -5,7 +5,6 @@ import {
   get_llm_model_config,
   update_llm_usage_by_uuid,
 } from "../hasura/llm";
-import authenticate from "../middlewares/authenticate";
 
 const router = express.Router();
 
@@ -20,7 +19,8 @@ interface ActiveChatRequest {
 
 const ACTIVE_CHAT_TTL_MS = 5 * 60 * 1000;
 const RATE_LIMIT_MS = 3000;
-const LLM_ALLOWED_ROLES = ["student", "teacher", "counselor", "user", "root"];
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const activeChatBySubject = new Map<string, ActiveChatRequest>();
 const rateLimitedUntilBySubject = new Map<string, number>();
@@ -72,91 +72,109 @@ const markRateLimited = (subject: string) => {
   rateLimitedUntilBySubject.set(subject, Date.now() + RATE_LIMIT_MS);
 };
 
-const getUsageAndLimit = async (user: LlmUserSession) => {
-  const dbUsage = await get_llm_usage_by_uuid(user.subject);
-  if (!dbUsage) {
-    throw new Error("LLM_USAGE_NOT_FOUND");
-  }
-
-  const tokenLimit = dbUsage.token_limit || 0;
-  return {
-    totalTokensUsed: Number(dbUsage.total_tokens_used || 0),
-    tokenLimit: tokenLimit > 0 ? Number(tokenLimit) : getGlobalQuota(),
-  };
-};
-
 const updateUsage = async (user: LlmUserSession, tokensToAdd: number) => {
   if (tokensToAdd <= 0) return;
 
   await update_llm_usage_by_uuid(user.subject, tokensToAdd);
 };
 
-router.post("/status", authenticate(LLM_ALLOWED_ROLES), async (req, res) => {
-  try {
-    const uuid = req.auth.user.uuid;
-    if (!uuid) {
-      return res.status(400).json({ error: "Missing uuid in auth user" });
-    }
+const extractLlmToken = (req: express.Request) => {
+  const headerToken = req.get("X-LLM-Token");
+  if (headerToken) {
+    return headerToken.trim();
+  }
 
+  const authHeader = req.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.substring("Bearer ".length).trim();
+  }
+
+  return null;
+};
+
+const decodeUuidToken = (token: string) => {
+  try {
+    const normalizedToken = token.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = Buffer.from(normalizedToken, "base64")
+      .toString("utf8")
+      .trim();
+    if (!UUID_PATTERN.test(decoded)) {
+      return null;
+    }
+    return decoded.toLowerCase();
+  } catch {
+    return null;
+  }
+};
+
+const getLlmUsageFromRequest = async (req: express.Request) => {
+  const token = extractLlmToken(req);
+  if (!token) {
+    return { error: "LLM token is required.", status: 401 as const };
+  }
+
+  const uuid = decodeUuidToken(token);
+  if (!uuid) {
+    return { error: "Invalid LLM token.", status: 401 as const };
+  }
+
+  try {
     const dbUsage = await get_llm_usage_by_uuid(uuid);
     if (!dbUsage) {
-      return res.status(403).json({
+      return {
         error: "LLM access is not enabled for this user.",
-      });
+        status: 403 as const,
+      };
     }
 
-    const tokenLimit = dbUsage.token_limit || 0;
-    return res.json({
-      user: {
-        uuid,
-        email: req.auth.user.email,
-        role: req.auth.user.role,
-      },
-      quota: {
-        tokenLimit,
-        totalTokensUsed: dbUsage.total_tokens_used || 0,
-      },
-    });
-  } catch (err: any) {
-    console.error("llm status failed:", err);
-    return res.status(500).json({
-      error: "Failed to get LLM status",
-      details: err?.message,
-    });
+    return { uuid, dbUsage };
+  } catch (error: any) {
+    console.error("Failed to check LLM access:", error);
+    return {
+      error: "Failed to check LLM access",
+      details: error.message,
+      status: 500 as const,
+    };
   }
+};
+
+router.post("/status", async (req, res) => {
+  const authResult = await getLlmUsageFromRequest(req);
+  if ("error" in authResult) {
+    return res.status(authResult.status ?? 500).json(authResult);
+  }
+
+  const tokenLimit = authResult.dbUsage.token_limit || 0;
+  return res.json({
+    user: {
+      uuid: authResult.uuid,
+    },
+    quota: {
+      tokenLimit,
+      totalTokensUsed: authResult.dbUsage.total_tokens_used || 0,
+    },
+  });
 });
 
 // Chat Endpoint
-router.post("/chat", authenticate(LLM_ALLOWED_ROLES), async (req, res) => {
+router.post("/chat", async (req, res) => {
   const { messages, model } = req.body;
-  const uuid = req.auth.user.uuid;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: "Messages array is required" });
   }
 
-  if (!uuid) {
-    return res.status(400).json({ error: "Missing uuid in auth user" });
+  const authResult = await getLlmUsageFromRequest(req);
+  if ("error" in authResult) {
+    return res.status(authResult.status ?? 500).json(authResult);
   }
 
-  const user: LlmUserSession = { subject: uuid };
-  let quota: Awaited<ReturnType<typeof getUsageAndLimit>>;
-
-  try {
-    quota = await getUsageAndLimit(user);
-  } catch (error: any) {
-    if (error.message === "LLM_USAGE_NOT_FOUND") {
-      return res.status(403).json({
-        error: "LLM access is not enabled for this user.",
-      });
-    }
-
-    console.error("Failed to check LLM access:", error);
-    return res.status(500).json({
-      error: "Failed to check LLM access",
-      details: error.message,
-    });
-  }
+  const user: LlmUserSession = { subject: authResult.uuid };
+  const tokenLimit = authResult.dbUsage.token_limit || 0;
+  const quota = {
+    totalTokensUsed: Number(authResult.dbUsage.total_tokens_used || 0),
+    tokenLimit: tokenLimit > 0 ? Number(tokenLimit) : getGlobalQuota(),
+  };
 
   // Concurrency Control
   const activeRequestId = acquireChatSlot(user.subject);
