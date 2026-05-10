@@ -1604,6 +1604,131 @@ router.post(
   },
 );
 
+const uuidRegex =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const isValidUuid = (value: string) => uuidRegex.test(value);
+
+const isValidUrl = (value: string) => {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+router.post("/add_team_RL_code", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const { contest_id, team_id, code_url } = req.body;
+
+    if (!contest_id || !team_id || !code_url) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
+    }
+
+    if (!isValidUuid(contest_id) || !isValidUuid(team_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    if (!isValidUrl(code_url)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid URL format" });
+    }
+
+    const contest_name = await ContHasFunc.get_contest_name(contest_id);
+    if (!contest_name?.trim().toUpperCase().startsWith("RL")) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Contest is not an RL contest" });
+    }
+
+    const team_contest_id =
+      await ContHasFunc.get_contest_id_from_team_id(team_id);
+    if (team_contest_id !== contest_id) {
+      return res.status(403).json({
+        error: "403 Forbidden: Team does not belong to this contest",
+      });
+    }
+
+    const deadline =
+      await ContHasFunc.get_software_contest_deadline(contest_id);
+    const isBeforeDeadline = deadline ? new Date() < new Date(deadline) : false;
+    if (!isBeforeDeadline) {
+      return res.status(403).json({
+        error: "403 Forbidden: Contest submission deadline has passed",
+      });
+    }
+
+    const is_member = await ContHasFunc.check_user_team(user_uuid, team_id);
+    if (!is_member) {
+      return res
+        .status(403)
+        .json({ error: "403 Forbidden: You are not a member of this team" });
+    }
+
+    const code = await ContHasFunc.add_team_RL_code(team_id, code_url);
+    res.status(200).json({ data: code });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
+
+router.post(
+  "/get_team_RL_code_submissions",
+  authenticate(),
+  async (req, res) => {
+    try {
+      const user_uuid = req.auth.user.uuid;
+      const { team_id } = req.body;
+
+      if (!team_id) {
+        return res
+          .status(400)
+          .json({ error: "400 Bad Request: Missing team_id" });
+      }
+
+      if (!isValidUuid(team_id)) {
+        return res
+          .status(400)
+          .json({ error: "400 Bad Request: Invalid UUID format" });
+      }
+
+      const contest_id = await ContHasFunc.get_contest_id_from_team_id(team_id);
+      const is_member = await ContHasFunc.check_user_team(user_uuid, team_id);
+      const is_manager = contest_id
+        ? await ContHasFunc.get_maneger_from_user(user_uuid, contest_id)
+        : false;
+      if (!is_member && !is_manager) {
+        return res.status(403).json({
+          error:
+            "403 Forbidden: You are not authorized to view this team's code",
+        });
+      }
+
+      const codes = await ContHasFunc.get_team_RL_code_submissions(team_id);
+      res.status(200).json({ data: codes });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({
+        error: "500 Internal Server Error",
+        message: err.message,
+        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      });
+    }
+  },
+);
+
 router.post("/get_software_contest_ddl", authenticate(), async (req, res) => {
   try {
     // const user_uuid = req.auth.user.uuid;
@@ -1625,15 +1750,14 @@ router.post("/get_software_contest_ddl", authenticate(), async (req, res) => {
         .json({ error: "400 Bad Request: Invalid UUID format" });
     }
 
-    // Permission check: verify user is a manager of the contest
-    const result = await ContHasFunc.get_software_contest_deadline(contest_id);
-    if (result === null) {
-      return res
-        .status(404)
-        .json({ error: "404 Not Found: Contest not found" });
-    }
-    const { deadline, current_time } = result;
-    res.status(200).json({ data: { deadline, current_time } });
+    const deadline =
+      await ContHasFunc.get_software_contest_deadline(contest_id);
+    res.status(200).json({
+      data: {
+        deadline: deadline ?? null,
+        current_time: new Date().toISOString(),
+      },
+    });
   } catch (err: any) {
     console.error(err);
     res.status(500).json({
@@ -1643,4 +1767,98 @@ router.post("/get_software_contest_ddl", authenticate(), async (req, res) => {
     });
   }
 });
+
+router.post("/set_software_contest_ddl", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const { contest_id, deadline } = req.body;
+
+    if (!contest_id || !deadline) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Missing required parameters" });
+    }
+
+    if (!isValidUuid(contest_id)) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid UUID format" });
+    }
+
+    if (Number.isNaN(new Date(deadline).getTime())) {
+      return res
+        .status(400)
+        .json({ error: "400 Bad Request: Invalid deadline format" });
+    }
+
+    const is_manager = await ContHasFunc.get_maneger_from_user(
+      user_uuid,
+      contest_id,
+    );
+    if (!is_manager) {
+      return res.status(403).json({
+        error: "403 Forbidden: Only contest managers can update deadline",
+      });
+    }
+
+    const result = await ContHasFunc.set_software_contest_deadline(
+      contest_id,
+      deadline,
+    );
+    res.status(200).json({ data: result });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+});
+
+/**
+ * RL 积分榜：管理员批量更新各队分数
+ * @param token  管理员 token
+ * @param {string} contest_id
+ * @param {Array<{team_id: string, score: number}>} scores
+ */
+router.post("/rl-score/update", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const contest_id: string = req.body.contest_id;
+    const scores: { team_id: string; score: number }[] = req.body.scores;
+
+    if (!contest_id || !scores || !Array.isArray(scores)) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing credentials");
+    }
+
+    const is_manager = await ContHasFunc.get_maneger_from_user(
+      user_uuid,
+      contest_id,
+    );
+    if (!is_manager) {
+      return res.status(403).send("403 Forbidden: Not a manager");
+    }
+
+    for (const { team_id, score } of scores) {
+      if (typeof score !== "number" || !Number.isInteger(score)) {
+        return res
+          .status(422)
+          .send(`422 Unprocessable Entity: Invalid score for team ${team_id}`);
+      }
+      await ContHasFunc.upsert_team_RL_score(team_id, score);
+    }
+
+    return res.status(200).json({ message: "200 OK: Scores updated" });
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json({
+      error: "500 Internal Server Error",
+      message: err.message,
+    });
+  }
+});
+
 export default router;

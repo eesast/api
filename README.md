@@ -23,12 +23,6 @@ EESAST 后端 API
 - node 16 / npm
 - yarn
 - TypeScript
-- Redis
-
-### Before Dev
-
-需要在测试端安装和启动Redis
-具体见[Redis安装文档](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/)
 
 ### 工具
 

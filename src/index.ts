@@ -4,7 +4,6 @@ import http from "http";
 import app from "./app";
 import { GraphQLClient } from "graphql-request";
 import { queue_element } from "./helpers/docker_queue";
-import { llm_cron } from "./helpers/llm_cron";
 // import docker_cron from "./helpers/docker_queue";
 
 const debug = Debug("eesast-api");
@@ -35,8 +34,6 @@ export const docker_queue: queue_element[] = [];
 
 // weekly_cron();
 // weekly_init();
-
-llm_cron();
 
 const port = normalizePort(process.env.PORT || "28888");
 app.set("port", port);
