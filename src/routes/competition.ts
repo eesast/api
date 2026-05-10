@@ -7,6 +7,7 @@ import * as utils from "../helpers/utils";
 import * as COS from "../helpers/cos";
 import * as ContConf from "../configs/contest";
 import * as ContHasFunc from "../hasura/contest";
+import * as LlmHasFunc from "../hasura/llm";
 
 const router = express.Router();
 
@@ -1860,5 +1861,29 @@ router.post("/rl-score/update", authenticate(), async (req, res) => {
     });
   }
 });
+
+router.post(
+  "/sync_RL_llm_usage",
+  authenticate(["root", "counselor"]),
+  async (req, res) => {
+    try {
+      const token_limit =
+        typeof req.body.token_limit === "number" ? req.body.token_limit : 0;
+      const result =
+        await LlmHasFunc.sync_rl_registered_users_to_llm_usage(token_limit);
+
+      return res.status(200).json({
+        message: "200 OK: RL registered users synced to llm_usage",
+        ...result,
+      });
+    } catch (err: any) {
+      console.error(err);
+      return res.status(500).json({
+        error: "500 Internal Server Error",
+        message: err.message,
+      });
+    }
+  },
+);
 
 export default router;
