@@ -22,7 +22,7 @@
     "debug": "4.4.3",
     "dockerode": "5.0.0",
     "dotenv": "17.4.2",
-    "express": "4.22.1",
+    "express": "4.22.2",
     "express-prom-bundle": "8.0.0",
     "express-rate-limit": "8.5.1",
     "graphql": "16.14.0",
