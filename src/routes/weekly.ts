@@ -15,16 +15,26 @@ import {
 import authenticate from "../middlewares/authenticate";
 import { Agent } from "https";
 const router = express.Router();
-const weixinSpider = async (headers: any, params: any, filename: string) => {
+const weixinSpider = async (
+  headers: any,
+  params: any,
+  filename: string,
+  full_scan: boolean = false,
+  start_i: number = 0,
+) => {
   const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
   const fcontrol: boolean = false;
   const base_directory = await utils.get_base_directory();
   try {
-    console.log("Spider Start");
+    console.log(`Spider Start (full_scan: ${full_scan}, start_i: ${start_i})`);
     const new_weekly_list: any[] = [];
-    let i: number = 0;
+    let i: number = start_i;
     // const newest_weekly_date = await get_newest_weekly();
     let newest_weekly_id = (await get_newest_weekly_id()) || 0;
+
+    // 初始化一个计数器来统计连续命中数据库存在的文章数量
+    let consecutiveExistCount = 0;
+
     outerloop: while (!fcontrol) {
       params["begin"] = (i * 5).toString();
       i++;
@@ -71,12 +81,27 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
         //   break outerloop;
         if (item.title.includes("SAST Weekly")) {
           const exist: boolean = await check_weekly_exist(
-            new Date(item.create_time * 1000),
+            new Date(item.create_time * 1000).toISOString().split("T")[0],
           );
 
           if (exist) {
+            if (!full_scan) {
+              consecutiveExistCount++;
+              // 如果连续碰到 3 篇在数据库里已经存在的 Weekly 就可以放心退出了 (说明我们确实已经把残缺的洞补上了，和旧数据接轨了)
+              if (consecutiveExistCount >= 3) {
+                console.log(
+                  "连续遇到3篇已存在的推文，判断增量更新完成，提前结束避免封禁。",
+                );
+                break outerloop;
+              }
+            } else {
+              console.log(`[全量扫描模式] 已存在推文，仅跳过: ${item.title}`);
+            }
             continue;
           }
+
+          // 一旦遇到“不存在”的需要插入的文章，说明前面的洞还没填完或遇到了新文章，把计数器清零
+          consecutiveExistCount = 0;
           const new_item: WeeklyPost = {
             title: item.title,
             url: item.link,
@@ -96,16 +121,29 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
     if (
       !(await utils.checkPathExists(`${base_directory}/weixinSpiderStatus`))
     ) {
-      await fs.mkdir(`${base_directory}/weixinSpiderStatus`);
+      await fs.mkdir(`${base_directory}/weixinSpiderStatus`, {
+        recursive: true,
+      });
     }
     await fs.writeFile(`${base_directory}/weixinSpiderStatus/${filename}`, "");
     console.log("Spider finished");
   } catch (error) {
     console.error("Error fetching articles:", error);
-    await fs.writeFile(
-      `${base_directory}/weixinSpiderStatus/${filename}-failed`,
-      "",
-    );
+    try {
+      if (
+        !(await utils.checkPathExists(`${base_directory}/weixinSpiderStatus`))
+      ) {
+        await fs.mkdir(`${base_directory}/weixinSpiderStatus`, {
+          recursive: true,
+        });
+      }
+      await fs.writeFile(
+        `${base_directory}/weixinSpiderStatus/${filename}-failed`,
+        "",
+      );
+    } catch (fsError) {
+      console.error("Error writing failure status:", fsError);
+    }
   }
 };
 
@@ -153,7 +191,9 @@ router.post("/renew", authenticate(["counselor"]), async (req, res) => {
       type: "9",
     };
     const filename = uuid.uuid();
-    weixinSpider(headers, params, filename);
+    const full_scan = req.body.full_scan === true;
+    const start_i = req.body.start_i || 0;
+    weixinSpider(headers, params, filename, full_scan, start_i);
     return res.status(200).json({ filename: filename });
   } catch (err) {
     return res.status(500).send("500 Internal Server Error: " + err);
@@ -322,15 +362,28 @@ router.post("/insert", authenticate(["counselor"]), async (req, res) => {
     }
     await client.request(
       gql`
-        mutation Insert_Weekly_One($id: Int, $title: String, $url: String) {
-          insert_weekly_one(object: { id: $id, title: $title, url: $url }) {
+        mutation Insert_Weekly_One(
+          $id: Int
+          $title: String
+          $url: String
+          $date: date
+        ) {
+          insert_weekly_one(
+            object: { id: $id, title: $title, url: $url, date: $date }
+          ) {
             id
             title
             url
+            date
           }
         }
       `,
-      { id: req.body.id + 1, title: title, url: req.body.url },
+      {
+        id: req.body.id + 1,
+        title: title,
+        url: req.body.url,
+        date: req.body.date,
+      },
     );
     return res.status(200).send("ok");
   } catch (err) {
