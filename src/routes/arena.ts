@@ -16,7 +16,7 @@ const router = express.Router();
  * @param {uuid} map_id
  * @param {TeamLabelBind[]} team_labels
  * @param {number} exposed (0 or 1, default 1)
- * @param {number} envoy (0 or 1, default 1)
+ * @param {number} envoy (0 or 1, default 0)
  */
 router.post("/create", authenticate(), async (req, res) => {
   try {
@@ -25,7 +25,7 @@ router.post("/create", authenticate(), async (req, res) => {
     const map_id = req.body.map_id;
     const team_label_binds: ContConf.TeamLabelBind[] = req.body.team_labels;
     const exposed = req.body.exposed ?? 1;
-    const envoy = req.body.envoy ?? 1;
+    const envoy = req.body.envoy ?? 0;
     console.debug("user_uuid: ", user_uuid);
     console.debug("contest_name: ", contest_name);
     console.debug("map_id: ", map_id);
