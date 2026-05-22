@@ -5,14 +5,17 @@ import * as LlmHasFunc from "../hasura/llm";
 
 const router = express.Router();
 
-const ensureRlUserLlmUsage = async (contest_id: string, user_uuid: string) => {
+const ensureTHUAI9UserLlmUsage = async (
+  contest_id: string,
+  user_uuid: string,
+) => {
   try {
     const contestName = await ContHasFunc.get_contest_name(contest_id);
-    if (contestName?.trim().toUpperCase().startsWith("RL")) {
+    if (contestName?.trim().toUpperCase().startsWith("THUAI9")) {
       await LlmHasFunc.upsert_llm_usage_by_uuid(user_uuid);
     }
   } catch (err) {
-    console.error("Failed to add RL user to llm_usage:", err);
+    console.error("Failed to add THUAI9 user to llm_usage:", err);
   }
 };
 
@@ -132,7 +135,7 @@ router.post("/add_team", authenticate(["student"]), async (req, res) => {
       invited_code,
       contest_id,
     );
-    await ensureRlUserLlmUsage(contest_id, team_leader_uuid);
+    await ensureTHUAI9UserLlmUsage(contest_id, team_leader_uuid);
     res
       .status(200)
       .json({ team_id: team_id, message: "Team Added Successfully" });
@@ -160,7 +163,7 @@ router.post("/add_team_member", authenticate(), async (req, res) => {
     }
     const contest_id = await ContHasFunc.get_contest_id_from_team_id(team_id);
     if (contest_id) {
-      await ensureRlUserLlmUsage(contest_id, user_uuid);
+      await ensureTHUAI9UserLlmUsage(contest_id, user_uuid);
     }
     return res.status(200).json({
       message: "Team Member Added Successfully",
