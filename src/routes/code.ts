@@ -329,7 +329,7 @@ router.post("/compile-finish", async (req, res) => {
 
         if (compile_status === "Completed") {
           const key = `${cosPath}/${code_id}`;
-          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/capi`;
+          const localFilePath = `${base_directory}/${contest_name}/code/${team_id}/${code_id}/output/${code_id}`;
           const found = await waitForFile(localFilePath);
           if (!found) {
             throw new Error(`File not found: ${localFilePath}`);
