@@ -24,7 +24,7 @@
     "dotenv": "17.4.2",
     "express": "4.22.2",
     "express-prom-bundle": "8.0.0",
-    "express-rate-limit": "8.5.1",
+    "express-rate-limit": "8.5.2",
     "graphql": "16.14.0",
     "graphql-request": "6.1.0",
     "html-to-text": "10.0.0",
