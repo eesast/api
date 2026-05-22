@@ -210,6 +210,7 @@ router.post("/create", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err) => {
+          console.error("Error while creating code source directory", err);
           console.log(`Mkdir ${team_id} failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -232,7 +233,8 @@ router.post("/create", authenticate(), async (req, res) => {
         .then(() => {
           return true;
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("Error while checking code file existence", err);
           return false;
         });
     });
@@ -281,6 +283,7 @@ router.post("/create", authenticate(), async (req, res) => {
               return Promise.resolve(true);
             })
             .catch((err) => {
+              console.error("Error while downloading team code file", err);
               console.log(`Download ${code_file_name} failed: ${err}`);
               return Promise.resolve(false);
             });
@@ -302,6 +305,7 @@ router.post("/create", authenticate(), async (req, res) => {
         return files.length;
       })
       .catch((err) => {
+        console.error("Error while reading map directory", err);
         console.log(`Read ${map_id} files failed: ${err}`);
         return -1;
       });
@@ -325,6 +329,7 @@ router.post("/create", authenticate(), async (req, res) => {
         cos,
         config,
       ).catch((err) => {
+        console.error("Error while downloading map file", err);
         console.log(`Download ${map_id}.txt failed: ${err}`);
         // return res.status(500).send("500 Internal Server Error: Map download failed");
         return;
@@ -340,6 +345,7 @@ router.post("/create", authenticate(), async (req, res) => {
           return files.length;
         })
         .catch((err) => {
+          console.error("Error while reading team code directory", err);
           console.log(`Read ${team_id} files failed: ${err}`);
           return -1;
         });
@@ -392,6 +398,7 @@ router.post("/create", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err) => {
+          console.error("Error while cleaning old code files", err);
           console.log(`Clean ${team_id} files failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -455,6 +462,7 @@ router.post("/create", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err) => {
+          console.error("Error while linking arena runtime code", err);
           console.log(`Copy ${code_file_name} failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -624,6 +632,7 @@ router.post("/finish", async (req, res) => {
                 return Promise.resolve(true);
               })
               .catch((err) => {
+                console.error("Error while uploading arena output file", err);
                 console.log(`Upload ${filename} failed: ${err}`);
                 return Promise.resolve(false);
               });
@@ -654,6 +663,7 @@ router.post("/finish", async (req, res) => {
                   return true;
                 })
                 .catch((err) => {
+                  console.error("Error while uploading arena extra file", err);
                   console.log(`Upload ${extraFileName} failed: ${err}`);
                   return false;
                 });
@@ -667,11 +677,13 @@ router.post("/finish", async (req, res) => {
             console.log("Extra files uploaded!");
           }
         } catch (err) {
+          console.error("Error while uploading arena finish artifacts", err);
           return res
             .status(500)
             .send("500 Internal Server Error: Upload files failed. " + err);
         }
       } catch (err) {
+        console.error("Error while checking arena output directory", err);
         console.log("No output files found!");
       } finally {
         const dir_to_remove = `${base_directory}/${contest_name}/arena/${room_id}`;
@@ -720,6 +732,7 @@ router.get("/playback/:room_id", async (req, res) => {
       utils.deleteAllFilesInDir(`${base_directory}/temp/${room_id}`);
     });
   } catch (err) {
+    console.error("Error while fetching arena playback", err);
     console.log(err);
     return res.status(404).send("404 Not Found: Playback not found");
   }

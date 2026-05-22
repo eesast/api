@@ -173,6 +173,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err) => {
+          console.error("Error while creating code source directory", err);
           console.log(`Mkdir ${team_id} failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -197,7 +198,8 @@ router.post("/start-all", authenticate(), async (req, res) => {
         .then(() => {
           return true;
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("Error while checking code file existence", err);
           return false;
         });
     });
@@ -248,6 +250,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err) => {
+          console.error("Error while downloading team code file", err);
           console.log(`Download ${code_file_name} failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -267,6 +270,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
         return files.length;
       })
       .catch((err) => {
+        console.error("Error while reading map directory", err);
         console.log(`Read ${map_id} files failed: ${err}`);
         return -1;
       });
@@ -288,6 +292,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
         cos,
         config,
       ).catch((err) => {
+        console.error("Error while downloading map file", err);
         console.log(`Download ${map_id}.txt failed: ${err}`);
         // return res.status(500).send("500 Internal Server Error: Map download failed");
         return;
@@ -440,6 +445,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
                 return Promise.resolve(true);
               })
               .catch((err) => {
+                console.error("Error while linking competition runtime code", err);
                 console.log(`Copy ${code_file_name} failed: ${err}`);
                 return Promise.resolve(false);
               });
@@ -467,6 +473,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err: any) => {
+          console.error("Error while starting one competition room", err);
           console.log(`Start competition failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -659,6 +666,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err) => {
+          console.error("Error while creating code source directory", err);
           console.log(`Mkdir ${team_id} failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -681,7 +689,8 @@ router.post("/start-one", authenticate(), async (req, res) => {
         .then(() => {
           return true;
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("Error while checking code file existence", err);
           return false;
         });
     });
@@ -730,6 +739,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
               return Promise.resolve(true);
             })
             .catch((err) => {
+              console.error("Error while downloading team code file", err);
               console.log(`Download ${code_file_name} failed: ${err}`);
               return Promise.resolve(false);
             });
@@ -751,6 +761,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
         return files.length;
       })
       .catch((err) => {
+        console.error("Error while reading map directory", err);
         console.log(`Read ${map_id} files failed: ${err}`);
         return -1;
       });
@@ -774,6 +785,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
         cos,
         config,
       ).catch((err) => {
+        console.error("Error while downloading map file", err);
         console.log(`Download ${map_id}.txt failed: ${err}`);
         // return res.status(500).send("500 Internal Server Error: Map download failed");
         return;
@@ -788,6 +800,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
           return room_id ? Array.from(new Set(room_id)) : [];
         })
         .catch((err: any) => {
+          console.error("Error while querying room ids", err);
           console.log(`Get room id failed: ${err}`);
           return [];
         });
@@ -831,6 +844,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
           );
         })
         .catch((err: any) => {
+          console.error("Error while deleting old competition room", err);
           console.log(`Delete room failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -893,6 +907,7 @@ router.post("/start-one", authenticate(), async (req, res) => {
           return Promise.resolve(true);
         })
         .catch((err) => {
+          console.error("Error while linking competition runtime code", err);
           console.log(`Copy ${code_file_name} failed: ${err}`);
           return Promise.resolve(false);
         });
@@ -1069,6 +1084,7 @@ router.post("/finish-one", async (req, res) => {
                 return Promise.resolve(true);
               })
               .catch((err) => {
+                console.error("Error while uploading competition output file", err);
                 console.log(`Upload ${filename} failed: ${err}`);
                 return Promise.resolve(false);
               });
@@ -1099,6 +1115,7 @@ router.post("/finish-one", async (req, res) => {
                   return true;
                 })
                 .catch((err) => {
+                  console.error("Error while uploading competition extra file", err);
                   console.log(`Upload ${extraFileName} failed: ${err}`);
                   return false;
                 });
@@ -1112,11 +1129,13 @@ router.post("/finish-one", async (req, res) => {
             console.log("Extra files uploaded!");
           }
         } catch (err) {
+          console.error("Error while uploading competition finish artifacts", err);
           return res
             .status(500)
             .send("500 Internal Server Error: Delete files failed. " + err);
         }
       } catch (err) {
+        console.error("Error while checking competition output directory", err);
         console.log("No output files found!");
       } finally {
         const dir_to_remove = `${base_directory}/${contest_name}/competition/${room_id}`;
@@ -1165,6 +1184,7 @@ router.get("/playback/:room_id", async (req, res) => {
       utils.deleteAllFilesInDir(`${base_directory}/temp/${room_id}`);
     });
   } catch (err) {
+    console.error("Error while fetching competition playback", err);
     console.log(err);
     return res.status(404).send("404 Not Found: Playback not found");
   }
@@ -1200,7 +1220,8 @@ router.post("/add_team_software_code", authenticate(), async (req, res) => {
     // Validate URL format
     try {
       new URL(code_url);
-    } catch {
+    } catch (err) {
+      console.error("Error while validating software code URL", err);
       return res
         .status(400)
         .json({ error: "400 Bad Request: Invalid URL format" });
@@ -1265,7 +1286,8 @@ router.post("/update_team_software_code", authenticate(), async (req, res) => {
     // Validate URL format
     try {
       new URL(code_url);
-    } catch {
+    } catch (err) {
+      console.error("Error while validating software code URL", err);
       return res
         .status(400)
         .json({ error: "400 Bad Request: Invalid URL format" });
@@ -1390,7 +1412,8 @@ router.post("/update_team_software_final", authenticate(), async (req, res) => {
     // Validate URL format
     try {
       new URL(code_url);
-    } catch {
+    } catch (err) {
+      console.error("Error while validating software final URL", err);
       return res
         .status(400)
         .json({ error: "400 Bad Request: Invalid URL format" });
@@ -1514,7 +1537,8 @@ router.post("/add_team_software_final", authenticate(), async (req, res) => {
     // Validate URL format
     try {
       new URL(code_url);
-    } catch {
+    } catch (err) {
+      console.error("Error while validating software final URL", err);
       return res
         .status(400)
         .json({ error: "400 Bad Request: Invalid URL format" });
@@ -1614,7 +1638,8 @@ const isValidUrl = (value: string) => {
   try {
     new URL(value);
     return true;
-  } catch {
+  } catch (err) {
+    console.error("Error while validating URL string", err);
     return false;
   }
 };
