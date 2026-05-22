@@ -20,6 +20,7 @@ const waitForFile = async (
       await fs.access(filePath);
       return true;
     } catch (err) {
+      console.error("Error while waiting for file access", err);
       await new Promise((resolve) => setTimeout(resolve, interval));
     }
   }
@@ -66,6 +67,7 @@ router.put("/upload", async (req, res) => {
     }
     return res.status(200).send("200 OK: Upload success");
   } catch (err) {
+    console.error("Error in upload code route", err);
     console.log("error in upload code: ", err);
     return res.status(500).send(`500 Internal Server Error: ${err}`);
   }
@@ -180,6 +182,7 @@ router.post("/compile-start", authenticate(), async (req, res) => {
       );
       await COS.downloadObject(key, outputPath, cos, config);
     } catch (err) {
+      console.error("Error in compile-start code download", err);
       return res
         .status(500)
         .send("500 Internal Server Error: Download code failed. " + err);
@@ -258,11 +261,13 @@ router.post("/compile-start", authenticate(), async (req, res) => {
         return res.status(200).send("200 OK: Create container success");
       }
     } catch (err) {
+      console.error("Error in compile-start container creation", err);
       return res
         .status(500)
         .send("500 Internal Server Error: Create container failed. " + err);
     }
   } catch (err) {
+    console.error("Error in compile-start handler", err);
     return res
       .status(500)
       .send("500 Internal Server Error: Unknown error. " + err);
@@ -341,10 +346,12 @@ router.post("/compile-finish", async (req, res) => {
             await fs.rename(localFilePath, `${destinationDir}/${code_id}`);
             await fs.chmod(`${destinationDir}/${code_id}`, 0o755);
           } catch (err) {
+            console.error("Error while moving compiled file", err);
             console.log("Move file failed: ", err);
           }
         }
       } catch (err) {
+        console.error("Error in uploading files: ", err);
         return res
           .status(500)
           .send("500 Internal Server Error: Upload files failed. " + err);
@@ -353,6 +360,7 @@ router.post("/compile-finish", async (req, res) => {
       try {
         await ContHasFunc.update_compile_status(code_id, compile_status);
       } catch (err) {
+        console.error("Error while updating compile status", err);
         return res
           .status(500)
           .send(
@@ -365,6 +373,7 @@ router.post("/compile-finish", async (req, res) => {
           `${base_directory}/${contest_name}/code/${team_id}/${code_id}`,
         );
       } catch (err) {
+        console.error("Error while deleting compile temp files", err);
         return res
           .status(500)
           .send("500 Internal Server Error: Delete files failed. " + err);
@@ -373,6 +382,7 @@ router.post("/compile-finish", async (req, res) => {
       return res.status(200).send("200 OK: Update compile status success");
     });
   } catch (err) {
+    console.error("Error in compile-finish handler", err);
     return res
       .status(500)
       .send("500 Internal Server Error: Unknown error. " + err);
