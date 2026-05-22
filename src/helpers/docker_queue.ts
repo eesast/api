@@ -192,7 +192,7 @@ const docker_cron = async () => {
         console.log(ContConf.contest_image_map[contest_name]);
 
         const game_time =
-          (await ContHasFunc.get_game_time(queue_front.contest_id)) ?? 10;
+          (await ContHasFunc.get_game_time(queue_front.contest_id)) ?? 600;
         const server_memory_limit =
           (await ContHasFunc.get_server_memory_limit(queue_front.contest_id)) ??
           2;
