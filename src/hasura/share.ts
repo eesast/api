@@ -5,7 +5,7 @@ type WeeklyPost = {
   id: number;
   title: string;
   url: string;
-  date: Date;
+  date: string;
 };
 export { WeeklyPost };
 /**
@@ -724,7 +724,7 @@ export const get_newest_weekly = async (): Promise<Date> => {
   return new Date(date);
 };
 
-export const check_weekly_exist = async (date: Date): Promise<boolean> => {
+export const check_weekly_exist = async (date: string): Promise<boolean> => {
   const check_weekly_exist_query: any = await client.request(
     gql`
       query MyQuery($targetDate: date!) {

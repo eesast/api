@@ -6,7 +6,7 @@ import * as utils from "../helpers/utils";
 import * as fs from "fs/promises";
 import * as uuid from "../helpers/uuid";
 import {
-  get_newest_weekly,
+  // get_newest_weekly,
   get_newest_weekly_id,
   add_weekly_list,
   WeeklyPost,
@@ -15,35 +15,57 @@ import {
 import authenticate from "../middlewares/authenticate";
 import { Agent } from "https";
 const router = express.Router();
-const weixinSpider = async (headers: any, params: any, filename: string) => {
+const weixinSpider = async (
+  headers: any,
+  params: any,
+  filename: string,
+  full_scan: boolean = false,
+  start_i: number = 0,
+) => {
   const url = "https://mp.weixin.qq.com/cgi-bin/appmsg";
-  let fcontrol: boolean = false;
+  const fcontrol: boolean = false;
   const base_directory = await utils.get_base_directory();
   try {
-    console.log("Spider Start");
+    console.log(`Spider Start (full_scan: ${full_scan}, start_i: ${start_i})`);
     const new_weekly_list: any[] = [];
-    let i: number = 0;
-    const newest_weekly_date = await get_newest_weekly();
-    let newest_weekly_id = await get_newest_weekly_id();
+    let i: number = start_i;
+    // const newest_weekly_date = await get_newest_weekly();
+    let newest_weekly_id = (await get_newest_weekly_id()) || 0;
+
+    // 初始化一个计数器来统计连续命中数据库存在的文章数量
+    let consecutiveExistCount = 0;
+
     outerloop: while (!fcontrol) {
       params["begin"] = (i * 5).toString();
       i++;
       await new Promise((resolve) =>
-        setTimeout(resolve, Math.random() * 9000 + 1000),
-      ); // 等待 1 到 10 秒之间的随机时间
+        setTimeout(resolve, Math.random() * 20000 + 15000),
+      ); // 等待 15 到 35 秒之间的随机时间
       const response = await axios.get(url, {
         headers,
         params,
         httpsAgent: new Agent({ rejectUnauthorized: false }),
       });
       const data = response.data;
-      if (data.base_resp.ret === 200013) {
-        console.log(`Frequency control, stop at ${params["begin"]}`);
-        fcontrol = true;
-        break;
+      if (data.base_resp && data.base_resp.ret === 200013) {
+        // console.log(`Frequency control, stop at ${params["begin"]}`);
+        // fcontrol = true;
+        // break;
+        console.error(
+          `触发微信反爬风控策略 (ret: 200013)，于 begin=${params["begin"]} 熔断`,
+        );
+        // 不再是简单的 fcontrol = true，而是直接抛出错误让下面 catch 捕获，写入 failed 标记
+        throw new Error("Frequency control triggered by WeChat (200013)");
       }
-      if (!data.app_msg_list || data.app_msg_list.length === 0) {
-        console.log("All article parsed");
+      if (!data.app_msg_list || !Array.isArray(data.app_msg_list)) {
+        console.error(
+          "响应缺少 app_msg_list，Cookie/Token可能已过期、权限不足或被滑块验证拦截:",
+          data,
+        );
+        throw new Error("Invalid response or Token expired.");
+      }
+      if (data.app_msg_list.length === 0) {
+        console.log("当前页文章列表为空，判断所有文章解析完毕。");
         break;
       }
       console.log(
@@ -53,20 +75,37 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
           new Date(data.app_msg_list[0].create_time * 1000).toLocaleString(),
       );
       for (const item of data.app_msg_list) {
-        if (new Date(item.create_time * 1000) <= newest_weekly_date)
-          break outerloop;
+        // [移除限制] 允许回补老文章，不再因为遇到旧时间点就停止整个爬虫，
+        // 而是全量扫描，完全依靠下面的 check_weekly_exist 判断去重。
+        // if (new Date(item.create_time * 1000) <= newest_weekly_date)
+        //   break outerloop;
         if (item.title.includes("SAST Weekly")) {
           const exist: boolean = await check_weekly_exist(
-            new Date(item.create_time * 1000),
+            new Date(item.create_time * 1000).toISOString().split("T")[0],
           );
 
           if (exist) {
+            if (!full_scan) {
+              consecutiveExistCount++;
+              // 如果连续碰到 3 篇在数据库里已经存在的 Weekly 就可以放心退出了 (说明我们确实已经把残缺的洞补上了，和旧数据接轨了)
+              if (consecutiveExistCount >= 3) {
+                console.log(
+                  "连续遇到3篇已存在的推文，判断增量更新完成，提前结束避免封禁。",
+                );
+                break outerloop;
+              }
+            } else {
+              console.log(`[全量扫描模式] 已存在推文，仅跳过: ${item.title}`);
+            }
             continue;
           }
+
+          // 一旦遇到“不存在”的需要插入的文章，说明前面的洞还没填完或遇到了新文章，把计数器清零
+          consecutiveExistCount = 0;
           const new_item: WeeklyPost = {
             title: item.title,
             url: item.link,
-            date: new Date(item.create_time * 1000),
+            date: new Date(item.create_time * 1000).toISOString().split("T")[0],
             id: newest_weekly_id + 1,
           };
           new_weekly_list.push(new_item);
@@ -82,16 +121,29 @@ const weixinSpider = async (headers: any, params: any, filename: string) => {
     if (
       !(await utils.checkPathExists(`${base_directory}/weixinSpiderStatus`))
     ) {
-      await fs.mkdir(`${base_directory}/weixinSpiderStatus`);
+      await fs.mkdir(`${base_directory}/weixinSpiderStatus`, {
+        recursive: true,
+      });
     }
     await fs.writeFile(`${base_directory}/weixinSpiderStatus/${filename}`, "");
     console.log("Spider finished");
   } catch (error) {
     console.error("Error fetching articles:", error);
-    await fs.writeFile(
-      `${base_directory}/weixinSpiderStatus/${filename}-failed`,
-      "",
-    );
+    try {
+      if (
+        !(await utils.checkPathExists(`${base_directory}/weixinSpiderStatus`))
+      ) {
+        await fs.mkdir(`${base_directory}/weixinSpiderStatus`, {
+          recursive: true,
+        });
+      }
+      await fs.writeFile(
+        `${base_directory}/weixinSpiderStatus/${filename}-failed`,
+        "",
+      );
+    } catch (fsError) {
+      console.error("Error writing failure status:", fsError);
+    }
   }
 };
 
@@ -135,11 +187,13 @@ router.post("/renew", authenticate(["counselor"]), async (req, res) => {
       begin: "1",
       count: "5",
       query: "",
-      fakeid: "MzA5MjA5NjIxNg%3D%3D",
+      fakeid: "MzA5MjA5NjIxNg==",
       type: "9",
     };
     const filename = uuid.uuid();
-    weixinSpider(headers, params, filename);
+    const full_scan = req.body.full_scan === true;
+    const start_i = req.body.start_i || 0;
+    weixinSpider(headers, params, filename, full_scan, start_i);
     return res.status(200).json({ filename: filename });
   } catch (err) {
     return res.status(500).send("500 Internal Server Error: " + err);
@@ -257,16 +311,21 @@ router.get("/cover", async (req, res) => {
 
 const getTitle = async (url: string) => {
   try {
-    const response = await fetch(url, { method: "GET" });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
     if (response.ok) {
       const text: string = await response.text();
-      const match = text.match(/meta property="og:title" content=".*"/);
+      const match = text.match(/meta property="og:title" content="(.*?)"/);
       if (match == null) throw Error("capture failed!");
-      const title = match[0].slice(34, -1);
-      return title;
+      return match[1];
     } else throw Error("fetch failed!");
   } catch (err: any) {
-    return err;
+    throw err;
   }
 };
 
@@ -303,15 +362,28 @@ router.post("/insert", authenticate(["counselor"]), async (req, res) => {
     }
     await client.request(
       gql`
-        mutation Insert_Weekly_One($id: Int, $title: String, $url: String) {
-          insert_weekly_one(object: { id: $id, title: $title, url: $url }) {
+        mutation Insert_Weekly_One(
+          $id: Int
+          $title: String
+          $url: String
+          $date: date
+        ) {
+          insert_weekly_one(
+            object: { id: $id, title: $title, url: $url, date: $date }
+          ) {
             id
             title
             url
+            date
           }
         }
       `,
-      { id: req.body.id + 1, title: title, url: req.body.url },
+      {
+        id: req.body.id + 1,
+        title: title,
+        url: req.body.url,
+        date: req.body.date,
+      },
     );
     return res.status(200).send("ok");
   } catch (err) {
