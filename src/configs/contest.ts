@@ -68,4 +68,13 @@ export const contest_image_map: ContestImages = {
     COMPILER_TIMEOUT: "10m",
     RUNNER_TOKEN_TIMEOUT: "30m",
   },
+  THUAI9: {
+    SERVER_IMAGE: "eesast/thuai9_run_server",
+    CLIENT_IMAGE: "eesast/thuai9_run_client",
+    COMPILER_IMAGE: "eesast/thuai9_cpp",
+    ENVOY_IMAGE:
+      "envoyproxy/envoy:dev-55a95a171c1371b2402e9c8e2092f5b0ca02462d",
+    COMPILER_TIMEOUT: "10m",
+    RUNNER_TOKEN_TIMEOUT: "30m",
+  }
 };

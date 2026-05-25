@@ -122,32 +122,6 @@ export const upsert_llm_usage_by_uuid = async (
   return upsert_llm_usage_by_uuids([uuid], token_limit);
 };
 
-export const sync_rl_registered_users_to_llm_usage = async (
-  token_limit: number = 0,
-) => {
-  const query: any = await client.request(
-    gql`
-      query GetRLRegisteredUserUuids {
-        contest_team_member(
-          where: { contest_team: { contest: { name: { _ilike: "RL%" } } } }
-        ) {
-          user_uuid
-        }
-      }
-    `,
-  );
-
-  const uuids = (query.contest_team_member || []).map(
-    (member: any) => member.user_uuid,
-  );
-  const affectedRows = await upsert_llm_usage_by_uuids(uuids, token_limit);
-
-  return {
-    totalRegisteredUsers: Array.from(new Set(uuids)).length,
-    insertedUsers: affectedRows,
-  };
-};
-
 export const get_user_llm_usage = async (student_no: string) => {
   const query: any = await client.request(
     gql`
