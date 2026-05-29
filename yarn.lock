@@ -2381,10 +2381,10 @@ node-gyp-build@^4.8.4:
   resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.8.4.tgz#8a70ee85464ae52327772a90d66c6077a900cfc8"
   integrity sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==
 
-nodemailer@8.0.7:
-  version "8.0.7"
-  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-8.0.7.tgz#538729a79444e538331bca8a6fc3e5c034eaebc6"
-  integrity sha512-pkjE4mkBzQjdJT4/UmlKl3pX0rC9fZmjh7c6C9o7lv66Ac6w9WCnzPzhbPNxwZAzlF4mdq4CSWB5+FbK6FWCow==
+nodemailer@8.0.10:
+  version "8.0.10"
+  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-8.0.10.tgz#009d4deaa06f54b6bd7ddc6cac1bf78e3bcb0bf2"
+  integrity sha512-BLFuSth7QtHOkBzyqTehWWyub0NTRDuK2Q2SQfnGLsrJnzyU+Yeh4WpV1eZGuARFj1xQJHIdnTuJZLP+b9R1GQ==
 
 nodemon@3.1.14:
   version "3.1.14"
