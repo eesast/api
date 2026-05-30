@@ -14,8 +14,6 @@ import { client } from "..";
 import { sendMessageVerifyCode } from "../helpers/short_message";
 import { mutation_update_user_profile } from "../hasura/user";
 
-
-
 const router = express.Router();
 
 router.get("/anonymous", (req, res) => {
@@ -229,7 +227,9 @@ router.post("/register", async (req, res) => {
     console.log(RI);
     // 所有角色均需填写角色、姓名、密码
     if (!RI.role || !RI.name || !RI.password) {
-      return res.status(422).send("422 Unprocessable Entity");
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing role, name, or password");
     }
     // // 所有角色均需同时验证邮箱和手机
     // 手机短信服务 G 了
@@ -237,22 +237,22 @@ router.post("/register", async (req, res) => {
     //   return res.status(422).send("422 Unprocessable Entity");
     // }
     if (!RI.verificationEmailCode || !RI.verificationEmailToken) {
-      return res.status(422).send("422 Unprocessable Entity");
+      return res
+        .status(422)
+        .send(
+          "422 Unprocessable Entity: Missing email verification code or token",
+        );
     }
     // 角色只能是 student, teacher, guest
     if (!["student", "teacher", "guest"].includes(RI.role)) {
-      return res.status(422).send("422 Unprocessable Entity");
+      return res.status(422).send("422 Unprocessable Entity: Invalid role");
     }
-    // 学生需要填写学号、院系、班级
+    // 学生需要填写学号
     if (RI.role === "student") {
-      if (!RI.studentID || !RI.depart || !RI.class_) {
-        return res.status(422).send("422 Unprocessable Entity");
-      }
-    }
-    // 教师需要填写院系
-    else if (RI.role === "teacher") {
-      if (!RI.depart) {
-        return res.status(422).send("422 Unprocessable Entity");
+      if (!RI.studentID) {
+        return res
+          .status(422)
+          .send("422 Unprocessable Entity: Missing studentID");
       }
     }
     // 检查邮箱验证码并获取邮箱
@@ -261,7 +261,9 @@ router.post("/register", async (req, res) => {
       process.env.SECRET!,
     ) as JwtVerifyPayload;
     if (!emailDecoded.email) {
-      return res.status(422).send("422 Unprocessable Entity");
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Invalid email verification token");
     }
     const validEmail = await bcrypt.compare(
       RI.verificationEmailCode,
@@ -288,14 +290,14 @@ router.post("/register", async (req, res) => {
       if (!validator.__ValidateStudentEmail(emailDecoded.email)) {
         return res
           .status(400)
-          .send("400 Bad Request: Invalid studentID format");
+          .send("400 Bad Request: Invalid student email format");
       }
       if (!validator.__ValidateStudentID(RI.studentID as string)) {
         return res
           .status(400)
           .send("400 Bad Request: Invalid studentID format");
       }
-      if (!validator.__ValidateClass(RI.class_ as string)) {
+      if (RI.class_ && !validator.__ValidateClass(RI.class_ as string)) {
         return res.status(400).send("400 Bad Request: Invalid class format");
       }
     } else if (RI.role == "teacher") {
@@ -678,19 +680,27 @@ router.post("/edit-profile", authenticate(), async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
-  };
+  }
 });
 
-router.post("/update", authenticate(), async(req, res) => {
+router.post("/update", authenticate(), async (req, res) => {
   /**
    * @route POST /user/update
    * @description 更新用户资料（除email/phone/password外的其他字段）
    * @body {className?: string, department?: string, realname?: string, student_no?: string, username?: string}
    * @returns 更改状态
    */
-  const updates = req.body; 
-  if (!updates.className && !updates.department && !updates.realname && !updates.student_no && !updates.username) {
-    return res.status(422).send("422 Unprocessable Entity: Missing fields to update");
+  const updates = req.body;
+  if (
+    !updates.className &&
+    !updates.department &&
+    !updates.realname &&
+    !updates.student_no &&
+    !updates.username
+  ) {
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: Missing fields to update");
   }
   const className = updates.className;
   const department = updates.department;
@@ -698,14 +708,25 @@ router.post("/update", authenticate(), async(req, res) => {
   const student_no = updates.student_no;
   const username = updates.username;
   if (Object.keys(updates).length === 0) {
-    return res.status(422).send("422 Unprocessable Entity: No fields to update");
+    return res
+      .status(422)
+      .send("422 Unprocessable Entity: No fields to update");
   }
   try {
-    const result = mutation_update_user_profile(req.auth.user.uuid, className, department, realname, student_no, username);
+    const result = mutation_update_user_profile(
+      req.auth.user.uuid,
+      className,
+      department,
+      realname,
+      student_no,
+      username,
+    );
     if (result) {
       return res.status(200).send(result);
     } else {
-      return res.status(500).send("500 Internal Server Error: Failed to update user profile");
+      return res
+        .status(500)
+        .send("500 Internal Server Error: Failed to update user profile");
     }
   } catch (err) {
     console.error(err);
@@ -713,8 +734,7 @@ router.post("/update", authenticate(), async(req, res) => {
   }
 });
 
-
-router.post("/delete", authenticate(), async(req, res) => {
+router.post("/delete", authenticate(), async (req, res) => {
   /**
    * @route POST /user/delete
    * @description 删除用户。先验证请求中的验证码与`verificationToken`中的是否一致，再删除`hasura`中的数据列
