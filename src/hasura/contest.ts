@@ -561,6 +561,7 @@ export const get_players_label: any = async (
               team_label: { _eq: $team_label }
             }
           }
+          order_by: { player_label: asc }
         ) {
           player_label
         }
@@ -777,6 +778,27 @@ export const get_map_name: any = async (map_id: string) => {
     },
   );
   return query_map.contest_map[0].filename ?? null;
+};
+
+/**
+ * get map team labels
+ * @param {string} map_id
+ * @returns {string} team_labels JSON string
+ */
+export const get_map_team_labels: any = async (map_id: string) => {
+  const query_map: any = await client.request(
+    gql`
+      query get_map_team_labels($map_id: uuid!) {
+        contest_map(where: { map_id: { _eq: $map_id } }) {
+          team_labels
+        }
+      }
+    `,
+    {
+      map_id: map_id,
+    },
+  );
+  return query_map.contest_map[0]?.team_labels ?? null;
 };
 
 /**

@@ -10,6 +10,171 @@ import * as ContHasFunc from "../hasura/contest";
 
 const router = express.Router();
 
+interface RuntimePlayerDetail {
+  team_id: string;
+  team_label: string;
+  player_label: string;
+  player_index: number;
+  code_id: string;
+  role: string;
+  language: string;
+}
+
+interface AvailableTeamDetail {
+  team_id: string;
+  players: RuntimePlayerDetail[];
+}
+
+interface FourTeamAvailableContext {
+  team_list: string[];
+  players_labels_by_team_label: Map<string, string[]>;
+  available_team_details: AvailableTeamDetail[];
+}
+
+const FOUR_TEAM_COUNT = 4;
+
+const getCodeFileName = (code_id: string, language: string) =>
+  language === "cpp" ? code_id : `${code_id}.py`;
+
+const getRuntimeCodeFileName = (
+  contest_name: string,
+  team_label: string,
+  player_label: string,
+  player_index: number,
+  language: string,
+) => {
+  const runtime_base_name =
+    contest_name === "THUAI9" ? `${team_label}${player_index}` : player_label;
+  return language === "cpp" ? runtime_base_name : `${runtime_base_name}.py`;
+};
+
+const parseFourTeamLabels = (raw_team_labels: string | null) => {
+  if (!raw_team_labels) return null;
+
+  try {
+    const parsed = JSON.parse(raw_team_labels);
+    if (!Array.isArray(parsed)) return null;
+
+    const labels = parsed.map((label) =>
+      typeof label === "string" ? label.trim() : "",
+    );
+    if (
+      labels.length !== FOUR_TEAM_COUNT ||
+      labels.some((label) => !label) ||
+      new Set(labels).size !== FOUR_TEAM_COUNT
+    ) {
+      return null;
+    }
+    return labels;
+  } catch (err) {
+    console.error("Error while parsing four-team map labels", err);
+    return null;
+  }
+};
+
+const getFourTeamCombinations = (team_ids: string[]) => {
+  const combinations: string[][] = [];
+  for (let i = 0; i < team_ids.length; i++) {
+    for (let j = i + 1; j < team_ids.length; j++) {
+      for (let k = j + 1; k < team_ids.length; k++) {
+        for (let l = k + 1; l < team_ids.length; l++) {
+          combinations.push([team_ids[i], team_ids[j], team_ids[k], team_ids[l]]);
+        }
+      }
+    }
+  }
+  return combinations;
+};
+
+const getAvailableFourTeamDetails = async (
+  contest_id: string,
+  map_team_labels: string[],
+): Promise<FourTeamAvailableContext | null> => {
+  const players_labels_entries = await Promise.all(
+    map_team_labels.map(async (team_label) => {
+      const player_labels: string[] = await ContHasFunc.get_players_label(
+        contest_id,
+        team_label,
+      );
+      return [team_label, player_labels.sort()] as [string, string[]];
+    }),
+  );
+  if (
+    players_labels_entries.some(
+      ([, player_labels]) => !player_labels || player_labels.length === 0,
+    )
+  ) {
+    return null;
+  }
+
+  const players_labels_by_team_label = new Map<string, string[]>(
+    players_labels_entries,
+  );
+  const team_list: string[] = await ContHasFunc.get_all_teams(contest_id);
+  const available_team_details = (
+    await Promise.all(
+      team_list.map(async (team_id) => {
+        const player_specs = map_team_labels.flatMap((team_label) => {
+          const player_labels =
+            players_labels_by_team_label.get(team_label) ?? [];
+          return player_labels.map((player_label, player_index) => ({
+            team_id,
+            team_label,
+            player_label,
+            player_index,
+          }));
+        });
+
+        const code_roles: { code_id: string; role: string }[] =
+          await Promise.all(
+            player_specs.map((player) =>
+              ContHasFunc.get_player_code(player.team_id, player.player_label),
+            ),
+          );
+        if (code_roles.some((code_role) => !code_role.code_id)) {
+          return null;
+        }
+
+        const code_details: { compile_status: string; language: string }[] =
+          await Promise.all(
+            code_roles.map((code_role) =>
+              ContHasFunc.get_compile_status(code_role.code_id),
+            ),
+          );
+        if (
+          code_details.some(
+            (code_detail) =>
+              code_detail.compile_status !== "Completed" &&
+              code_detail.compile_status !== "No Need",
+          ) ||
+          code_details.some(
+            (code_detail) =>
+              code_detail.language !== "cpp" && code_detail.language !== "py",
+          )
+        ) {
+          return null;
+        }
+
+        return {
+          team_id,
+          players: player_specs.map((player, index) => ({
+            ...player,
+            code_id: code_roles[index].code_id,
+            role: code_roles[index].role,
+            language: code_details[index].language,
+          })),
+        };
+      }),
+    )
+  ).filter((team): team is AvailableTeamDetail => team !== null);
+
+  return {
+    team_list,
+    players_labels_by_team_label,
+    available_team_details,
+  };
+};
+
 /**
  * @param token
  * @param {string} round_id
@@ -367,9 +532,27 @@ router.post("/start-all", authenticate(), async (req, res) => {
         (player) =>
           player.team_id === team2_id && player.team_label === team2_label,
       );
-      const player_labels_flat = details_list_filtered_1
-        .map((player) => player.player_label)
-        .concat(details_list_filtered_2.map((player) => player.player_label));
+      const runtime_file_names_flat = details_list_filtered_1
+        .map((player, index) =>
+          getRuntimeCodeFileName(
+            contest_name,
+            team1_label,
+            player.player_label,
+            index,
+            player.language,
+          ),
+        )
+        .concat(
+          details_list_filtered_2.map((player, index) =>
+            getRuntimeCodeFileName(
+              contest_name,
+              team2_label,
+              player.player_label,
+              index,
+              player.language,
+            ),
+          ),
+        );
       const team1_codes = details_list_filtered_1.map(
         (player) => player.code_id,
       );
@@ -423,10 +606,7 @@ router.post("/start-all", authenticate(), async (req, res) => {
             const language = code_languages_flat[index];
             const code_file_name =
               language === "cpp" ? `${player_code}` : `${player_code}.py`;
-            const competition_file_name =
-              language === "cpp"
-                ? `${player_labels_flat[index]}`
-                : `${player_labels_flat[index]}.py`;
+            const competition_file_name = runtime_file_names_flat[index];
             return fs
               .mkdir(
                 `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}`,
@@ -499,11 +679,353 @@ router.post("/start-all", authenticate(), async (req, res) => {
 /**
  * @param token
  * @param {string} round_id
+ * @param {number} exposed (0 or 1, default 0)
+ * @param {number} envoy (0 or 1, default 0)
+ */
+router.post("/start-four-team", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const round_id = req.body.round_id;
+    const exposed = req.body.exposed ?? 0;
+    const envoy = req.body.envoy ?? 0;
+    console.debug("user_uuid: ", user_uuid);
+    console.debug("round_id: ", round_id);
+    if (!user_uuid || !round_id) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing credentials");
+    }
+
+    const { contest_id, map_id } = await ContHasFunc.get_round_info(round_id);
+    const contest_name = await ContHasFunc.get_contest_name(contest_id);
+    console.debug("contest_id: ", contest_id);
+    console.debug("map_id: ", map_id);
+    console.debug("contest_name: ", contest_name);
+    if (!contest_id || !map_id || !contest_name) {
+      return res.status(400).send("400 Bad Request: Contest not found");
+    }
+    if (contest_name !== "THUAI9") {
+      return res
+        .status(400)
+        .send("400 Bad Request: Four-team competition only supports THUAI9");
+    }
+
+    const is_manager = await ContHasFunc.get_maneger_from_user(
+      user_uuid,
+      contest_id,
+    );
+    console.debug("is_manager: ", is_manager);
+    if (!is_manager) {
+      return res.status(403).send("403 Forbidden: Not a manager");
+    }
+
+    const raw_map_team_labels = await ContHasFunc.get_map_team_labels(map_id);
+    const map_team_labels = parseFourTeamLabels(raw_map_team_labels);
+    console.debug("map_team_labels: ", map_team_labels);
+    if (!map_team_labels) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Invalid four-team map labels");
+    }
+
+    const four_team_available_context = await getAvailableFourTeamDetails(
+      contest_id,
+      map_team_labels,
+    );
+    if (!four_team_available_context) {
+      return res.status(400).send("400 Bad Request: Players_label not found");
+    }
+    const { players_labels_by_team_label, available_team_details } =
+      four_team_available_context;
+    console.debug(
+      "players_labels_by_team_label: ",
+      players_labels_by_team_label,
+    );
+
+    const available_team_ids = available_team_details.map(
+      (team) => team.team_id,
+    );
+    console.debug("available_team_ids: ", available_team_ids);
+    console.debug("available_team_details: ", available_team_details);
+    if (available_team_ids.length < FOUR_TEAM_COUNT) {
+      return res
+        .status(403)
+        .send("403 Forbidden: Not enough available teams for four-team match");
+    }
+
+    const team_combinations = getFourTeamCombinations(available_team_ids);
+    console.debug("team_combinations: ", team_combinations);
+
+    console.log("Dependencies checked!");
+    res.status(200).send("200 OK: Dependencies checked!");
+
+    const base_directory = await utils.get_base_directory();
+    const all_available_players = available_team_details.flatMap(
+      (team) => team.players,
+    );
+
+    const mkdir_promises = available_team_ids.map((team_id) => {
+      return fs
+        .mkdir(`${base_directory}/${contest_name}/code/${team_id}/source`, {
+          recursive: true,
+        })
+        .then(() => Promise.resolve(true))
+        .catch((err) => {
+          console.error("Error while creating code source directory", err);
+          console.log(`Mkdir ${team_id} failed: ${err}`);
+          return Promise.resolve(false);
+        });
+    });
+    const mkdir_result = await Promise.all(mkdir_promises);
+    console.debug("mkdir_result: ", mkdir_result);
+    if (mkdir_result.some((result) => !result)) {
+      return;
+    }
+
+    const files_exist_promises = all_available_players.map((player) => {
+      const code_file_name = getCodeFileName(player.code_id, player.language);
+      return fs
+        .access(
+          `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
+        )
+        .then(() => true)
+        .catch((err) => {
+          console.error("Error while checking code file existence", err);
+          return false;
+        });
+    });
+    const files_exist = await Promise.all(files_exist_promises);
+    console.debug("files_exist: ", files_exist);
+
+    const player_codes_unique = Array.from(
+      new Set(all_available_players.map((player) => player.code_id)),
+    );
+    const index_map = player_codes_unique.map((player_code) =>
+      all_available_players.findIndex((player) => player.code_id === player_code),
+    );
+    console.debug("player_codes_unique: ", player_codes_unique);
+    console.debug("index_map: ", index_map);
+
+    if (files_exist.some((file_exist) => !file_exist)) {
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
+      const download_promises = player_codes_unique.map((player_code, index) => {
+        const player = all_available_players[index_map[index]];
+        if (files_exist[index_map[index]]) {
+          return Promise.resolve(true);
+        }
+        const code_file_name = getCodeFileName(player_code, player.language);
+        console.debug("code_file_name: ", code_file_name);
+        return fs
+          .mkdir(
+            `${base_directory}/${contest_name}/code/${player.team_id}/source`,
+            { recursive: true },
+          )
+          .then(() => {
+            return COS.downloadObject(
+              `${contest_name}/code/${player.team_id}/${code_file_name}`,
+              `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
+              cos,
+              config,
+            );
+          })
+          .then(() => {
+            return fs.chmod(
+              `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
+              0o755,
+            );
+          })
+          .then(() => Promise.resolve(true))
+          .catch((err) => {
+            console.error("Error while downloading team code file", err);
+            console.log(`Download ${code_file_name} failed: ${err}`);
+            return Promise.resolve(false);
+          });
+      });
+      const download_results = await Promise.all(download_promises);
+      console.debug("download_results: ", download_results);
+      if (download_results.some((result) => !result)) {
+        return;
+      }
+    }
+
+    console.log("Code downloaded!");
+
+    const map_files_count = await fs
+      .readdir(`${base_directory}/${contest_name}/map/${map_id}`)
+      .then((files) => files.length)
+      .catch((err) => {
+        console.error("Error while reading map directory", err);
+        console.log(`Read ${map_id} files failed: ${err}`);
+        return -1;
+      });
+    console.debug("map_files_count: ", map_files_count);
+
+    if (map_files_count > 1) {
+      await utils.deleteAllFilesInDir(
+        `${base_directory}/${contest_name}/map/${map_id}`,
+      );
+    }
+    if (map_files_count !== 1) {
+      const map_filename = await ContHasFunc.get_map_name(map_id);
+      await fs.mkdir(`${base_directory}/${contest_name}/map/${map_id}`, {
+        recursive: true,
+      });
+      const cos = await COS.initCOS();
+      const config = await COS.getConfig();
+      await COS.downloadObject(
+        `${contest_name}/map/${map_filename}`,
+        `${base_directory}/${contest_name}/map/${map_id}/${map_id}.txt`,
+        cos,
+        config,
+      ).catch((err) => {
+        console.error("Error while downloading map file", err);
+        console.log(`Download ${map_id}.txt failed: ${err}`);
+        return;
+      });
+    }
+
+    console.log("Map downloaded!");
+
+    const players_by_team_id = new Map(
+      available_team_details.map((team) => [team.team_id, team.players]),
+    );
+    const start_four_team_promises = team_combinations.map(
+      async (team_ids) => {
+        try {
+          const room_player_groups = team_ids.map((team_id, index) => {
+            const team_label = map_team_labels[index];
+            return (players_by_team_id.get(team_id) ?? []).filter(
+              (player) => player.team_label === team_label,
+            );
+          });
+          if (
+            room_player_groups.some((player_group) => player_group.length === 0)
+          ) {
+            return false;
+          }
+
+          const player_roles = room_player_groups.map((player_group) =>
+            player_group.map((player) => player.role),
+          );
+          const player_codes = room_player_groups.map((player_group) =>
+            player_group.map((player) => player.code_id),
+          );
+
+          const room_id = await ContHasFunc.insert_room_competition(
+            contest_id,
+            "Waiting",
+            map_id,
+            round_id,
+          );
+          if (!room_id) {
+            return false;
+          }
+          console.debug("room_id: ", room_id);
+
+          const affected_rows = await ContHasFunc.insert_room_teams(
+            room_id,
+            team_ids,
+            map_team_labels,
+            player_roles,
+            player_codes,
+          );
+          if (affected_rows !== FOUR_TEAM_COUNT) {
+            return false;
+          }
+
+          await fs.mkdir(
+            `${base_directory}/${contest_name}/competition/${room_id}/source`,
+            { recursive: true },
+          );
+
+          const room_players = room_player_groups.flat();
+          const copy_promises = room_players.map((player) => {
+            const code_file_name = getCodeFileName(
+              player.code_id,
+              player.language,
+            );
+            const competition_file_name = getRuntimeCodeFileName(
+              contest_name,
+              player.team_label,
+              player.player_label,
+              player.player_index,
+              player.language,
+            );
+            return fs
+              .mkdir(
+                `${base_directory}/${contest_name}/competition/${room_id}/source/${player.team_id}`,
+                { recursive: true },
+              )
+              .then(() => {
+                return fs.symlink(
+                  `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
+                  `${base_directory}/${contest_name}/competition/${room_id}/source/${player.team_id}/${competition_file_name}`,
+                );
+              })
+              .then(() => Promise.resolve(true))
+              .catch((err) => {
+                console.error(
+                  "Error while linking four-team competition runtime code",
+                  err,
+                );
+                console.log(`Copy ${code_file_name} failed: ${err}`);
+                return Promise.resolve(false);
+              });
+          });
+          const copy_result = await Promise.all(copy_promises);
+          console.debug("copy_result: ", copy_result);
+          if (copy_result.some((result) => !result)) {
+            return false;
+          }
+
+          docker_queue.push({
+            contest_id: contest_id,
+            round_id: round_id,
+            room_id: room_id,
+            map_id: map_id,
+            team_label_binds: team_ids.map((team_id, index) => ({
+              team_id,
+              label: map_team_labels[index],
+            })),
+            competition: 1,
+            exposed: exposed,
+            envoy: envoy,
+          });
+          return true;
+        } catch (err) {
+          console.error("Error while starting four-team competition room", err);
+          console.log(`Start four-team competition failed: ${err}`);
+          return false;
+        }
+      },
+    );
+
+    const start_results = await Promise.all(start_four_team_promises);
+    console.debug("start_results: ", start_results);
+    if (start_results.some((result) => !result)) {
+      return;
+    }
+
+    console.log("Four-team competitions started!");
+    return;
+  } catch (err) {
+    console.error(err);
+    return;
+  }
+});
+
+/**
+ * @param token
+ * @param {string} round_id
  * @param {utils.TeamLabelBind[]} team_labels
  * @param {number} exposed (0 or 1, default 0)
  * @param {number} envoy (0 or 1, default 0)
  */
-router.post("/start-one", authenticate(), async (req, res) => {
+const startOneCompetition = async (
+  req: express.Request,
+  res: express.Response,
+) => {
   try {
     const user_uuid = req.auth.user.uuid;
     const team_label_binds: ContConf.TeamLabelBind[] = req.body.team_labels;
@@ -514,7 +1036,12 @@ router.post("/start-one", authenticate(), async (req, res) => {
     console.debug("round_id: ", round_id);
     console.debug("team_labels: ", team_label_binds);
 
-    if (!user_uuid || !round_id || team_label_binds.length < 2) {
+    if (
+      !user_uuid ||
+      !round_id ||
+      !team_label_binds ||
+      team_label_binds.length < 2
+    ) {
       return res
         .status(422)
         .send("422 Unprocessable Entity: Missing credentials");
@@ -582,6 +1109,12 @@ router.post("/start-one", authenticate(), async (req, res) => {
     const player_labels_flat = players_labels.flat();
     const team_ids_flat = team_ids.flatMap((team_id, index) =>
       Array(players_labels[index].length).fill(team_id),
+    );
+    const team_labels_flat = team_labels.flatMap((team_label, index) =>
+      Array(players_labels[index].length).fill(team_label),
+    );
+    const player_indexes_flat = players_labels.flatMap((player_labels) =>
+      player_labels.map((_, index) => index),
     );
     console.debug("player_labels_flat: ", player_labels_flat);
     console.debug("team_ids_flat: ", team_ids_flat);
@@ -885,10 +1418,13 @@ router.post("/start-one", authenticate(), async (req, res) => {
       const language = code_languages_flat[index];
       const code_file_name =
         language === "cpp" ? `${player_code}` : `${player_code}.py`;
-      const competition_file_name =
-        language === "cpp"
-          ? `${player_labels_flat[index]}`
-          : `${player_labels_flat[index]}.py`;
+      const competition_file_name = getRuntimeCodeFileName(
+        contest_name,
+        team_labels_flat[index],
+        player_labels_flat[index],
+        player_indexes_flat[index],
+        language,
+      );
       return fs
         .mkdir(
           `${base_directory}/${contest_name}/competition/${room_id}/source/${team_ids_flat[index]}`,
@@ -939,7 +1475,123 @@ router.post("/start-one", authenticate(), async (req, res) => {
     // return res.status(500).send("500 Internal Server Error: Unknown error" + e);
     return;
   }
+};
+
+/**
+ * @param token
+ * @param {string} round_id
+ * @param {string[]} team_ids optional, exactly 4 team ids. If omitted, use the first available 4 teams.
+ * @param {number} exposed (0 or 1, default 0)
+ * @param {number} envoy (0 or 1, default 0)
+ */
+router.post("/start-four-team-one", authenticate(), async (req, res) => {
+  try {
+    const user_uuid = req.auth.user.uuid;
+    const round_id = req.body.round_id;
+    const exposed = req.body.exposed ?? 0;
+    const envoy = req.body.envoy ?? 0;
+    const requested_team_ids = req.body.team_ids;
+    console.debug("user_uuid: ", user_uuid);
+    console.debug("round_id: ", round_id);
+    console.debug("requested_team_ids: ", requested_team_ids);
+    if (!user_uuid || !round_id) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Missing credentials");
+    }
+
+    const { contest_id, map_id } = await ContHasFunc.get_round_info(round_id);
+    const contest_name = await ContHasFunc.get_contest_name(contest_id);
+    console.debug("contest_id: ", contest_id);
+    console.debug("map_id: ", map_id);
+    console.debug("contest_name: ", contest_name);
+    if (!contest_id || !map_id || !contest_name) {
+      return res.status(400).send("400 Bad Request: Contest not found");
+    }
+    if (contest_name !== "THUAI9") {
+      return res
+        .status(400)
+        .send("400 Bad Request: Four-team competition only supports THUAI9");
+    }
+
+    const is_manager = await ContHasFunc.get_maneger_from_user(
+      user_uuid,
+      contest_id,
+    );
+    console.debug("is_manager: ", is_manager);
+    if (!is_manager) {
+      return res.status(403).send("403 Forbidden: Not a manager");
+    }
+
+    const raw_map_team_labels = await ContHasFunc.get_map_team_labels(map_id);
+    const map_team_labels = parseFourTeamLabels(raw_map_team_labels);
+    console.debug("map_team_labels: ", map_team_labels);
+    if (!map_team_labels) {
+      return res
+        .status(422)
+        .send("422 Unprocessable Entity: Invalid four-team map labels");
+    }
+
+    const four_team_available_context = await getAvailableFourTeamDetails(
+      contest_id,
+      map_team_labels,
+    );
+    if (!four_team_available_context) {
+      return res.status(400).send("400 Bad Request: Players_label not found");
+    }
+
+    const available_team_ids =
+      four_team_available_context.available_team_details.map(
+        (team) => team.team_id,
+      );
+    console.debug("available_team_ids: ", available_team_ids);
+    if (available_team_ids.length < FOUR_TEAM_COUNT) {
+      return res
+        .status(403)
+        .send("403 Forbidden: Not enough available teams for four-team match");
+    }
+
+    let team_ids: string[];
+    if (requested_team_ids !== undefined) {
+      if (
+        !Array.isArray(requested_team_ids) ||
+        requested_team_ids.length !== FOUR_TEAM_COUNT ||
+        requested_team_ids.some(
+          (team_id) => typeof team_id !== "string" || !team_id,
+        ) ||
+        new Set(requested_team_ids).size !== FOUR_TEAM_COUNT
+      ) {
+        return res
+          .status(422)
+          .send("422 Unprocessable Entity: Invalid four-team team_ids");
+      }
+      team_ids = requested_team_ids;
+      if (team_ids.some((team_id) => !available_team_ids.includes(team_id))) {
+        return res
+          .status(403)
+          .send("403 Forbidden: Team not available for four-team match");
+      }
+    } else {
+      team_ids = available_team_ids.slice(0, FOUR_TEAM_COUNT);
+    }
+
+    req.body.round_id = round_id;
+    req.body.exposed = exposed;
+    req.body.envoy = envoy;
+    req.body.team_labels = team_ids.map((team_id, index) => ({
+      team_id,
+      label: map_team_labels[index],
+    }));
+    console.debug("four_team_one_team_labels: ", req.body.team_labels);
+
+    return startOneCompetition(req, res);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send("500 Internal Server Error: " + err);
+  }
 });
+
+router.post("/start-one", authenticate(), startOneCompetition);
 
 /**
  * @param token
