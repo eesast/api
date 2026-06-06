@@ -58,11 +58,7 @@ const parseFourTeamLabels = (raw_team_labels: string | null) => {
     const labels = parsed.map((label) =>
       typeof label === "string" ? label.trim() : "",
     );
-    if (
-      labels.length !== FOUR_TEAM_COUNT ||
-      labels.some((label) => !label) ||
-      new Set(labels).size !== FOUR_TEAM_COUNT
-    ) {
+    if (labels.length !== FOUR_TEAM_COUNT || labels.some((label) => !label)) {
       return null;
     }
     return labels;
@@ -78,7 +74,12 @@ const getFourTeamCombinations = (team_ids: string[]) => {
     for (let j = i + 1; j < team_ids.length; j++) {
       for (let k = j + 1; k < team_ids.length; k++) {
         for (let l = k + 1; l < team_ids.length; l++) {
-          combinations.push([team_ids[i], team_ids[j], team_ids[k], team_ids[l]]);
+          combinations.push([
+            team_ids[i],
+            team_ids[j],
+            team_ids[k],
+            team_ids[l],
+          ]);
         }
       }
     }
@@ -90,8 +91,9 @@ const getAvailableFourTeamDetails = async (
   contest_id: string,
   map_team_labels: string[],
 ): Promise<FourTeamAvailableContext | null> => {
+  const unique_map_team_labels = Array.from(new Set(map_team_labels));
   const players_labels_entries = await Promise.all(
-    map_team_labels.map(async (team_label) => {
+    unique_map_team_labels.map(async (team_label) => {
       const player_labels: string[] = await ContHasFunc.get_players_label(
         contest_id,
         team_label,
@@ -114,7 +116,7 @@ const getAvailableFourTeamDetails = async (
   const available_team_details = (
     await Promise.all(
       team_list.map(async (team_id) => {
-        const player_specs = map_team_labels.flatMap((team_label) => {
+        const player_specs = unique_map_team_labels.flatMap((team_label) => {
           const player_labels =
             players_labels_by_team_label.get(team_label) ?? [];
           return player_labels.map((player_label, player_index) => ({
@@ -624,7 +626,10 @@ router.post("/start-all", authenticate(), async (req, res) => {
                 return Promise.resolve(true);
               })
               .catch((err) => {
-                console.error("Error while linking competition runtime code", err);
+                console.error(
+                  "Error while linking competition runtime code",
+                  err,
+                );
                 console.log(`Copy ${code_file_name} failed: ${err}`);
                 return Promise.resolve(false);
               });
@@ -801,7 +806,9 @@ router.post("/start-four-team", authenticate(), async (req, res) => {
       new Set(all_available_players.map((player) => player.code_id)),
     );
     const index_map = player_codes_unique.map((player_code) =>
-      all_available_players.findIndex((player) => player.code_id === player_code),
+      all_available_players.findIndex(
+        (player) => player.code_id === player_code,
+      ),
     );
     console.debug("player_codes_unique: ", player_codes_unique);
     console.debug("index_map: ", index_map);
@@ -809,39 +816,41 @@ router.post("/start-four-team", authenticate(), async (req, res) => {
     if (files_exist.some((file_exist) => !file_exist)) {
       const cos = await COS.initCOS();
       const config = await COS.getConfig();
-      const download_promises = player_codes_unique.map((player_code, index) => {
-        const player = all_available_players[index_map[index]];
-        if (files_exist[index_map[index]]) {
-          return Promise.resolve(true);
-        }
-        const code_file_name = getCodeFileName(player_code, player.language);
-        console.debug("code_file_name: ", code_file_name);
-        return fs
-          .mkdir(
-            `${base_directory}/${contest_name}/code/${player.team_id}/source`,
-            { recursive: true },
-          )
-          .then(() => {
-            return COS.downloadObject(
-              `${contest_name}/code/${player.team_id}/${code_file_name}`,
-              `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
-              cos,
-              config,
-            );
-          })
-          .then(() => {
-            return fs.chmod(
-              `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
-              0o755,
-            );
-          })
-          .then(() => Promise.resolve(true))
-          .catch((err) => {
-            console.error("Error while downloading team code file", err);
-            console.log(`Download ${code_file_name} failed: ${err}`);
-            return Promise.resolve(false);
-          });
-      });
+      const download_promises = player_codes_unique.map(
+        (player_code, index) => {
+          const player = all_available_players[index_map[index]];
+          if (files_exist[index_map[index]]) {
+            return Promise.resolve(true);
+          }
+          const code_file_name = getCodeFileName(player_code, player.language);
+          console.debug("code_file_name: ", code_file_name);
+          return fs
+            .mkdir(
+              `${base_directory}/${contest_name}/code/${player.team_id}/source`,
+              { recursive: true },
+            )
+            .then(() => {
+              return COS.downloadObject(
+                `${contest_name}/code/${player.team_id}/${code_file_name}`,
+                `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
+                cos,
+                config,
+              );
+            })
+            .then(() => {
+              return fs.chmod(
+                `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
+                0o755,
+              );
+            })
+            .then(() => Promise.resolve(true))
+            .catch((err) => {
+              console.error("Error while downloading team code file", err);
+              console.log(`Download ${code_file_name} failed: ${err}`);
+              return Promise.resolve(false);
+            });
+        },
+      );
       const download_results = await Promise.all(download_promises);
       console.debug("download_results: ", download_results);
       if (download_results.some((result) => !result)) {
@@ -890,116 +899,114 @@ router.post("/start-four-team", authenticate(), async (req, res) => {
     const players_by_team_id = new Map(
       available_team_details.map((team) => [team.team_id, team.players]),
     );
-    const start_four_team_promises = team_combinations.map(
-      async (team_ids) => {
-        try {
-          const room_player_groups = team_ids.map((team_id, index) => {
-            const team_label = map_team_labels[index];
-            return (players_by_team_id.get(team_id) ?? []).filter(
-              (player) => player.team_label === team_label,
-            );
-          });
-          if (
-            room_player_groups.some((player_group) => player_group.length === 0)
-          ) {
-            return false;
-          }
-
-          const player_roles = room_player_groups.map((player_group) =>
-            player_group.map((player) => player.role),
+    const start_four_team_promises = team_combinations.map(async (team_ids) => {
+      try {
+        const room_player_groups = team_ids.map((team_id, index) => {
+          const team_label = map_team_labels[index];
+          return (players_by_team_id.get(team_id) ?? []).filter(
+            (player) => player.team_label === team_label,
           );
-          const player_codes = room_player_groups.map((player_group) =>
-            player_group.map((player) => player.code_id),
-          );
-
-          const room_id = await ContHasFunc.insert_room_competition(
-            contest_id,
-            "Waiting",
-            map_id,
-            round_id,
-          );
-          if (!room_id) {
-            return false;
-          }
-          console.debug("room_id: ", room_id);
-
-          const affected_rows = await ContHasFunc.insert_room_teams(
-            room_id,
-            team_ids,
-            map_team_labels,
-            player_roles,
-            player_codes,
-          );
-          if (affected_rows !== FOUR_TEAM_COUNT) {
-            return false;
-          }
-
-          await fs.mkdir(
-            `${base_directory}/${contest_name}/competition/${room_id}/source`,
-            { recursive: true },
-          );
-
-          const room_players = room_player_groups.flat();
-          const copy_promises = room_players.map((player) => {
-            const code_file_name = getCodeFileName(
-              player.code_id,
-              player.language,
-            );
-            const competition_file_name = getRuntimeCodeFileName(
-              contest_name,
-              player.team_label,
-              player.player_label,
-              player.player_index,
-              player.language,
-            );
-            return fs
-              .mkdir(
-                `${base_directory}/${contest_name}/competition/${room_id}/source/${player.team_id}`,
-                { recursive: true },
-              )
-              .then(() => {
-                return fs.symlink(
-                  `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
-                  `${base_directory}/${contest_name}/competition/${room_id}/source/${player.team_id}/${competition_file_name}`,
-                );
-              })
-              .then(() => Promise.resolve(true))
-              .catch((err) => {
-                console.error(
-                  "Error while linking four-team competition runtime code",
-                  err,
-                );
-                console.log(`Copy ${code_file_name} failed: ${err}`);
-                return Promise.resolve(false);
-              });
-          });
-          const copy_result = await Promise.all(copy_promises);
-          console.debug("copy_result: ", copy_result);
-          if (copy_result.some((result) => !result)) {
-            return false;
-          }
-
-          docker_queue.push({
-            contest_id: contest_id,
-            round_id: round_id,
-            room_id: room_id,
-            map_id: map_id,
-            team_label_binds: team_ids.map((team_id, index) => ({
-              team_id,
-              label: map_team_labels[index],
-            })),
-            competition: 1,
-            exposed: exposed,
-            envoy: envoy,
-          });
-          return true;
-        } catch (err) {
-          console.error("Error while starting four-team competition room", err);
-          console.log(`Start four-team competition failed: ${err}`);
+        });
+        if (
+          room_player_groups.some((player_group) => player_group.length === 0)
+        ) {
           return false;
         }
-      },
-    );
+
+        const player_roles = room_player_groups.map((player_group) =>
+          player_group.map((player) => player.role),
+        );
+        const player_codes = room_player_groups.map((player_group) =>
+          player_group.map((player) => player.code_id),
+        );
+
+        const room_id = await ContHasFunc.insert_room_competition(
+          contest_id,
+          "Waiting",
+          map_id,
+          round_id,
+        );
+        if (!room_id) {
+          return false;
+        }
+        console.debug("room_id: ", room_id);
+
+        const affected_rows = await ContHasFunc.insert_room_teams(
+          room_id,
+          team_ids,
+          map_team_labels,
+          player_roles,
+          player_codes,
+        );
+        if (affected_rows !== FOUR_TEAM_COUNT) {
+          return false;
+        }
+
+        await fs.mkdir(
+          `${base_directory}/${contest_name}/competition/${room_id}/source`,
+          { recursive: true },
+        );
+
+        const room_players = room_player_groups.flat();
+        const copy_promises = room_players.map((player) => {
+          const code_file_name = getCodeFileName(
+            player.code_id,
+            player.language,
+          );
+          const competition_file_name = getRuntimeCodeFileName(
+            contest_name,
+            player.team_label,
+            player.player_label,
+            player.player_index,
+            player.language,
+          );
+          return fs
+            .mkdir(
+              `${base_directory}/${contest_name}/competition/${room_id}/source/${player.team_id}`,
+              { recursive: true },
+            )
+            .then(() => {
+              return fs.symlink(
+                `${base_directory}/${contest_name}/code/${player.team_id}/source/${code_file_name}`,
+                `${base_directory}/${contest_name}/competition/${room_id}/source/${player.team_id}/${competition_file_name}`,
+              );
+            })
+            .then(() => Promise.resolve(true))
+            .catch((err) => {
+              console.error(
+                "Error while linking four-team competition runtime code",
+                err,
+              );
+              console.log(`Copy ${code_file_name} failed: ${err}`);
+              return Promise.resolve(false);
+            });
+        });
+        const copy_result = await Promise.all(copy_promises);
+        console.debug("copy_result: ", copy_result);
+        if (copy_result.some((result) => !result)) {
+          return false;
+        }
+
+        docker_queue.push({
+          contest_id: contest_id,
+          round_id: round_id,
+          room_id: room_id,
+          map_id: map_id,
+          team_label_binds: team_ids.map((team_id, index) => ({
+            team_id,
+            label: map_team_labels[index],
+          })),
+          competition: 1,
+          exposed: exposed,
+          envoy: envoy,
+        });
+        return true;
+      } catch (err) {
+        console.error("Error while starting four-team competition room", err);
+        console.log(`Start four-team competition failed: ${err}`);
+        return false;
+      }
+    });
 
     const start_results = await Promise.all(start_four_team_promises);
     console.debug("start_results: ", start_results);
@@ -1735,7 +1742,10 @@ router.post("/finish-one", async (req, res) => {
                 return Promise.resolve(true);
               })
               .catch((err) => {
-                console.error("Error while uploading competition output file", err);
+                console.error(
+                  "Error while uploading competition output file",
+                  err,
+                );
                 console.log(`Upload ${filename} failed: ${err}`);
                 return Promise.resolve(false);
               });
@@ -1766,7 +1776,10 @@ router.post("/finish-one", async (req, res) => {
                   return true;
                 })
                 .catch((err) => {
-                  console.error("Error while uploading competition extra file", err);
+                  console.error(
+                    "Error while uploading competition extra file",
+                    err,
+                  );
                   console.log(`Upload ${extraFileName} failed: ${err}`);
                   return false;
                 });
@@ -1780,7 +1793,10 @@ router.post("/finish-one", async (req, res) => {
             console.log("Extra files uploaded!");
           }
         } catch (err) {
-          console.error("Error while uploading competition finish artifacts", err);
+          console.error(
+            "Error while uploading competition finish artifacts",
+            err,
+          );
           return res
             .status(500)
             .send("500 Internal Server Error: Delete files failed. " + err);
