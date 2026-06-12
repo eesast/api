@@ -25,7 +25,7 @@
     "express": "4.22.2",
     "express-prom-bundle": "8.0.0",
     "express-rate-limit": "8.5.2",
-    "graphql": "16.14.1",
+    "graphql": "16.14.2",
     "graphql-request": "6.1.0",
     "html-to-text": "10.0.0",
     "isemail": "3.2.0",
