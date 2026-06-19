@@ -2455,10 +2455,10 @@ onetime@^7.0.0:
   dependencies:
     mimic-function "^5.0.0"
 
-openai@6.39.1:
-  version "6.39.1"
-  resolved "https://registry.yarnpkg.com/openai/-/openai-6.39.1.tgz#ca825d519952759c192b02ee3d716f1eb07b31ca"
-  integrity sha512-z3dO9fEWOXBzlXynVb/xZ/tujzUjFWQWn3C0n0mw6Vo0zJTbEkaN4b2cLWjhJ6haJQx8LlREoafHRl+Gu/Hl+A==
+openai@6.44.0:
+  version "6.44.0"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-6.44.0.tgz#2755827d2550b9f4fce19af5ac15115607e5ec36"
+  integrity sha512-09/gH+8jH0RgUwsgWHAaxsKGRT5zVZ95IaJUnqAWj6XejIBmnFRwq2WUIF37VtDEsmGrtPmvCs5+yBSeZGWvkA==
 
 optionator@^0.9.3:
   version "0.9.4"
