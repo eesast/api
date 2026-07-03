@@ -29,7 +29,7 @@
     "graphql-request": "6.1.0",
     "html-to-text": "10.0.0",
     "isemail": "3.2.0",
-    "js-yaml": "4.2.0",
+    "js-yaml": "4.3.0",
     "jsonwebtoken": "9.0.2",
     "morgan": "1.11.0",
     "node-cron": "4.5.0",
