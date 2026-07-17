@@ -283,6 +283,7 @@ const docker_cron = async () => {
               `TERMINAL=SERVER`,
               `TOKEN=${server_token}`,
               `GAME_TIME=${game_time}`,
+              `TEAM_COUNT=${queue_front.team_label_binds.length}`,
               `MAP_ID=${queue_front.map_id}`,
               `SCORE_URL=${score_url}`,
               `FINISH_URL=${finish_url}`,
