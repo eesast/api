@@ -202,7 +202,10 @@ router.post("/honor/insert_one", async (req, res) => {
     const student_uuid: string = req.body.student_uuid;
     const honor: string = req.body.honor;
     const statement: string = req.body.statement ?? "";
-    const attachment_url: string = req.body.attachment_url ?? undefined;
+    const attachment_url: string | undefined =
+      req.body.attachment_url || undefined;
+    const transcript_url: string | undefined =
+      req.body.transcript_url || undefined;
 
     if (!student_uuid || !honor) {
       return res.status(450).send("Error: Missing student_uuid or honor");
@@ -219,6 +222,7 @@ router.post("/honor/insert_one", async (req, res) => {
       honor,
       statement,
       attachment_url,
+      transcript_url,
       year,
     );
     if (!insert_id) {
@@ -236,7 +240,10 @@ router.post("/honor/update_one", async (req, res) => {
     const id: string = req.body.id;
     const honor: string = req.body.honor;
     const statement: string = req.body.statement ?? "";
-    const attachment_url: string = req.body.attachment_url ?? undefined;
+    const attachment_url: string | undefined =
+      req.body.attachment_url || undefined;
+    const transcript_url: string | undefined =
+      req.body.transcript_url || undefined;
     const student_uuid: string = req.body.student_uuid;
 
     if (!id || !honor || !student_uuid) {
@@ -259,26 +266,15 @@ router.post("/honor/update_one", async (req, res) => {
       return res.status(453).send("Error: Invalid year");
     }
 
-    if (!attachment_url) {
-      const response = await HnrHasFunc.update_honor_application(
-        id,
-        honor,
-        statement,
-      );
-      if (!response) {
-        return res.status(454).send("Error: Update honor application failed");
-      }
-    } else {
-      const response =
-        await HnrHasFunc.update_honor_application_with_attachment(
-          id,
-          honor,
-          statement,
-          attachment_url,
-        );
-      if (!response) {
-        return res.status(454).send("Error: Update honor application failed");
-      }
+    const response = await HnrHasFunc.update_honor_application(
+      id,
+      honor,
+      statement,
+      attachment_url,
+      transcript_url,
+    );
+    if (!response) {
+      return res.status(454).send("Error: Update honor application failed");
     }
     return res.status(200).send(id);
   } catch (err) {

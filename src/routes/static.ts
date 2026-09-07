@@ -65,6 +65,39 @@ router.get("/avatar/*", async (req, res) => {
   }
 });
 
+// honor application attachments
+router.get(
+  "/honor_application/:student_uuid/:year/*",
+  authenticate(["student", "counselor"]),
+  async (req, res) => {
+    try {
+      const { student_uuid, year } = req.params;
+      const user = req.auth.user;
+
+      if (!/^\d{4}$/.test(year)) {
+        return res.status(400).send("Invalid year");
+      }
+
+      if (user.role === "student" && user.uuid !== student_uuid) {
+        return res.status(401).send("当前用户没有权限访问该荣誉申请材料");
+      }
+
+      if (user.role === "student" || user.role === "counselor") {
+        const sts = await getSTS(
+          generalActions,
+          `honor_application/${student_uuid}/${year}/*`,
+          7200,
+        );
+        return res.status(200).send(sts);
+      }
+
+      return res.status(401).send("当前用户没有权限访问该荣誉申请材料");
+    } catch (err) {
+      return res.status(500).send(err);
+    }
+  },
+);
+
 router.get("/chat_record/:user_uuid/member/:semester/*", async (req, res) => {
   try {
     const { user_uuid: target_uuid, semester } = req.params;
