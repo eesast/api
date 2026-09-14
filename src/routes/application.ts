@@ -25,6 +25,37 @@ import * as validator from "../helpers/validate";
 
 const router = express.Router();
 
+const GLOBAL_COMPETENCE_HONOR = "全球胜任力优秀奖";
+const honorsNeedTranscript = new Set([
+  "学业优秀奖",
+  "综合优秀奖",
+  "学习进步奖",
+]);
+const honorsWithoutMaterialLink = new Set([
+  "学业优秀奖",
+  "综合优秀奖",
+  "学习进步奖",
+  "好读书奖",
+]);
+
+const honorNeedsApplicationForm = (honor: string) =>
+  honor === GLOBAL_COMPETENCE_HONOR;
+const honorNeedsMaterialLink = (honor: string) =>
+  !honorsWithoutMaterialLink.has(honor);
+const optionalString = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+const isHttpUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 const queryLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1分钟
   max: 40, // 每分钟最多20次查询
@@ -202,13 +233,29 @@ router.post("/honor/insert_one", async (req, res) => {
     const student_uuid: string = req.body.student_uuid;
     const honor: string = req.body.honor;
     const statement: string = req.body.statement ?? "";
-    const attachment_url: string | undefined =
-      req.body.attachment_url || undefined;
-    const transcript_url: string | undefined =
-      req.body.transcript_url || undefined;
 
     if (!student_uuid || !honor) {
       return res.status(450).send("Error: Missing student_uuid or honor");
+    }
+
+    const attachment_url = honorNeedsMaterialLink(honor)
+      ? optionalString(req.body.attachment_url)
+      : null;
+    const application_form_url = honorNeedsApplicationForm(honor)
+      ? optionalString(req.body.application_form_url)
+      : null;
+    const transcript_url = honorsNeedTranscript.has(honor)
+      ? optionalString(req.body.transcript_url)
+      : null;
+
+    if (honorNeedsApplicationForm(honor) && !application_form_url) {
+      return res.status(400).send("Error: Missing application form");
+    }
+    if (honorsNeedTranscript.has(honor) && !transcript_url) {
+      return res.status(400).send("Error: Missing transcript");
+    }
+    if (attachment_url && !isHttpUrl(attachment_url)) {
+      return res.status(400).send("Error: Invalid application material URL");
     }
 
     const role = await HnrHasFunc.query_user_role(student_uuid);
@@ -222,6 +269,7 @@ router.post("/honor/insert_one", async (req, res) => {
       honor,
       statement,
       attachment_url,
+      application_form_url,
       transcript_url,
       year,
     );
@@ -240,14 +288,30 @@ router.post("/honor/update_one", async (req, res) => {
     const id: string = req.body.id;
     const honor: string = req.body.honor;
     const statement: string = req.body.statement ?? "";
-    const attachment_url: string | undefined =
-      req.body.attachment_url || undefined;
-    const transcript_url: string | undefined =
-      req.body.transcript_url || undefined;
     const student_uuid: string = req.body.student_uuid;
 
     if (!id || !honor || !student_uuid) {
       return res.status(450).send("Error: Missing id or honor or student_uuid");
+    }
+
+    const attachment_url = honorNeedsMaterialLink(honor)
+      ? optionalString(req.body.attachment_url)
+      : null;
+    const application_form_url = honorNeedsApplicationForm(honor)
+      ? optionalString(req.body.application_form_url)
+      : null;
+    const transcript_url = honorsNeedTranscript.has(honor)
+      ? optionalString(req.body.transcript_url)
+      : null;
+
+    if (honorNeedsApplicationForm(honor) && !application_form_url) {
+      return res.status(400).send("Error: Missing application form");
+    }
+    if (honorsNeedTranscript.has(honor) && !transcript_url) {
+      return res.status(400).send("Error: Missing transcript");
+    }
+    if (attachment_url && !isHttpUrl(attachment_url)) {
+      return res.status(400).send("Error: Invalid application material URL");
     }
 
     const application = await HnrHasFunc.query_honor_application(id);
@@ -271,6 +335,7 @@ router.post("/honor/update_one", async (req, res) => {
       honor,
       statement,
       attachment_url,
+      application_form_url,
       transcript_url,
     );
     if (!response) {

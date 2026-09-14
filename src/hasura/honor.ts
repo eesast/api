@@ -25,6 +25,7 @@ export const query_honor_application = async (id: string) => {
           honor
           statement
           attachment_url
+          application_form_url
           year
           status
           transcript_url
@@ -40,22 +41,20 @@ export const insert_honor_application = async (
   student_uuid: string,
   honor: string,
   statement: string,
-  attachment_url: string | undefined,
-  transcript_url: string | undefined,
+  attachment_url: string | null,
+  application_form_url: string | null,
+  transcript_url: string | null,
   year: number,
 ) => {
   const object: Record<string, unknown> = {
     student_uuid: student_uuid,
     honor: honor,
     statement: statement,
+    attachment_url: attachment_url,
+    application_form_url: application_form_url,
+    transcript_url: transcript_url,
     year: year,
   };
-  if (attachment_url !== undefined) {
-    object.attachment_url = attachment_url;
-  }
-  if (transcript_url !== undefined) {
-    object.transcript_url = transcript_url;
-  }
 
   const query: any = await client.request(
     gql`
@@ -76,19 +75,17 @@ export const update_honor_application = async (
   id: string,
   honor: string,
   statement: string,
-  attachment_url?: string,
-  transcript_url?: string,
+  attachment_url: string | null,
+  application_form_url: string | null,
+  transcript_url: string | null,
 ) => {
   const set: Record<string, unknown> = {
     honor: honor,
     statement: statement,
+    attachment_url: attachment_url,
+    application_form_url: application_form_url,
+    transcript_url: transcript_url,
   };
-  if (attachment_url !== undefined) {
-    set.attachment_url = attachment_url;
-  }
-  if (transcript_url !== undefined) {
-    set.transcript_url = transcript_url;
-  }
 
   const query: any = await client.request(
     gql`
