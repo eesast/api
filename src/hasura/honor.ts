@@ -37,6 +37,67 @@ export const query_honor_application = async (id: string) => {
   return query.honor_application_by_pk ?? null;
 };
 
+export const query_honor_application_by_student_honor_year = async (
+  student_uuid: string,
+  honor: string,
+  year: number,
+) => {
+  const query: any = await client.request(
+    gql`
+      query QueryHonorApplicationByStudentHonorYear(
+        $student_uuid: uuid!
+        $honor: String!
+        $year: Int!
+      ) {
+        honor_application(
+          limit: 1
+          where: {
+            student_uuid: { _eq: $student_uuid }
+            honor: { _eq: $honor }
+            year: { _eq: $year }
+          }
+        ) {
+          id
+        }
+      }
+    `,
+    { student_uuid, honor, year },
+  );
+  return query.honor_application?.[0] ?? null;
+};
+
+export const query_other_honor_application_by_student_honor_year = async (
+  student_uuid: string,
+  honor: string,
+  year: number,
+  excluded_id: string,
+) => {
+  const query: any = await client.request(
+    gql`
+      query QueryOtherHonorApplicationByStudentHonorYear(
+        $student_uuid: uuid!
+        $honor: String!
+        $year: Int!
+        $excluded_id: uuid!
+      ) {
+        honor_application(
+          limit: 1
+          where: {
+            student_uuid: { _eq: $student_uuid }
+            honor: { _eq: $honor }
+            year: { _eq: $year }
+            id: { _neq: $excluded_id }
+          }
+        ) {
+          id
+        }
+      }
+    `,
+    { student_uuid, honor, year, excluded_id },
+  );
+  return query.honor_application?.[0] ?? null;
+};
+
 export const insert_honor_application = async (
   student_uuid: string,
   honor: string,
@@ -85,6 +146,7 @@ export const update_honor_application = async (
     attachment_url: attachment_url,
     application_form_url: application_form_url,
     transcript_url: transcript_url,
+    enforce_unique: true,
   };
 
   const query: any = await client.request(
