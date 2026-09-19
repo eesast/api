@@ -42,6 +42,10 @@ const honorNeedsApplicationForm = (honor: string) =>
   honor === GLOBAL_COMPETENCE_HONOR;
 const honorNeedsMaterialLink = (honor: string) =>
   !honorsWithoutMaterialLink.has(honor);
+const HONOR_APPLICATION_UNIQUE_CONSTRAINT =
+  "honor_application_student_uuid_year_honor_new_key";
+const isHonorApplicationDuplicateError = (err: unknown) =>
+  String(err).includes(HONOR_APPLICATION_UNIQUE_CONSTRAINT);
 const optionalString = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -264,15 +268,37 @@ router.post("/honor/insert_one", async (req, res) => {
     }
 
     const year: number = new Date().getFullYear();
-    const insert_id = await HnrHasFunc.insert_honor_application(
-      student_uuid,
-      honor,
-      statement,
-      attachment_url,
-      application_form_url,
-      transcript_url,
-      year,
-    );
+    const existingApplication =
+      await HnrHasFunc.query_honor_application_by_student_honor_year(
+        student_uuid,
+        honor,
+        year,
+      );
+    if (existingApplication) {
+      return res
+        .status(409)
+        .send("Error: You have already applied for this honor this year");
+    }
+
+    let insert_id: string | null;
+    try {
+      insert_id = await HnrHasFunc.insert_honor_application(
+        student_uuid,
+        honor,
+        statement,
+        attachment_url,
+        application_form_url,
+        transcript_url,
+        year,
+      );
+    } catch (err) {
+      if (isHonorApplicationDuplicateError(err)) {
+        return res
+          .status(409)
+          .send("Error: You have already applied for this honor this year");
+      }
+      throw err;
+    }
     if (!insert_id) {
       return res.status(452).send("Error: Insert honor application failed");
     }
@@ -330,14 +356,37 @@ router.post("/honor/update_one", async (req, res) => {
       return res.status(453).send("Error: Invalid year");
     }
 
-    const response = await HnrHasFunc.update_honor_application(
-      id,
-      honor,
-      statement,
-      attachment_url,
-      application_form_url,
-      transcript_url,
-    );
+    const existingApplication =
+      await HnrHasFunc.query_other_honor_application_by_student_honor_year(
+        application.student_uuid,
+        honor,
+        year,
+        id,
+      );
+    if (existingApplication) {
+      return res
+        .status(409)
+        .send("Error: You have already applied for this honor this year");
+    }
+
+    let response: string | null;
+    try {
+      response = await HnrHasFunc.update_honor_application(
+        id,
+        honor,
+        statement,
+        attachment_url,
+        application_form_url,
+        transcript_url,
+      );
+    } catch (err) {
+      if (isHonorApplicationDuplicateError(err)) {
+        return res
+          .status(409)
+          .send("Error: You have already applied for this honor this year");
+      }
+      throw err;
+    }
     if (!response) {
       return res.status(454).send("Error: Update honor application failed");
     }
