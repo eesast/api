@@ -27,7 +27,7 @@
     "express-rate-limit": "8.6.0",
     "graphql": "17.0.2",
     "graphql-request": "6.1.0",
-    "html-to-text": "10.0.0",
+    "html-to-text": "10.0.1",
     "isemail": "3.2.0",
     "js-yaml": "5.2.2",
     "jsonwebtoken": "9.0.2",
