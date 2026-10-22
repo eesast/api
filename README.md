@@ -20,7 +20,7 @@ EESAST 后端 API
 
 ### 环境
 
-- node 16 / npm
+- node 24 / npm
 - yarn
 - TypeScript
 

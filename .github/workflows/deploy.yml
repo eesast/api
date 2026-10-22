@@ -16,7 +16,7 @@ jobs:
       - name: Use Node.js ${{matrix.node-version}}
         uses: actions/setup-node@v6.5.0
         with:
-          node-version: "24.18.0"
+          node-version-file: ".nvmrc"
 
       - name: get yarn cache path
         id: yarn-cache-dir-path
@@ -54,7 +54,7 @@ jobs:
       - name: build and deploy image
         shell: bash
         run: |
-          docker build -t eesast/api:latest .
+          docker build pull -t eesast/api:latest .
           docker push eesast/api:latest
 
       - name: Trigger watchtower on server
