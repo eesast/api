@@ -5,7 +5,7 @@
   "private": true,
   "packageManager": "yarn@1.22.22",
   "engines": {
-    "node": ">=24.22.1 <25"
+    "node": "v24.22.1"
   },
   "scripts": {
     "preinstall": "npm config set registry https://registry.npmjs.org && yarn config set registry https://registry.yarnpkg.com",
