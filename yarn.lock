@@ -278,10 +278,10 @@
     "@types/node" "*"
     "@types/ssh2" "*"
 
-"@types/dockerode@4.0.1":
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-4.0.1.tgz#26a44995a86322b4489090efd97890a5585a63a5"
-  integrity sha512-cmUpB+dPN955PxBEuXE3f6lKO1hHiIGYJA46IVF3BJpNsZGvtBDcRnlrHYHtOH/B6vtDOyl2kZ2ShAu3mgc27Q==
+"@types/dockerode@4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-4.0.2.tgz#ced50a0b9c2633edd5a0c6e7b0a21537d38e427d"
+  integrity sha512-hA4myZ0XzwHG/p/eCLElYsQS3y1XZfvi6AfLFKVp1SNpPkO6J3xLatacAFVkReTxXRoIa3eHJmhJi9w6I3+zNA==
   dependencies:
     "@types/docker-modem" "*"
     "@types/node" "*"
