@@ -54,7 +54,7 @@ jobs:
       - name: build and deploy image
         shell: bash
         run: |
-          docker build pull -t eesast/api:latest .
+          docker build --pull -t eesast/api:latest .
           docker push eesast/api:latest
 
       - name: Trigger watchtower on server
