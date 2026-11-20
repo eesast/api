@@ -1396,10 +1396,10 @@ etag@~1.8.1:
   resolved "https://registry.yarnpkg.com/etag/-/etag-1.8.1.tgz#41ae2eeb65efa62268aebfea83ac7d79299b0887"
   integrity sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==
 
-express-prom-bundle@8.0.0:
-  version "8.0.0"
-  resolved "https://registry.yarnpkg.com/express-prom-bundle/-/express-prom-bundle-8.0.0.tgz#22a434b87854d98a1ea75c487c9d65f669e8e93e"
-  integrity sha512-UHdpaMks6Z/tvxQsNzhsE7nkdXb4/zEh/jwN0tfZSZOEF+aD0dlfl085EU4jveOq09v01c5sIUfjV4kJODZ2eQ==
+express-prom-bundle@9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/express-prom-bundle/-/express-prom-bundle-9.0.0.tgz#07ab6b0e30a92250779d61bc719e2f0dd05ed0bf"
+  integrity sha512-L+QSdn4BCTYNCM+njYUzoWqvDRDcZhcSYDuCe4ifTMgqbH5xu2z/y6DcJJM18f2WkHd4TuQh5YgTlqbfw8I7kQ==
   dependencies:
     "@types/express" "^5.0.0"
     on-finished "^2.3.0"
